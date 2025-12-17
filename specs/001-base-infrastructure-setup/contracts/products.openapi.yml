@@ -1,0 +1,334 @@
+openapi: 3.0.0
+info:
+  title: Bakery CMS Products API
+  version: 1.0.0
+  description: Product management endpoints for Bakery CMS
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.bakery-cms.com/api/v1
+    description: Production server
+
+paths:
+  /products:
+    get:
+      summary: List all products
+      description: Retrieve a paginated list of products with optional filters
+      tags:
+        - Products
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          description: Filter by product status
+          schema:
+            type: string
+            enum: [available, out-of-stock]
+        - name: businessType
+          in: query
+          description: Filter by business type
+          schema:
+            type: string
+            enum: [made-to-order, ready-to-sell, both]
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  total:
+                    type: integer
+                    description: Total number of products matching filters
+                  page:
+                    type: integer
+                    description: Current page number
+                  limit:
+                    type: integer
+                    description: Items per page
+
+    post:
+      summary: Create a new product
+      description: Create a new product in the catalog
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductDTO'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Product UUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get product by ID
+      description: Retrieve a single product by its ID
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update product
+      description: Update an existing product
+      tags:
+        - Products
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductDTO'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete product
+      description: Delete a product from the catalog
+      tags:
+        - Products
+      responses:
+        '204':
+          description: Product deleted successfully
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Cannot delete product with existing orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Product unique identifier
+        name:
+          type: string
+          description: Product name
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+          description: Product description
+          maxLength: 1000
+        price:
+          type: number
+          format: decimal
+          description: Product price in VND
+          minimum: 0
+        category:
+          type: string
+          nullable: true
+          description: Product category
+          maxLength: 100
+        businessType:
+          type: string
+          enum: [made-to-order, ready-to-sell, both]
+          description: Business model for this product
+        status:
+          type: string
+          enum: [available, out-of-stock]
+          description: Product availability status
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to product image
+        createdAt:
+          type: string
+          format: date-time
+          description: Product creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Product last update timestamp
+      required:
+        - id
+        - name
+        - price
+        - businessType
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateProductDTO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Product name
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          description: Product description
+          maxLength: 1000
+        price:
+          type: number
+          format: decimal
+          description: Product price in VND
+          minimum: 0.01
+        category:
+          type: string
+          description: Product category
+          maxLength: 100
+        businessType:
+          type: string
+          enum: [made-to-order, ready-to-sell, both]
+          description: Business model for this product
+        imageUrl:
+          type: string
+          format: uri
+          description: URL to product image
+      required:
+        - name
+        - price
+        - businessType
+
+    UpdateProductDTO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Product name
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          description: Product description
+          maxLength: 1000
+        price:
+          type: number
+          format: decimal
+          description: Product price in VND
+          minimum: 0.01
+        category:
+          type: string
+          description: Product category
+          maxLength: 100
+        businessType:
+          type: string
+          enum: [made-to-order, ready-to-sell, both]
+          description: Business model for this product
+        status:
+          type: string
+          enum: [available, out-of-stock]
+          description: Product availability status
+        imageUrl:
+          type: string
+          format: uri
+          description: URL to product image
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          description: Error code
+          enum:
+            - VALIDATION_ERROR
+            - NOT_FOUND
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - CONFLICT
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          nullable: true
+      required:
+        - status
+        - code
+        - message

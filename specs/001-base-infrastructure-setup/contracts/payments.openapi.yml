@@ -1,0 +1,303 @@
+openapi: 3.0.0
+info:
+  title: Bakery CMS Payments API
+  version: 1.0.0
+  description: Payment management endpoints for Bakery CMS
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.bakery-cms.com/api/v1
+    description: Production server
+
+paths:
+  /payments:
+    post:
+      summary: Create a payment
+      description: Create a payment for an order
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentDTO'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Business rule violation (e.g., order already has payment)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payment UUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get payment by ID
+      description: Retrieve a single payment
+      tags:
+        - Payments
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/order/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        description: Order UUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get payment by order ID
+      description: Retrieve payment for a specific order
+      tags:
+        - Payments
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found for this order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{id}/paid:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payment UUID
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Mark payment as paid
+      description: Mark a payment as paid (typically after confirming transaction)
+      tags:
+        - Payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transactionRef:
+                  type: string
+                  description: Transaction reference number
+                  maxLength: 100
+      responses:
+        '200':
+          description: Payment marked as paid successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Payment already paid or in invalid status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{id}/vietqr:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Payment UUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get VietQR code
+      description: Get VietQR code data for a payment (if payment method is vietqr)
+      tags:
+        - Payments
+      responses:
+        '200':
+          description: VietQR code data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qrCodeData:
+                    type: string
+                    description: VietQR code data (base64 or raw string)
+                  qrCodeImage:
+                    type: string
+                    description: Base64 encoded QR code image
+                  amount:
+                    type: number
+                    description: Payment amount
+                  orderNumber:
+                    type: string
+                    description: Order reference
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Payment method is not VietQR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Payment unique identifier
+        orderId:
+          type: string
+          format: uuid
+          description: Associated order ID
+        paymentMethod:
+          type: string
+          enum: [vietqr, cash, bank-transfer]
+          description: Payment method
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount in VND
+        status:
+          type: string
+          enum: [pending, paid, failed]
+          description: Payment status
+        qrCodeData:
+          type: string
+          nullable: true
+          description: VietQR code data (only for vietqr method)
+        transactionRef:
+          type: string
+          nullable: true
+          description: Transaction reference number
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when payment was completed
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - orderId
+        - paymentMethod
+        - amount
+        - status
+        - createdAt
+        - updatedAt
+
+    CreatePaymentDTO:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Order UUID to create payment for
+        paymentMethod:
+          type: string
+          enum: [vietqr, cash, bank-transfer]
+          description: Payment method
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount in VND (must match order total)
+          minimum: 0.01
+      required:
+        - orderId
+        - paymentMethod
+        - amount
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          description: Error code
+          enum:
+            - VALIDATION_ERROR
+            - NOT_FOUND
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - CONFLICT
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          nullable: true
+      required:
+        - status
+        - code
+        - message
