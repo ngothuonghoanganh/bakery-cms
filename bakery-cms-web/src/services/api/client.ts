@@ -6,6 +6,8 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { ErrorCode, createNetworkError, createInternalError, type AppError } from '@/types/common/error.types';
+import { useAuthStore } from '@/stores/authStore';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 /**
  * API Configuration
@@ -28,6 +30,14 @@ const createAPIClient = (): AxiosInstance => {
   // Request interceptor
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+      // Add authentication token if available
+      const authState = useAuthStore.getState();
+      if (authState.user) {
+        // In a real app, we would get the token from authState
+        // For now, we'll add a placeholder
+        config.headers.Authorization = `Bearer ${authState.user.id}`;
+      }
+
       // Add timestamp to prevent caching
       const timestamp = new Date().getTime();
       if (config.params) {
@@ -61,6 +71,36 @@ const createAPIClient = (): AxiosInstance => {
       // Log errors in development
       if (import.meta.env.DEV) {
         console.error('[API Error]', error);
+      }
+
+      // Handle authentication errors
+      if (error.response?.status === 401) {
+        const authState = useAuthStore.getState();
+        const notificationState = useNotificationStore.getState();
+        
+        authState.logout();
+        notificationState.error(
+          'Authentication Error',
+          'Your session has expired. Please login again.'
+        );
+      }
+
+      // Handle authorization errors
+      if (error.response?.status === 403) {
+        const notificationState = useNotificationStore.getState();
+        notificationState.error(
+          'Authorization Error',
+          'You do not have permission to perform this action.'
+        );
+      }
+
+      // Handle server errors
+      if (error.response?.status && error.response.status >= 500) {
+        const notificationState = useNotificationStore.getState();
+        notificationState.error(
+          'Server Error',
+          'An error occurred on the server. Please try again later.'
+        );
       }
 
       // Re-throw with structured error

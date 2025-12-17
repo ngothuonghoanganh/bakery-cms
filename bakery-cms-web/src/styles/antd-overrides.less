@@ -1,0 +1,111 @@
+// Ant Design Component Overrides
+// Custom styles to override default Ant Design component styles
+
+// Layout overrides
+.ant-layout {
+  min-height: 100vh;
+}
+
+.ant-layout-sider {
+  box-shadow: 2px 0 8px 0 rgba(0, 0, 0, 0.06);
+}
+
+// Menu overrides
+.ant-menu {
+  border-right: none;
+}
+
+.ant-menu-inline .ant-menu-item {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+// Table overrides
+.ant-table {
+  .ant-table-thead > tr > th {
+    font-weight: 600;
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    cursor: pointer;
+  }
+}
+
+// Card overrides
+.ant-card {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+
+  .ant-card-head {
+    border-bottom: 1px solid #f0f0f0;
+  }
+}
+
+// Button overrides
+.ant-btn {
+  font-weight: 500;
+}
+
+// Form overrides
+.ant-form-item {
+  margin-bottom: 20px;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+// Modal overrides
+.ant-modal {
+  .ant-modal-header {
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0f0f0;
+  }
+}
+
+// Drawer overrides
+.ant-drawer {
+  .ant-drawer-header {
+    border-bottom: 1px solid #f0f0f0;
+  }
+}
+
+// Notification overrides
+.ant-notification {
+  z-index: 1100;
+}
+
+// Message overrides
+.ant-message {
+  z-index: 1100;
+}
+
+// Tag overrides
+.ant-tag {
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+// Badge overrides
+.ant-badge {
+  .ant-badge-count {
+    font-weight: 600;
+  }
+}
+
+// Responsive utilities
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 999;
+  }
+
+  .ant-table {
+    overflow-x: auto;
+  }
+}
