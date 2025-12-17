@@ -1,0 +1,41 @@
+{
+  "name": "bakery-cms",
+  "version": "0.1.0",
+  "description": "Bakery CMS Monorepo",
+  "private": true,
+  "scripts": {
+    "install:all": "yarn install && cd bakery-cms-api && yarn install && cd ../bakery-cms-web && yarn install && cd ..",
+    "dev": "concurrently \"yarn dev:api\" \"yarn dev:web\"",
+    "dev:api": "cd bakery-cms-api && yarn dev",
+    "dev:web": "cd bakery-cms-web && yarn dev",
+    "build": "yarn build:api && yarn build:web",
+    "build:api": "cd bakery-cms-api && yarn build",
+    "build:web": "cd bakery-cms-web && yarn build",
+    "test": "yarn test:api && yarn test:web",
+    "test:api": "cd bakery-cms-api && yarn test",
+    "test:web": "cd bakery-cms-web && yarn test",
+    "lint": "yarn lint:api && yarn lint:web",
+    "lint:api": "cd bakery-cms-api && yarn lint",
+    "lint:web": "cd bakery-cms-web && yarn lint",
+    "clean": "yarn clean:api && yarn clean:web",
+    "clean:api": "cd bakery-cms-api && rm -rf node_modules dist",
+    "clean:web": "cd bakery-cms-web && rm -rf node_modules dist"
+  },
+  "workspaces": [
+    "bakery-cms-api",
+    "bakery-cms-web"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/bakery-cms.git"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
