@@ -1,4 +1,4 @@
-name: Backend Deploy
+name: Monorepo Deploy
 
 on:
   push:
@@ -12,14 +12,23 @@ on:
         options:
           - staging
           - production
+      target:
+        description: 'Deployment target'
+        required: true
+        type: choice
+        options:
+          - api
+          - web
+          - all
 
 jobs:
-  deploy:
-    name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
+  deploy-api:
+    name: Deploy API to ${{ github.event.inputs.environment || 'staging' }}
     runs-on: ubuntu-latest
+    if: github.event.inputs.target == 'api' || github.event.inputs.target == 'all' || github.event_name == 'push'
     
     environment:
-      name: ${{ github.event.inputs.environment || 'staging' }}
+      name: ${{ github.event.inputs.environment || 'staging' }}-api
       url: ${{ steps.deploy.outputs.app-url }}
     
     steps:
@@ -28,21 +37,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
       
       - name: Install dependencies
+        working-directory: bakery-cms-api
         run: yarn install --frozen-lockfile
       
       - name: Build application
+        working-directory: bakery-cms-api
         run: yarn build
       
       - name: Run tests
+        working-directory: bakery-cms-api
         run: yarn test
         env:
           NODE_ENV: test
       
       - name: Create deployment package
+        working-directory: bakery-cms-api
         run: |
           mkdir -p deploy
           cp -r packages/*/dist deploy/
@@ -53,30 +67,20 @@ jobs:
       - name: Upload deployment package
         uses: actions/upload-artifact@v3
         with:
-          name: deployment-package
-          path: deploy.tar.gz
+          name: api-deployment-package
+          path: bakery-cms-api/deploy.tar.gz
       
       # Placeholder for actual deployment steps
       # Replace with your deployment method (AWS, Heroku, DigitalOcean, etc.)
       
-      - name: Deploy to server
+      - name: Deploy API to server
         id: deploy
         run: |
-          echo "Deployment to ${{ github.event.inputs.environment || 'staging' }} would happen here"
+          echo "API deployment to ${{ github.event.inputs.environment || 'staging' }} would happen here"
           echo "app-url=https://api-${{ github.event.inputs.environment || 'staging' }}.bakery-cms.com" >> $GITHUB_OUTPUT
-        # Example: Deploy to AWS Elastic Beanstalk
-        # - name: Deploy to AWS Elastic Beanstalk
-        #   uses: einaregilsson/beanstalk-deploy@v21
-        #   with:
-        #     aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        #     aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        #     application_name: bakery-cms-api
-        #     environment_name: bakery-cms-api-${{ github.event.inputs.environment }}
-        #     version_label: ${{ github.sha }}
-        #     region: us-east-1
-        #     deployment_package: deploy.tar.gz
       
       - name: Run database migrations
+        working-directory: bakery-cms-api
         run: |
           echo "Database migrations would run here"
           # yarn migrate
@@ -94,20 +98,99 @@ jobs:
       - name: Notify deployment success
         if: success()
         run: |
-          echo "✅ Deployment to ${{ github.event.inputs.environment || 'staging' }} successful!"
+          echo "✅ API deployment to ${{ github.event.inputs.environment || 'staging' }} successful!"
       
       - name: Notify deployment failure
         if: failure()
         run: |
-          echo "❌ Deployment to ${{ github.event.inputs.environment || 'staging' }} failed!"
+          echo "❌ API deployment to ${{ github.event.inputs.environment || 'staging' }} failed!"
 
-  rollback:
-    name: Rollback on Failure
+  deploy-web:
+    name: Deploy Web to ${{ github.event.inputs.environment || 'staging' }}
     runs-on: ubuntu-latest
-    needs: [deploy]
+    if: github.event.inputs.target == 'web' || github.event.inputs.target == 'all' || github.event_name == 'push'
+    
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}-web
+      url: ${{ steps.deploy.outputs.app-url }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
+      
+      - name: Install dependencies
+        working-directory: bakery-cms-web
+        run: yarn install --frozen-lockfile
+      
+      - name: Build application
+        working-directory: bakery-cms-web
+        run: yarn build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      
+      - name: Run tests
+        working-directory: bakery-cms-web
+        run: yarn test || true
+      
+      - name: Create deployment package
+        working-directory: bakery-cms-web
+        run: |
+          tar -czf deploy.tar.gz -C dist .
+      
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-deployment-package
+          path: bakery-cms-web/deploy.tar.gz
+      
+      # Placeholder for actual deployment steps
+      # Replace with your deployment method (AWS S3, Netlify, Vercel, etc.)
+      
+      - name: Deploy Web to server
+        id: deploy
+        run: |
+          echo "Web deployment to ${{ github.event.inputs.environment || 'staging' }} would happen here"
+          echo "app-url=https://${{ github.event.inputs.environment || 'staging' }}.bakery-cms.com" >> $GITHUB_OUTPUT
+      
+      - name: Health check
+        run: |
+          echo "Performing health check..."
+          # curl -f https://${{ github.event.inputs.environment }}.bakery-cms.com || exit 1
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Web deployment to ${{ github.event.inputs.environment || 'staging' }} successful!"
+      
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Web deployment to ${{ github.event.inputs.environment || 'staging' }} failed!"
+
+  rollback-api:
+    name: Rollback API on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-api]
     if: failure()
     steps:
-      - name: Rollback deployment
+      - name: Rollback API deployment
         run: |
-          echo "Rolling back deployment..."
+          echo "Rolling back API deployment..."
+          # Add rollback logic here
+
+  rollback-web:
+    name: Rollback Web on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-web]
+    if: failure()
+    steps:
+      - name: Rollback Web deployment
+        run: |
+          echo "Rolling back Web deployment..."
           # Add rollback logic here

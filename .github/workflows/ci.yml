@@ -1,4 +1,4 @@
-name: Backend CI
+name: Monorepo CI
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  lint:
-    name: Lint
+  lint-api:
+    name: Lint API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -16,20 +16,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
       
       - name: Install dependencies
+        working-directory: bakery-cms-api
         run: yarn install --frozen-lockfile
       
       - name: Run ESLint
+        working-directory: bakery-cms-api
         run: yarn lint
       
       - name: Run Prettier check
+        working-directory: bakery-cms-api
         run: yarn format --check
 
-  type-check:
-    name: Type Check
+  lint-web:
+    name: Lint Web
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -37,17 +41,62 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
       
       - name: Install dependencies
+        working-directory: bakery-cms-web
+        run: yarn install --frozen-lockfile
+      
+      - name: Run ESLint
+        working-directory: bakery-cms-web
+        run: yarn lint
+
+  type-check-api:
+    name: Type Check API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
+      
+      - name: Install dependencies
+        working-directory: bakery-cms-api
         run: yarn install --frozen-lockfile
       
       - name: Run TypeScript compiler
+        working-directory: bakery-cms-api
         run: yarn type-check
 
-  test:
-    name: Test
+  type-check-web:
+    name: Type Check Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
+      
+      - name: Install dependencies
+        working-directory: bakery-cms-web
+        run: yarn install --frozen-lockfile
+      
+      - name: Run TypeScript compiler
+        working-directory: bakery-cms-web
+        run: yarn type-check
+
+  test-api:
+    name: Test API
     runs-on: ubuntu-latest
     
     services:
@@ -70,13 +119,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
       
       - name: Install dependencies
+        working-directory: bakery-cms-api
         run: yarn install --frozen-lockfile
       
       - name: Create test environment file
+        working-directory: bakery-cms-api
         run: |
           cat > .env.test << EOF
           NODE_ENV=test
@@ -97,6 +149,7 @@ jobs:
           EOF
       
       - name: Run migrations
+        working-directory: bakery-cms-api
         run: yarn migrate
         env:
           DB_HOST: 127.0.0.1
@@ -106,20 +159,23 @@ jobs:
           DB_PASSWORD: test_password
       
       - name: Run tests
+        working-directory: bakery-cms-api
         run: yarn test
       
       - name: Generate coverage report
+        working-directory: bakery-cms-api
         run: yarn test:coverage
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: ./coverage/lcov.info
-          flags: backend
-          name: bakery-cms-backend
+          files: ./bakery-cms-api/coverage/lcov.info
+          flags: api
+          name: bakery-cms-api
           fail_ci_if_error: false
       
       - name: Check coverage threshold
+        working-directory: bakery-cms-api
         run: |
           COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
           echo "Coverage: $COVERAGE%"
@@ -128,35 +184,101 @@ jobs:
             exit 1
           fi
 
-  build:
-    name: Build
+  test-web:
+    name: Test Web
     runs-on: ubuntu-latest
-    needs: [lint, type-check, test]
     steps:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
       
       - name: Install dependencies
+        working-directory: bakery-cms-web
+        run: yarn install --frozen-lockfile
+      
+      - name: Run tests
+        working-directory: bakery-cms-web
+        run: yarn test
+      
+      - name: Generate coverage report
+        working-directory: bakery-cms-web
+        run: yarn test:coverage || true
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./bakery-cms-web/coverage/lcov.info
+          flags: web
+          name: bakery-cms-web
+          fail_ci_if_error: false
+
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    needs: [lint-api, type-check-api, test-api]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
+      
+      - name: Install dependencies
+        working-directory: bakery-cms-api
         run: yarn install --frozen-lockfile
       
       - name: Build all packages
+        working-directory: bakery-cms-api
         run: yarn build
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: dist
+          name: api-dist
           path: |
-            packages/*/dist
+            bakery-cms-api/packages/*/dist
           retention-days: 7
 
-  security:
-    name: Security Audit
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: [lint-web, type-check-web, test-web]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
+      
+      - name: Install dependencies
+        working-directory: bakery-cms-web
+        run: yarn install --frozen-lockfile
+      
+      - name: Build application
+        working-directory: bakery-cms-web
+        run: yarn build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: web-dist
+          path: |
+            bakery-cms-web/dist
+          retention-days: 7
+
+  security-api:
+    name: Security Audit API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -164,11 +286,35 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-api/yarn.lock'
       
       - name: Run security audit
+        working-directory: bakery-cms-api
         run: yarn audit --level moderate || true
       
       - name: Check for vulnerabilities
+        working-directory: bakery-cms-api
+        run: yarn audit --groups dependencies --level high
+
+  security-web:
+    name: Security Audit Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: 'bakery-cms-web/yarn.lock'
+      
+      - name: Run security audit
+        working-directory: bakery-cms-web
+        run: yarn audit --level moderate || true
+      
+      - name: Check for vulnerabilities
+        working-directory: bakery-cms-web
         run: yarn audit --groups dependencies --level high
