@@ -1,0 +1,13 @@
+/**
+ * Sequelize CLI configuration
+ * Points to compiled JavaScript files in dist/
+ */
+
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve('packages', 'database', 'src', 'config', 'config.js'),
+  'models-path': path.resolve('packages', 'database', 'dist', 'models'),
+  'seeders-path': path.resolve('packages', 'database', 'dist', 'seeders'),
+  'migrations-path': path.resolve('packages', 'database', 'dist', 'migrations'),
+};

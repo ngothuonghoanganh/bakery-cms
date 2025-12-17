@@ -1,0 +1,452 @@
+openapi: 3.0.0
+info:
+  title: Bakery CMS Orders API
+  version: 1.0.0
+  description: Order management endpoints for Bakery CMS
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.bakery-cms.com/api/v1
+    description: Production server
+
+paths:
+  /orders:
+    get:
+      summary: List all orders
+      description: Retrieve a paginated list of orders with optional filters
+      tags:
+        - Orders
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          description: Filter by order status
+          schema:
+            type: string
+            enum: [draft, confirmed, paid, cancelled]
+        - name: orderType
+          in: query
+          description: Filter by order type
+          schema:
+            type: string
+            enum: [temporary, official]
+        - name: businessModel
+          in: query
+          description: Filter by business model
+          schema:
+            type: string
+            enum: [made-to-order, ready-to-sell]
+        - name: startDate
+          in: query
+          description: Filter orders created after this date
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Filter orders created before this date
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+    post:
+      summary: Create a new order
+      description: Create a new order (temporary or official)
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderDTO'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Business rule violation (e.g., product out of stock)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Order UUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get order by ID
+      description: Retrieve a single order with all items
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update order
+      description: Update order details (only for draft orders)
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderDTO'
+      responses:
+        '200':
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Cannot update order in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}/confirm:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Order UUID
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Confirm order
+      description: Confirm a draft order (changes status to confirmed)
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Order confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Cannot confirm order in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Order UUID
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Cancel order
+      description: Cancel an order (only draft or confirmed orders)
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Cannot cancel order in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          description: Unique order number (e.g., ORD-20251216-0001)
+        orderType:
+          type: string
+          enum: [temporary, official]
+          description: Order type
+        businessModel:
+          type: string
+          enum: [made-to-order, ready-to-sell]
+          description: Business model for this order
+        totalAmount:
+          type: number
+          format: decimal
+          description: Total order amount in VND
+        status:
+          type: string
+          enum: [draft, confirmed, paid, cancelled]
+          description: Order status
+        customerName:
+          type: string
+          nullable: true
+          description: Customer name
+        customerPhone:
+          type: string
+          nullable: true
+          description: Customer phone number
+        notes:
+          type: string
+          nullable: true
+          description: Order notes
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        confirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when order was confirmed
+      required:
+        - id
+        - orderNumber
+        - orderType
+        - businessModel
+        - totalAmount
+        - status
+        - items
+        - createdAt
+        - updatedAt
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        product:
+          $ref: '#/components/schemas/ProductSummary'
+        quantity:
+          type: integer
+          minimum: 1
+          description: Item quantity
+        unitPrice:
+          type: number
+          format: decimal
+          description: Price per unit at time of order
+        subtotal:
+          type: number
+          format: decimal
+          description: Item subtotal (quantity × unitPrice)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - orderId
+        - productId
+        - quantity
+        - unitPrice
+        - subtotal
+
+    ProductSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        businessType:
+          type: string
+          enum: [made-to-order, ready-to-sell, both]
+      required:
+        - id
+        - name
+        - businessType
+
+    CreateOrderDTO:
+      type: object
+      properties:
+        orderType:
+          type: string
+          enum: [temporary, official]
+          description: Order type
+        businessModel:
+          type: string
+          enum: [made-to-order, ready-to-sell]
+          description: Business model for this order
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderItemDTO'
+          minItems: 1
+          description: Order items (at least one required)
+        customerName:
+          type: string
+          maxLength: 255
+        customerPhone:
+          type: string
+          maxLength: 20
+        notes:
+          type: string
+          maxLength: 1000
+      required:
+        - orderType
+        - businessModel
+        - items
+
+    CreateOrderItemDTO:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Product UUID
+        quantity:
+          type: integer
+          minimum: 1
+          description: Item quantity
+      required:
+        - productId
+        - quantity
+
+    UpdateOrderDTO:
+      type: object
+      properties:
+        customerName:
+          type: string
+          maxLength: 255
+        customerPhone:
+          type: string
+          maxLength: 20
+        notes:
+          type: string
+          maxLength: 1000
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderItemDTO'
+          minItems: 1
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          enum:
+            - VALIDATION_ERROR
+            - NOT_FOUND
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - CONFLICT
+            - INTERNAL_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+      required:
+        - status
+        - code
+        - message
