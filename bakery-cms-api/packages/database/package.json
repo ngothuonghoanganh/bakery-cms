@@ -7,6 +7,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "migrate": "sequelize-cli db:migrate",
+    "migrate:undo": "sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "sequelize-cli db:migrate:undo:all",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
     "lint": "eslint src --ext .ts",
@@ -15,13 +18,14 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "sequelize": "^6.35.2",
+    "@bakery-cms/common": "*",
     "mysql2": "^3.6.5",
-    "@bakery-cms/common": "*"
+    "sequelize": "^6.35.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "sequelize-cli": "^6.6.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }

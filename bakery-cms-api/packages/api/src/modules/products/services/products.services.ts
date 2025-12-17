@@ -39,6 +39,7 @@ export interface ProductService {
   getAllProducts(query: ProductListQueryDto): Promise<Result<ProductListResponseDto, AppError>>;
   updateProduct(id: string, dto: UpdateProductDto): Promise<Result<ProductResponseDto, AppError>>;
   deleteProduct(id: string): Promise<Result<void, AppError>>;
+  restoreProduct(id: string): Promise<Result<ProductResponseDto, AppError>>;
 }
 
 /**
@@ -173,11 +174,11 @@ export const createProductService = (
   };
 
   /**
-   * Delete product by ID
+   * Delete product by ID (soft delete)
    */
   const deleteProduct = async (id: string): Promise<Result<void, AppError>> => {
     try {
-      logger.info('Deleting product', { productId: id });
+      logger.info('Soft deleting product', { productId: id, operation: 'soft_delete' });
 
       const deleted = await repository.delete(id);
 
@@ -186,12 +187,45 @@ export const createProductService = (
         return err(createNotFoundError('Product', id));
       }
 
-      logger.info('Product deleted successfully', { productId: id });
+      logger.info('Product soft deleted successfully', { 
+        productId: id,
+        deletedAt: new Date(),
+        metadata: { action: 'soft_delete', recoverable: true }
+      });
 
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete product', { error, productId: id });
       return err(createDatabaseError('Failed to delete product'));
+    }
+  };
+
+  /**
+   * Restore soft-deleted product by ID
+   */
+  const restoreProduct = async (
+    id: string
+  ): Promise<Result<ProductResponseDto, AppError>> => {
+    try {
+      logger.info('Restoring soft-deleted product', { productId: id, operation: 'restore' });
+
+      const product = await repository.restore(id);
+
+      if (!product) {
+        logger.warn('Product not found or not deleted', { productId: id });
+        return err(createNotFoundError('Deleted product', id));
+      }
+
+      logger.info('Product restored successfully', { 
+        productId: id,
+        restoredAt: new Date(),
+        metadata: { action: 'restore', previousState: 'deleted' }
+      });
+
+      return ok(toProductResponseDto(product));
+    } catch (error) {
+      logger.error('Failed to restore product', { error, productId: id });
+      return err(createDatabaseError('Failed to restore product'));
     }
   };
 
@@ -201,5 +235,6 @@ export const createProductService = (
     getAllProducts,
     updateProduct,
     deleteProduct,
+    restoreProduct,
   };
 };

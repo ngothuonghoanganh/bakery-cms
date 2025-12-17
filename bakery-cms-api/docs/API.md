@@ -7,6 +7,22 @@ Staging:     https://api-staging.bakery-cms.com/api
 Production:  https://api.bakery-cms.com/api
 ```
 
+## Soft Delete Behavior
+
+**All entities support soft delete functionality:**
+
+- **Products**, **Orders**, **Order Items**, and **Payments** are soft-deleted by default
+- Soft-deleted records are marked with a `deletedAt` timestamp instead of being permanently removed
+- Soft-deleted records are automatically filtered from all query results
+- Deleted records can be recovered/restored (admin feature)
+- This ensures data recoverability and audit trail compliance
+
+**Key Points:**
+- DELETE endpoints return the same response (204 No Content or success message)
+- Deleted records won't appear in list queries or GET requests
+- Deleting an Order cascades to its Order Items and Payment
+- All deletions are logged with metadata for audit purposes
+
 ## Response Format
 
 ### Success Response
@@ -158,6 +174,12 @@ Content-Type: application/json
 ```http
 DELETE /api/products/:id
 ```
+
+**Behavior:**
+- Soft deletes the product (marks with `deletedAt` timestamp)
+- Product is hidden from all queries but remains in database
+- Can be restored by admin operations
+- All deletions are logged for audit purposes
 
 **Response:**
 ```json
@@ -352,7 +374,13 @@ DELETE /api/orders/:id
 
 **Business Rules:**
 - Only DRAFT orders can be deleted
-- Permanently removes order and items
+- Soft deletes the order (marks with `deletedAt` timestamp)
+- **Cascades soft delete to:**
+  - All associated Order Items
+  - Associated Payment record
+- All entities remain in database but are hidden from queries
+- Can be restored by admin operations
+- Deletion is transactional (all-or-nothing)
 
 **Response:**
 ```json

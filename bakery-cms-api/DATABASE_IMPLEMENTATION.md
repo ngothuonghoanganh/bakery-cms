@@ -143,10 +143,28 @@ packages/database/dist/
 ## Database Schema Summary
 
 ### Tables
-1. **products** - 10 columns, 3 indexes
-2. **orders** - 12 columns, 6 indexes
-3. **order_items** - 8 columns, 3 indexes (2 FKs)
-4. **payments** - 11 columns, 5 indexes (1 FK)
+1. **products** - 11 columns (incl. deletedAt), 4 indexes
+2. **orders** - 13 columns (incl. deletedAt), 7 indexes
+3. **order_items** - 9 columns (incl. deletedAt), 4 indexes (2 FKs)
+4. **payments** - 12 columns (incl. deletedAt), 6 indexes (1 FK)
+
+### Soft Delete Implementation
+All tables include soft delete functionality:
+- **deletedAt** column (DATE, nullable) added to all 4 tables
+- **Indexes** on deletedAt for query performance (idx_*_deleted_at)
+- **Model scopes** implemented:
+  - `defaultScope`: Filters out soft-deleted records (WHERE deletedAt IS NULL)
+  - `withDeleted`: Includes all records (deleted and active)
+  - `onlyDeleted`: Shows only soft-deleted records (WHERE deletedAt IS NOT NULL)
+- **Paranoid mode**: Enabled on all models via Sequelize paranoid option
+- **Cascade behavior**: Deleting an Order cascades soft delete to OrderItems and Payment
+- **Migration**: 20251217000001-add-soft-delete-fields.ts adds deletedAt to all tables
+
+**Benefits:**
+- Data recoverability - deleted records can be restored
+- Audit trail - track when records were deleted
+- No data loss - all data retained for compliance
+- Performance - indexed queries remain fast
 
 ### Relationships
 - Product 1:N OrderItem (RESTRICT delete to prevent orphaned items)

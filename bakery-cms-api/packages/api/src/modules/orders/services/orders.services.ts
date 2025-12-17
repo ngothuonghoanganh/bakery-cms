@@ -44,6 +44,7 @@ export interface OrderService {
   confirmOrder(id: string): Promise<Result<OrderResponseDto, AppError>>;
   cancelOrder(id: string, reason?: string): Promise<Result<OrderResponseDto, AppError>>;
   deleteOrder(id: string): Promise<Result<void, AppError>>;
+  restoreOrder(id: string): Promise<Result<OrderResponseDto, AppError>>;
 }
 
 /**
@@ -412,11 +413,14 @@ export const createOrderService = (
   };
 
   /**
-   * Delete order by ID
+   * Delete order by ID (soft delete with cascade)
    */
   const deleteOrder = async (id: string): Promise<Result<void, AppError>> => {
     try {
-      logger.info('Deleting order', { orderId: id });
+      logger.info('Soft deleting order with cascade', { 
+        orderId: id,
+        operation: 'cascade_soft_delete'
+      });
 
       // Check if order exists and can be deleted
       const order = await repository.findById(id);
@@ -441,12 +445,57 @@ export const createOrderService = (
         return err(createDatabaseError('Failed to delete order'));
       }
 
-      logger.info('Order deleted successfully', { orderId: id });
+      logger.info('Order and related entities soft deleted successfully', { 
+        orderId: id,
+        deletedAt: new Date(),
+        metadata: {
+          action: 'cascade_soft_delete',
+          cascade: ['order', 'order_items', 'payment'],
+          recoverable: true,
+          businessRule: 'draft_only'
+        }
+      });
 
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete order', { error, orderId: id });
       return err(createDatabaseError('Failed to delete order'));
+    }
+  };
+
+  /**
+   * Restore soft-deleted order with cascade
+   */
+  const restoreOrder = async (
+    id: string
+  ): Promise<Result<OrderResponseDto, AppError>> => {
+    try {
+      logger.info('Restoring soft-deleted order with cascade', { 
+        orderId: id,
+        operation: 'cascade_restore'
+      });
+
+      const order = await repository.restore(id);
+
+      if (!order) {
+        logger.warn('Order not found or not deleted', { orderId: id });
+        return err(createNotFoundError('Deleted order', id));
+      }
+
+      logger.info('Order and related entities restored successfully', { 
+        orderId: id,
+        restoredAt: new Date(),
+        metadata: {
+          action: 'cascade_restore',
+          cascade: ['order', 'order_items', 'payment'],
+          previousState: 'deleted'
+        }
+      });
+
+      return ok(toOrderResponseDto(order));
+    } catch (error) {
+      logger.error('Failed to restore order', { error, orderId: id });
+      return err(createDatabaseError('Failed to restore order'));
     }
   };
 
@@ -458,5 +507,6 @@ export const createOrderService = (
     confirmOrder,
     cancelOrder,
     deleteOrder,
+    restoreOrder,
   };
 };

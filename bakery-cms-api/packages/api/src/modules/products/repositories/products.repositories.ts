@@ -17,6 +17,8 @@ export interface ProductRepository {
   create(attributes: Partial<ProductModel>): Promise<ProductModel>;
   update(id: string, attributes: Partial<ProductModel>): Promise<ProductModel | null>;
   delete(id: string): Promise<boolean>;
+  restore(id: string): Promise<ProductModel | null>;
+  forceDelete(id: string): Promise<boolean>;
   count(filters?: Partial<ProductModel>): Promise<number>;
 }
 
@@ -114,12 +116,43 @@ export const createProductRepository = (
   };
 
   /**
-   * Delete product by ID
+   * Delete product by ID (soft delete)
    * Returns true if deleted, false if not found
    */
   const deleteProduct = async (id: string): Promise<boolean> => {
-    const rowsDeleted = await model.destroy({
+    const product = await model.findByPk(id);
+    
+    if (!product) {
+      return false;
+    }
+
+    await product.destroy();
+    return true;
+  };
+
+  /**
+   * Restore soft-deleted product by ID
+   * Returns restored product or null if not found
+   */
+  const restore = async (id: string): Promise<ProductModel | null> => {
+    const product = await model.scope('withDeleted').findByPk(id);
+    
+    if (!product || !product.deletedAt) {
+      return null;
+    }
+
+    await product.restore();
+    return product;
+  };
+
+  /**
+   * Permanently delete product by ID (hard delete)
+   * Returns true if deleted, false if not found
+   */
+  const forceDelete = async (id: string): Promise<boolean> => {
+    const rowsDeleted = await model.scope('withDeleted').destroy({
       where: { id },
+      force: true,
     });
 
     return rowsDeleted > 0;
@@ -140,6 +173,8 @@ export const createProductRepository = (
     create,
     update,
     delete: deleteProduct,
+    restore,
+    forceDelete,
     count,
   };
 };

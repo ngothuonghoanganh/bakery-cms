@@ -44,6 +44,8 @@ export interface PaymentService {
   getAllPayments(query: PaymentListQueryDto): Promise<Result<PaymentListResponseDto, AppError>>;
   markAsPaid(id: string, dto: MarkAsPaidDto): Promise<Result<PaymentResponseDto, AppError>>;
   generateVietQR(orderId: string): Promise<Result<VietQRResponseDto, AppError>>;
+  deletePayment(id: string): Promise<Result<boolean, AppError>>;
+  restorePayment(id: string): Promise<Result<PaymentResponseDto, AppError>>;
 }
 
 /**
@@ -387,6 +389,87 @@ export const createPaymentService = (
     }
   };
 
+  /**
+   * Soft delete payment by ID
+   * Marks payment as deleted without permanent removal
+   */
+  const deletePayment = async (
+    id: string
+  ): Promise<Result<boolean, AppError>> => {
+    try {
+      logger.info('Soft deleting payment', {
+        paymentId: id,
+        operation: 'soft_delete',
+        metadata: {
+          action: 'soft_delete',
+          recoverable: true,
+        },
+      });
+
+      const payment = await repository.findById(id);
+
+      if (!payment) {
+        logger.warn('Payment not found for deletion', { paymentId: id });
+        return err(createNotFoundError('Payment', id));
+      }
+
+      const deleted = await repository.delete(id);
+
+      if (!deleted) {
+        logger.error('Failed to soft delete payment', { paymentId: id });
+        return err(createDatabaseError('Failed to delete payment'));
+      }
+
+      logger.info('Payment soft deleted successfully', {
+        paymentId: id,
+        previousStatus: payment.status,
+      });
+
+      return ok(true);
+    } catch (error) {
+      logger.error('Failed to soft delete payment', { error, paymentId: id });
+      return err(createDatabaseError('Failed to delete payment'));
+    }
+  };
+
+  /**
+   * Restore soft-deleted payment by ID
+   * Recovers a previously deleted payment
+   */
+  const restorePayment = async (
+    id: string
+  ): Promise<Result<PaymentResponseDto, AppError>> => {
+    try {
+      logger.info('Restoring payment', {
+        paymentId: id,
+        operation: 'restore',
+        metadata: {
+          action: 'restore',
+          previousState: 'deleted',
+        },
+      });
+
+      const restoredPayment = await repository.restore(id);
+
+      if (!restoredPayment) {
+        logger.warn('Payment not found or not deleted', { paymentId: id });
+        return err(
+          createNotFoundError('Deleted payment', id)
+        );
+      }
+
+      logger.info('Payment restored successfully', {
+        paymentId: id,
+        currentStatus: restoredPayment.status,
+      });
+
+      return ok(toPaymentResponseDto(restoredPayment));
+    } catch (error) {
+      logger.error('Failed to restore payment', { error, paymentId: id });
+      return err(createDatabaseError('Failed to restore payment'));
+    }
+  };
+
   return {
     createPayment,
     getPaymentById,
@@ -394,5 +477,7 @@ export const createPaymentService = (
     getAllPayments,
     markAsPaid,
     generateVietQR,
+    deletePayment,
+    restorePayment,
   };
 };

@@ -4,7 +4,7 @@
  */
 
 import { Op } from 'sequelize';
-import { OrderModel, OrderItemModel } from '@bakery-cms/database';
+import { OrderModel, OrderItemModel, PaymentModel } from '@bakery-cms/database';
 import { OrderStatus } from '@bakery-cms/common';
 import { OrderListQueryDto, OrderItemDto } from '../dto/orders.dto';
 
@@ -20,6 +20,7 @@ export interface OrderRepository {
   update(id: string, attributes: Partial<OrderModel>): Promise<OrderModel | null>;
   updateStatus(id: string, status: OrderStatus): Promise<OrderModel | null>;
   delete(id: string): Promise<boolean>;
+  restore(id: string): Promise<OrderModel | null>;
   count(filters?: Partial<OrderModel>): Promise<number>;
   findByOrderNumber(orderNumber: string): Promise<OrderModel | null>;
 }
@@ -181,15 +182,99 @@ export const createOrderRepository = (
   };
 
   /**
-   * Delete order by ID
+   * Delete order by ID with cascade soft delete
+   * Soft deletes the order, all its items, and associated payment in a transaction
    * Returns true if deleted, false if not found
    */
   const deleteOrder = async (id: string): Promise<boolean> => {
-    const rowsDeleted = await orderModel.destroy({
-      where: { id },
-    });
+    const transaction = await orderModel.sequelize!.transaction();
 
-    return rowsDeleted > 0;
+    try {
+      // Find the order
+      const order = await orderModel.findByPk(id, { transaction });
+      
+      if (!order) {
+        await transaction.rollback();
+        return false;
+      }
+
+      // Soft delete the order
+      await order.destroy({ transaction });
+
+      // Cascade soft delete all order items
+      await orderItemModel.destroy({
+        where: { orderId: id },
+        transaction,
+      });
+
+      // Cascade soft delete associated payment if exists
+      await PaymentModel.destroy({
+        where: { orderId: id },
+        transaction,
+      });
+
+      // Commit transaction
+      await transaction.commit();
+      return true;
+    } catch (error) {
+      // Rollback on error
+      await transaction.rollback();
+      throw error;
+    }
+  };
+
+  /**
+   * Restore soft-deleted order with cascade
+   * Restores the order, all its items, and associated payment
+   * Returns restored order or null if not found or not deleted
+   */
+  const restore = async (id: string): Promise<OrderModel | null> => {
+    const transaction = await orderModel.sequelize!.transaction();
+
+    try {
+      // Find soft-deleted order
+      const order = await orderModel.scope('withDeleted').findByPk(id, { transaction });
+      
+      if (!order || !order.deletedAt) {
+        await transaction.rollback();
+        return null;
+      }
+
+      // Restore the order
+      await order.restore({ transaction });
+
+      // Cascade restore all order items
+      const deletedItems = await orderItemModel.scope('withDeleted').findAll({
+        where: { orderId: id },
+        paranoid: false,
+        transaction,
+      });
+
+      for (const item of deletedItems) {
+        if (item.deletedAt) {
+          await item.restore({ transaction });
+        }
+      }
+
+      // Cascade restore associated payment if exists
+      const deletedPayment = await PaymentModel.scope('withDeleted').findOne({
+        where: { orderId: id },
+        paranoid: false,
+        transaction,
+      });
+
+      if (deletedPayment && deletedPayment.deletedAt) {
+        await deletedPayment.restore({ transaction });
+      }
+
+      // Commit transaction
+      await transaction.commit();
+      return order;
+    } catch (error) {
+      // Rollback on error
+      await transaction.rollback();
+      throw error;
+    }
   };
 
   /**
@@ -263,6 +348,7 @@ export const createOrderRepository = (
     update,
     updateStatus,
     delete: deleteOrder,
+    restore,
     count,
     findByOrderNumber,
     items: itemRepository,

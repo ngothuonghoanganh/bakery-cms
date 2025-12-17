@@ -3,7 +3,7 @@
  * Represents payment transactions for orders
  */
 
-import { Model, DataTypes, Sequelize } from 'sequelize';
+import { Model, DataTypes, Sequelize, Op } from 'sequelize';
 import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
 
 /**
@@ -20,6 +20,7 @@ export class PaymentModel extends Model {
   declare vietqrData: string | null;
   declare paidAt: Date | null;
   declare notes: string | null;
+  declare deletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -99,12 +100,34 @@ export const initPaymentModel = (sequelize: Sequelize): typeof PaymentModel => {
         allowNull: false,
         field: 'updated_at',
       },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'deleted_at',
+      },
     },
     {
       sequelize,
       tableName: 'payments',
       timestamps: true,
       underscored: true,
+      paranoid: true,
+      deletedAt: 'deletedAt',
+      defaultScope: {
+        where: {
+          deletedAt: null,
+        },
+      },
+      scopes: {
+        withDeleted: {
+          where: {},
+        },
+        onlyDeleted: {
+          where: {
+            deletedAt: { [Op.ne]: null },
+          },
+        },
+      },
       indexes: [
         {
           unique: true,
@@ -121,6 +144,10 @@ export const initPaymentModel = (sequelize: Sequelize): typeof PaymentModel => {
         },
         {
           fields: ['paid_at'],
+        },
+        {
+          fields: ['deleted_at'],
+          name: 'idx_payments_deleted_at',
         },
       ],
     }

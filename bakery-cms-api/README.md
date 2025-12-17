@@ -47,6 +47,19 @@ bakery-cms-api/
 - **Dependency Injection**: All layers use DI for testability
 - **Type Safety**: Strict TypeScript with no `any` types
 
+### Key Features
+
+- ✅ **RESTful API** with Express.js
+- ✅ **Type-safe Database** with Sequelize ORM and TypeScript
+- ✅ **Soft Delete** on all entities (Products, Orders, Payments)
+- ✅ **Cascade Operations** for Order deletion (Order → Items → Payment)
+- ✅ **VietQR Integration** for Vietnamese payment QR codes
+- ✅ **Comprehensive Logging** with Winston
+- ✅ **Input Validation** with Joi schemas
+- ✅ **Error Handling** with Result type pattern
+- ✅ **Test Coverage** with Jest (80% threshold)
+- ✅ **CI/CD Pipeline** with GitHub Actions
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -200,8 +213,14 @@ POST   /api/orders             # Create new order
 PATCH  /api/orders/:id         # Update order
 POST   /api/orders/:id/confirm # Confirm order
 POST   /api/orders/:id/cancel  # Cancel order
-DELETE /api/orders/:id         # Delete draft order
+DELETE /api/orders/:id         # Delete draft order (soft delete + cascade)
 ```
+
+**Soft Delete Behavior:**
+- DELETE operations mark records as deleted (not permanent)
+- Deleting an Order cascades to OrderItems and Payment
+- Only DRAFT orders can be deleted
+- Deleted records can be restored via admin operations
 
 ### Payments Module
 
@@ -226,15 +245,23 @@ GET    /health                 # Health check endpoint
 - Product catalog with pricing
 - Business types: Made-to-Order, Ready-to-Sell, Both
 - Status tracking: Available, Out of Stock
+- **Soft delete enabled** with deletedAt timestamp
 
 ### Orders
 - Order management with items
 - Order number format: ORD-YYYYMMDD-XXXX
 - Status flow: Draft → Confirmed → Paid → Cancelled
 - Automatic total calculation
+- **Soft delete with cascade** to OrderItems and Payment
+
+### OrderItems
+- Line items for each order
+- Tracks product, quantity, price, subtotal
+- **Soft delete enabled** (cascades from Order)
 
 ### Payments
 - Payment tracking per order
+- **Soft delete enabled** with recovery capability
 - Methods: VietQR, Cash, Bank Transfer
 - VietQR code generation
 - Status flow: Pending → Paid/Failed/Cancelled

@@ -20,6 +20,8 @@ export interface PaymentRepository {
   updateStatus(id: string, status: PaymentStatus, paidAt?: Date): Promise<PaymentModel | null>;
   markAsPaid(id: string, paidAt: Date, transactionId?: string): Promise<PaymentModel | null>;
   update(id: string, attributes: Partial<PaymentModel>): Promise<PaymentModel | null>;
+  delete(id: string): Promise<boolean>;
+  restore(id: string): Promise<PaymentModel | null>;
   count(filters?: Partial<PaymentModel>): Promise<number>;
 }
 
@@ -183,6 +185,36 @@ export const createPaymentRepository = (
   };
 
   /**
+   * Delete payment by ID (soft delete)
+   * Returns true if deleted, false if not found
+   */
+  const deletePayment = async (id: string): Promise<boolean> => {
+    const payment = await model.findByPk(id);
+    
+    if (!payment) {
+      return false;
+    }
+
+    await payment.destroy();
+    return true;
+  };
+
+  /**
+   * Restore soft-deleted payment by ID
+   * Returns restored payment or null if not found
+   */
+  const restore = async (id: string): Promise<PaymentModel | null> => {
+    const payment = await model.scope('withDeleted').findByPk(id);
+    
+    if (!payment || !payment.deletedAt) {
+      return null;
+    }
+
+    await payment.restore();
+    return payment;
+  };
+
+  /**
    * Count payments with optional filters
    */
   const count = async (filters?: Partial<PaymentModel>): Promise<number> => {
@@ -199,6 +231,8 @@ export const createPaymentRepository = (
     updateStatus,
     markAsPaid,
     update,
+    delete: deletePayment,
+    restore,
     count,
   };
 };

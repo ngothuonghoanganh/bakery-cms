@@ -890,6 +890,152 @@ All modules must maintain:
 6. **Clean up after tests**: `beforeEach`, `afterEach`
 7. **Avoid test interdependence**: Each test should be independent
 
+## Soft Delete Testing
+
+All entities (Products, Orders, OrderItems, Payments) support soft delete. Here's how to test it:
+
+### Repository Soft Delete Tests
+
+**Pattern**:
+```typescript
+describe('Repository.delete (Soft Delete)', () => {
+  it('should soft delete record successfully', async () => {
+    const mockRecord = {
+      id: 'test-id',
+      deletedAt: null,
+      destroy: jest.fn().mockResolvedValue(undefined),
+    };
+    
+    mockModel.findByPk.mockResolvedValue(mockRecord);
+    
+    const result = await repository.delete('test-id');
+    
+    expect(result).toBe(true);
+    expect(mockModel.findByPk).toHaveBeenCalledWith('test-id');
+    expect(mockRecord.destroy).toHaveBeenCalled();
+  });
+
+  it('should return false when record not found', async () => {
+    mockModel.findByPk.mockResolvedValue(null);
+    
+    const result = await repository.delete('non-existent-id');
+    
+    expect(result).toBe(false);
+  });
+});
+
+describe('Repository.restore', () => {
+  it('should restore soft-deleted record', async () => {
+    const mockDeletedRecord = {
+      id: 'deleted-id',
+      deletedAt: new Date('2024-01-15'),
+      restore: jest.fn().mockResolvedValue(undefined),
+    };
+    
+    const mockScope = {
+      findByPk: jest.fn().mockResolvedValue(mockDeletedRecord),
+    };
+    mockModel.scope.mockReturnValue(mockScope);
+    
+    const result = await repository.restore('deleted-id');
+    
+    expect(result).toEqual(mockDeletedRecord);
+    expect(mockModel.scope).toHaveBeenCalledWith('withDeleted');
+    expect(mockDeletedRecord.restore).toHaveBeenCalled();
+  });
+
+  it('should return null when record not deleted', async () => {
+    const mockActiveRecord = {
+      id: 'active-id',
+      deletedAt: null,
+    };
+    
+    const mockScope = {
+      findByPk: jest.fn().mockResolvedValue(mockActiveRecord),
+    };
+    mockModel.scope.mockReturnValue(mockScope);
+    
+    const result = await repository.restore('active-id');
+    
+    expect(result).toBeNull();
+  });
+});
+```
+
+### Integration Tests for Soft Delete
+
+**Pattern**:
+```typescript
+describe('Soft Delete Integration', () => {
+  it('should soft delete and filter from queries', async () => {
+    // Create record
+    const record = await Model.create({ name: 'Test' });
+    expect(record.deletedAt).toBeNull();
+    
+    // Soft delete
+    await record.destroy();
+    
+    // Should not appear in default query
+    const found = await Model.findByPk(record.id);
+    expect(found).toBeNull();
+    
+    // Should appear in withDeleted scope
+    const foundWithDeleted = await Model.scope('withDeleted').findByPk(record.id);
+    expect(foundWithDeleted).not.toBeNull();
+    expect(foundWithDeleted?.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it('should restore soft-deleted record', async () => {
+    const record = await Model.create({ name: 'Test' });
+    await record.destroy();
+    
+    // Restore
+    const deletedRecord = await Model.scope('withDeleted').findByPk(record.id);
+    await deletedRecord?.restore();
+    
+    // Should appear in default query again
+    const restored = await Model.findByPk(record.id);
+    expect(restored).not.toBeNull();
+    expect(restored?.deletedAt).toBeNull();
+  });
+});
+```
+
+### Cascade Soft Delete Tests (Orders)
+
+**Pattern**:
+```typescript
+describe('Order Cascade Soft Delete', () => {
+  it('should cascade soft delete to items and payment', async () => {
+    // Create order with items and payment
+    const order = await createTestOrder();
+    const items = await createTestOrderItems(order.id);
+    const payment = await createTestPayment(order.id);
+    
+    // Delete order
+    await order.destroy();
+    
+    // Verify cascade
+    expect(await OrderModel.findByPk(order.id)).toBeNull();
+    expect(await OrderItemModel.findAll({ where: { orderId: order.id } })).toHaveLength(0);
+    expect(await PaymentModel.findByPk(payment.id)).toBeNull();
+    
+    // Verify with withDeleted scope
+    const deletedOrder = await OrderModel.scope('withDeleted').findByPk(order.id);
+    const deletedItems = await OrderItemModel.scope('withDeleted').findAll({ 
+      where: { orderId: order.id } 
+    });
+    const deletedPayment = await PaymentModel.scope('withDeleted').findByPk(payment.id);
+    
+    expect(deletedOrder?.deletedAt).toBeInstanceOf(Date);
+    expect(deletedItems.every(item => item.deletedAt !== null)).toBe(true);
+    expect(deletedPayment?.deletedAt).toBeInstanceOf(Date);
+  });
+});
+```
+
+**See**: `packages/api/src/__tests__/soft-delete-integration.test.ts` for complete examples
+
 ## Next Steps for Complete Test Coverage
 
 ### Products Module

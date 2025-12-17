@@ -3,7 +3,7 @@
  * Represents products in the catalog (cookies)
  */
 
-import { Model, DataTypes, Sequelize } from 'sequelize';
+import { Model, DataTypes, Sequelize, Op } from 'sequelize';
 import { BusinessType, ProductStatus } from '@bakery-cms/common';
 
 /**
@@ -19,6 +19,7 @@ export class ProductModel extends Model {
   declare businessType: string;
   declare status: string;
   declare imageUrl: string | null;
+  declare deletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -91,12 +92,34 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         allowNull: false,
         field: 'updated_at',
       },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'deleted_at',
+      },
     },
     {
       sequelize,
       tableName: 'products',
       timestamps: true,
       underscored: true,
+      paranoid: true,
+      deletedAt: 'deletedAt',
+      defaultScope: {
+        where: {
+          deletedAt: null,
+        },
+      },
+      scopes: {
+        withDeleted: {
+          where: {},
+        },
+        onlyDeleted: {
+          where: {
+            deletedAt: { [Op.ne]: null },
+          },
+        },
+      },
       indexes: [
         {
           fields: ['category'],
@@ -106,6 +129,10 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         },
         {
           fields: ['status'],
+        },
+        {
+          fields: ['deleted_at'],
+          name: 'idx_products_deleted_at',
         },
       ],
     }

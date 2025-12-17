@@ -3,7 +3,7 @@
  * Represents individual line items within orders
  */
 
-import { Model, DataTypes, Sequelize } from 'sequelize';
+import { Model, DataTypes, Sequelize, Op } from 'sequelize';
 
 /**
  * OrderItem model class
@@ -17,6 +17,7 @@ export class OrderItemModel extends Model {
   declare unitPrice: number;
   declare subtotal: number;
   declare notes: string | null;
+  declare deletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -98,12 +99,34 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         allowNull: false,
         field: 'updated_at',
       },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'deleted_at',
+      },
     },
     {
       sequelize,
       tableName: 'order_items',
       timestamps: true,
       underscored: true,
+      paranoid: true,
+      deletedAt: 'deletedAt',
+      defaultScope: {
+        where: {
+          deletedAt: null,
+        },
+      },
+      scopes: {
+        withDeleted: {
+          where: {},
+        },
+        onlyDeleted: {
+          where: {
+            deletedAt: { [Op.ne]: null },
+          },
+        },
+      },
       indexes: [
         {
           fields: ['order_id'],
@@ -114,6 +137,10 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         {
           unique: true,
           fields: ['order_id', 'product_id'],
+        },
+        {
+          fields: ['deleted_at'],
+          name: 'idx_order_items_deleted_at',
         },
       ],
     }

@@ -3,7 +3,11 @@
  * This file is required by sequelize-cli for migrations and seeders
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../../.env') });
+
+// Register ts-node to handle TypeScript files
+require('ts-node/register');
 
 module.exports = {
   development: {
