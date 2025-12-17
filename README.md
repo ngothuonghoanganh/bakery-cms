@@ -64,14 +64,19 @@ git clone <your-repo-url>
 cd bakery-cms
 ```
 
-2. **Install backend dependencies**
+2. **Install all dependencies (Recommended - from root)**
 ```bash
-cd bakery-cms-api
-yarn install
+yarn install:all
 ```
 
-3. **Install frontend dependencies**
+**OR install individually:**
+
 ```bash
+# Backend
+cd bakery-cms-api
+yarn install
+
+# Frontend  
 cd bakery-cms-web
 yarn install
 ```
@@ -105,16 +110,54 @@ yarn seed
 
 ### Running the Applications
 
+**Option 1: Run both servers from root (Recommended)**
+```bash
+yarn dev
+```
+
+**Option 2: Run individually**
+
 **Start Backend** (runs on http://localhost:3000):
 ```bash
+yarn dev:api
+# OR
 cd bakery-cms-api
 yarn dev
 ```
 
 **Start Frontend** (runs on http://localhost:5173):
 ```bash
+yarn dev:web
+# OR
 cd bakery-cms-web
 yarn dev
+```
+
+### Available Root Commands
+
+From the root directory, you can run:
+
+```bash
+yarn install:all    # Install dependencies in all projects
+yarn dev           # Run both dev servers concurrently
+yarn dev:api       # Run backend only
+yarn dev:web       # Run frontend only
+yarn build         # Build all projects
+yarn build:api     # Build backend only
+yarn build:web     # Build frontend only
+yarn test          # Test all projects
+yarn test:api      # Test backend only
+yarn test:web      # Test frontend only
+yarn lint          # Lint all projects
+yarn clean         # Clean node_modules and dist in all projects
+```
+
+### Custom Script
+
+Run any command in all sub-projects:
+```bash
+./run-all.sh "yarn add lodash"
+./run-all.sh "yarn upgrade"
 ```
 
 ## 📚 Documentation
