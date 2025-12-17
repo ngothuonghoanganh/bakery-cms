@@ -25,6 +25,7 @@ export type OrderService = {
   readonly getById: (id: string) => Promise<Result<Order, AppError>>;
   readonly create: (data: CreateOrderRequest) => Promise<Result<Order, AppError>>;
   readonly update: (id: string, data: UpdateOrderRequest) => Promise<Result<Order, AppError>>;
+  readonly delete: (id: string) => Promise<Result<void, AppError>>;
   readonly confirm: (id: string) => Promise<Result<Order, AppError>>;
   readonly cancel: (id: string) => Promise<Result<Order, AppError>>;
 };
@@ -110,6 +111,18 @@ const cancel = async (id: string): Promise<Result<Order, AppError>> => {
 };
 
 /**
+ * Delete an order
+ */
+const deleteOrder = async (id: string): Promise<Result<void, AppError>> => {
+  try {
+    await apiClient.delete(`/orders/${id}`);
+    return ok(undefined);
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
  * Order service instance
  */
 export const orderService: OrderService = {
@@ -117,6 +130,16 @@ export const orderService: OrderService = {
   getById,
   create,
   update,
+  delete: deleteOrder,
   confirm,
   cancel,
 };
+
+// Named exports for convenience
+export const getAllOrders = getAll;
+export const getOrderById = getById;
+export const createOrder = create;
+export const updateOrder = update;
+export { deleteOrder };
+export const confirmOrder = confirm;
+export const cancelOrder = cancel;

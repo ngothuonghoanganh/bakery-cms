@@ -4,6 +4,7 @@ import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
+  // @ts-expect-error - Monorepo has duplicate Vite versions causing type conflicts
   plugins: [react()],
   resolve: {
     alias: {
@@ -17,6 +18,16 @@ export default defineConfig({
       '@/pages': path.resolve(__dirname, './src/pages'),
     },
   },
+  css: {
+    preprocessorOptions: {
+      less: {
+        javascriptEnabled: true,
+        modifyVars: {
+          // Ant Design theme variables can be customized here
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: false,
@@ -25,5 +36,14 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-antd': ['antd', '@ant-design/icons'],
+          'vendor-utils': ['axios', 'zustand', 'zod', 'dayjs'],
+        },
+      },
+    },
   },
 });

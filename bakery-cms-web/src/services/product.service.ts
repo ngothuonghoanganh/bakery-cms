@@ -16,13 +16,16 @@ import type {
 } from '@/types/api/product.api';
 import type { Product, PaginatedProducts } from '@/types/models/product.model';
 import { mapProductFromAPI, mapPaginatedProductsFromAPI } from '@/types/mappers/product.mapper';
+import type { AxiosResponse } from 'axios';
 
 /**
  * Product service type definition
  */
 export type ProductService = {
-  readonly getAll: (filters?: ProductFiltersRequest) => Promise<Result<PaginatedProducts, AppError>>;
-  readonly getById: (id: string) => Promise<Result<Product, AppError>>;
+  readonly getAll: (
+    filters?: ProductFiltersRequest
+  ) => Promise<Result<PaginatedProducts, AppError>>;
+  readonly getById: (id: string) => Promise<Result<Product | null, AppError>>;
   readonly create: (data: CreateProductRequest) => Promise<Result<Product, AppError>>;
   readonly update: (id: string, data: UpdateProductRequest) => Promise<Result<Product, AppError>>;
   readonly delete: (id: string) => Promise<Result<boolean, AppError>>;
@@ -31,7 +34,9 @@ export type ProductService = {
 /**
  * Get all products with optional filters
  */
-const getAll = async (filters?: ProductFiltersRequest): Promise<Result<PaginatedProducts, AppError>> => {
+const getAll = async (
+  filters?: ProductFiltersRequest
+): Promise<Result<PaginatedProducts, AppError>> => {
   try {
     const response = await apiClient.get<PaginatedProductsAPIResponse>('/products', {
       params: filters,
@@ -46,10 +51,13 @@ const getAll = async (filters?: ProductFiltersRequest): Promise<Result<Paginated
 /**
  * Get a product by ID
  */
-const getById = async (id: string): Promise<Result<Product, AppError>> => {
+const getById = async (id: string): Promise<Result<Product | null, AppError>> => {
   try {
-    const response = await apiClient.get<ProductAPIResponse>(`/products/${id}`);
-    const product = mapProductFromAPI(response.data);
+    const response = await apiClient.get<AxiosResponse<ProductAPIResponse>>(`/products/${id}`);
+    console.log(response);
+    if (!response?.data?.data) return ok(null);
+
+    const product = mapProductFromAPI(response?.data?.data);
     return ok(product);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -72,7 +80,10 @@ const create = async (data: CreateProductRequest): Promise<Result<Product, AppEr
 /**
  * Update an existing product
  */
-const update = async (id: string, data: UpdateProductRequest): Promise<Result<Product, AppError>> => {
+const update = async (
+  id: string,
+  data: UpdateProductRequest
+): Promise<Result<Product, AppError>> => {
   try {
     const response = await apiClient.put<ProductAPIResponse>(`/products/${id}`, data);
     const product = mapProductFromAPI(response.data);
@@ -104,3 +115,10 @@ export const productService: ProductService = {
   update,
   delete: deleteProduct,
 };
+
+// Named exports for convenience
+export const getAllProducts = getAll;
+export const getProductById = getById;
+export const createProduct = create;
+export const updateProduct = update;
+export { deleteProduct };

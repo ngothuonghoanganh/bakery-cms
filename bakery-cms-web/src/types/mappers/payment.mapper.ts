@@ -3,9 +3,20 @@
  * Transform API responses to domain models
  */
 
-import type { PaymentAPIResponse, VietQRDataAPIResponse } from '@/types/api/payment.api';
+import type { 
+  PaymentAPIResponse, 
+  VietQRDataAPIResponse,
+  PaginatedPaymentsAPIResponse 
+} from '@/types/api/payment.api';
 import type { Payment, VietQRData } from '@/types/models/payment.model';
 import { PaymentMethod, PaymentStatus } from '@/types/models/payment.model';
+
+export type PaginatedPayments = {
+  readonly payments: readonly Payment[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
+};
 
 /**
  * Map API response to Payment domain model
@@ -25,6 +36,18 @@ export const mapPaymentFromAPI = (apiPayment: PaymentAPIResponse): Payment => ({
 });
 
 /**
+ * Map paginated API response to domain model
+ */
+export const mapPaginatedPaymentsFromAPI = (
+  apiResponse: PaginatedPaymentsAPIResponse
+): PaginatedPayments => ({
+  payments: apiResponse.payments.map(mapPaymentFromAPI),
+  total: apiResponse.total,
+  page: apiResponse.page,
+  pageSize: apiResponse.pageSize,
+});
+
+/**
  * Map API response to VietQRData domain model
  */
 export const mapVietQRDataFromAPI = (apiData: VietQRDataAPIResponse): VietQRData => ({
@@ -35,3 +58,4 @@ export const mapVietQRDataFromAPI = (apiData: VietQRDataAPIResponse): VietQRData
   description: apiData.description,
   qrDataURL: apiData.qrDataURL,
 });
+

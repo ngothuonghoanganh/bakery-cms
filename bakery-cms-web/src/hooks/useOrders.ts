@@ -2,7 +2,7 @@
  * useOrders custom hook
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { orderService } from '@/services';
 import type { Order, OrderFilters } from '@/types/models/order.model';
 import type { OrderFiltersRequest } from '@/types/api/order.api';
@@ -17,25 +17,55 @@ const mapFiltersToRequest = (filters?: OrderFilters): OrderFiltersRequest | unde
   };
 };
 
-export const useOrders = (filters?: OrderFilters) => {
-  const [orders, setOrders] = useState<readonly Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AppError | null>(null);
+export type UseOrdersOptions = {
+  filters?: OrderFilters;
+  autoFetch?: boolean;
+};
 
-  useEffect(() => {
-    const fetchOrders = async (): Promise<void> => {
-      setLoading(true);
-      const result = await orderService.getAll(mapFiltersToRequest(filters));
-      if (result.success) {
-        setOrders(result.data.orders);
-        setError(null);
-      } else {
-        setError(result.error);
-      }
-      setLoading(false);
-    };
-    fetchOrders();
+export type UseOrdersReturn = {
+  orders: Order[];
+  loading: boolean;
+  error: AppError | null;
+  total: number;
+  refetch: () => Promise<void>;
+};
+
+export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
+  const { filters, autoFetch = true } = options;
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<AppError | null>(null);
+  const [total, setTotal] = useState(0);
+
+  const fetchOrders = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const result = await orderService.getAll(mapFiltersToRequest(filters));
+    
+    if (result.success) {
+      setOrders([...result.data.orders]);
+      setTotal(result.data.total);
+    } else {
+      setError(result.error);
+      setOrders([]);
+      setTotal(0);
+    }
+    
+    setLoading(false);
   }, [filters]);
 
-  return { orders, loading, error };
+  useEffect(() => {
+    if (autoFetch) {
+      fetchOrders();
+    }
+  }, [autoFetch, fetchOrders]);
+
+  return {
+    orders,
+    loading,
+    error,
+    total,
+    refetch: fetchOrders,
+  };
 };
