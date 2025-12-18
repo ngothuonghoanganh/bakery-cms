@@ -1,0 +1,682 @@
+openapi: 3.0.0
+info:
+  title: User Management API
+  description: User profile and management endpoints
+  version: 1.0.0
+  contact:
+    name: Bakery CMS Team
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+paths:
+  /users/me:
+    get:
+      summary: Get current user profile
+      description: Retrieve authenticated user's profile information
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update current user profile
+      description: Update authenticated user's profile information
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete current user account
+      description: Soft delete authenticated user's account
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Cannot delete account with active orders/dependencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/verify-email:
+    post:
+      summary: Verify email address
+      description: Verify user email using verification token
+      tags:
+        - User Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/resend-verification:
+    post:
+      summary: Resend email verification
+      description: Send new email verification token to user
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Verification email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Email already verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many verification emails sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/sessions:
+    get:
+      summary: Get active sessions
+      description: List all active sessions for authenticated user
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionsResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Revoke all sessions
+      description: Revoke all active sessions except current one
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sessions revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/sessions/{sessionId}:
+    delete:
+      summary: Revoke specific session
+      description: Revoke a specific active session
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Session ID to revoke
+      responses:
+        '200':
+          description: Session revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Cannot revoke current session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Admin-only endpoints
+  /users:
+    get:
+      summary: List all users (Admin only)
+      description: Retrieve paginated list of all users
+      tags:
+        - User Management (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of users per page
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, seller, customer, viewer]
+          description: Filter by user role
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended, pending_verification]
+          description: Filter by user status
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or email
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (Admin required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}:
+    get:
+      summary: Get user by ID (Admin only)
+      description: Retrieve user details by ID
+      tags:
+        - User Management (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update user (Admin only)
+      description: Update user role, status, or other details
+      tags:
+        - User Management (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "John"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "John"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        role:
+          type: string
+          enum: [admin, seller, customer, viewer]
+          example: "seller"
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+          example: "active"
+
+    VerifyEmailRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Email verification token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    UserResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          $ref: '#/components/schemas/User'
+
+    UsersListResponse:
+      type: object
+      required:
+        - status
+        - data
+        - pagination
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    SessionsResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+
+    Session:
+      type: object
+      required:
+        - id
+        - is_current
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        device_info:
+          type: string
+          nullable: true
+          example: "Chrome on MacOS"
+        ip_address:
+          type: string
+          nullable: true
+          example: "192.168.1.100"
+        user_agent:
+          type: string
+          nullable: true
+          example: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)..."
+        is_current:
+          type: boolean
+          description: True if this is the current session
+          example: true
+        last_active:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T14:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T10:00:00Z"
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - first_name
+        - last_name
+        - role
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        role:
+          type: string
+          enum: [admin, seller, customer, viewer]
+          example: "customer"
+        status:
+          type: string
+          enum: [active, inactive, suspended, pending_verification]
+          example: "active"
+        provider:
+          type: string
+          enum: [local, google, facebook]
+          example: "local"
+        provider_id:
+          type: string
+          nullable: true
+          example: null
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T10:30:00Z"
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T14:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T14:30:00Z"
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        total_pages:
+          type: integer
+          example: 8
+
+    SuccessResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+      properties:
+        status:
+          type: string
+          example: "error"
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - EMAIL_EXISTS
+                - EMAIL_ALREADY_VERIFIED
+                - TOKEN_EXPIRED
+                - SESSION_NOT_FOUND
+                - CANNOT_REVOKE_CURRENT_SESSION
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid input data"
+            details:
+              type: object
+              additionalProperties: true
+              example:
+                field: "email"
+                issue: "Invalid format"

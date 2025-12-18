@@ -1,0 +1,43 @@
+/**
+ * OAuth Callback Page Styles
+ */
+
+.oauth-callback-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.oauth-callback-content {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+}
+
+.oauth-callback-content h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.oauth-callback-content p {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.oauth-callback-error {
+  color: #ff4d4f;
+}
+
+.oauth-callback-error h2 {
+  color: #ff4d4f;
+}

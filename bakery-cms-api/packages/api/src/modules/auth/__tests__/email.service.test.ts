@@ -1,0 +1,518 @@
+/**
+ * Email Service Unit Tests
+ * Comprehensive test suite for email service functionality
+ */
+
+import nodemailer from 'nodemailer';
+import { EmailService } from '../services/email.service';
+import { EmailConfig, EmailTemplateType } from '../types/email.types';
+
+// Mock nodemailer
+jest.mock('nodemailer');
+const mockNodemailer = nodemailer as jest.Mocked<typeof nodemailer>;
+
+describe('EmailService', () => {
+  let emailService: EmailService;
+  let mockTransporter: jest.Mocked<any>;
+
+  const mockConfig: EmailConfig = {
+    smtp: {
+      host: 'smtp.test.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'test@example.com',
+        pass: 'testpass123',
+      },
+    },
+    from: {
+      name: 'Test Bakery CMS',
+      email: 'test@example.com',
+    },
+  };
+
+  beforeEach(() => {
+    // Reset all mocks
+    jest.clearAllMocks();
+
+    // Mock transporter
+    mockTransporter = {
+      sendMail: jest.fn(),
+      verify: jest.fn(),
+      close: jest.fn(),
+    };
+
+    // Mock nodemailer.createTransporter
+    mockNodemailer.createTransporter = jest.fn().mockReturnValue(mockTransporter);
+
+    emailService = new EmailService(mockConfig);
+  });
+
+  describe('constructor', () => {
+    it('should create EmailService with valid configuration', () => {
+      expect(emailService).toBeDefined();
+      expect(mockNodemailer.createTransporter).toHaveBeenCalledWith({
+        host: mockConfig.smtp.host,
+        port: mockConfig.smtp.port,
+        secure: mockConfig.smtp.secure,
+        auth: mockConfig.smtp.auth,
+      });
+    });
+
+    it('should use default configuration when not provided', () => {
+      const defaultService = new EmailService();
+      expect(defaultService).toBeDefined();
+      expect(mockNodemailer.createTransporter).toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyConnection', () => {
+    it('should verify email connection successfully', async () => {
+      // Arrange
+      mockTransporter.verify.mockResolvedValue(true);
+
+      // Act
+      const result = await emailService.verifyConnection();
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      expect(mockTransporter.verify).toHaveBeenCalled();
+    });
+
+    it('should handle verification failure', async () => {
+      // Arrange
+      const error = new Error('Connection failed');
+      mockTransporter.verify.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.verifyConnection();
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to verify email connection');
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe('sendVerificationEmail', () => {
+    it('should send verification email successfully', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify?token=abc123';
+      
+      mockTransporter.sendMail.mockResolvedValue({
+        messageId: 'test-message-id',
+        accepted: [email],
+        rejected: [],
+      });
+
+      // Act
+      const result = await emailService.sendVerificationEmail(email, firstName, verificationLink);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+        from: `${mockConfig.from.name} <${mockConfig.from.email}>`,
+        to: email,
+        subject: 'Welcome to Bakery CMS - Please Verify Your Email',
+        html: expect.stringContaining(firstName),
+        text: expect.stringContaining(verificationLink),
+      });
+    });
+
+    it('should handle send failure', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify?token=abc123';
+      
+      const error = new Error('Send failed');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.sendVerificationEmail(email, firstName, verificationLink);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to send verification email');
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe('sendPasswordResetEmail', () => {
+    it('should send password reset email successfully', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const resetLink = 'https://example.com/reset?token=xyz789';
+      
+      mockTransporter.sendMail.mockResolvedValue({
+        messageId: 'test-message-id',
+        accepted: [email],
+        rejected: [],
+      });
+
+      // Act
+      const result = await emailService.sendPasswordResetEmail(email, firstName, resetLink);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+        from: `${mockConfig.from.name} <${mockConfig.from.email}>`,
+        to: email,
+        subject: 'Reset Your Password - Bakery CMS',
+        html: expect.stringContaining(firstName),
+        text: expect.stringContaining(resetLink),
+      });
+    });
+
+    it('should handle send failure', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const resetLink = 'https://example.com/reset?token=xyz789';
+      
+      const error = new Error('Send failed');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.sendPasswordResetEmail(email, firstName, resetLink);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to send password reset email');
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe('sendWelcomeEmail', () => {
+    it('should send welcome email successfully', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      
+      mockTransporter.sendMail.mockResolvedValue({
+        messageId: 'test-message-id',
+        accepted: [email],
+        rejected: [],
+      });
+
+      // Act
+      const result = await emailService.sendWelcomeEmail(email, firstName);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+        from: `${mockConfig.from.name} <${mockConfig.from.email}>`,
+        to: email,
+        subject: 'Welcome to Bakery CMS!',
+        html: expect.stringContaining(firstName),
+        text: expect.stringContaining('Welcome'),
+      });
+    });
+
+    it('should handle send failure', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      
+      const error = new Error('Send failed');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.sendWelcomeEmail(email, firstName);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to send welcome email');
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe('sendSecurityAlertEmail', () => {
+    it('should send security alert email successfully', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const alertMessage = 'Suspicious login attempt detected';
+      const timestamp = new Date();
+      
+      mockTransporter.sendMail.mockResolvedValue({
+        messageId: 'test-message-id',
+        accepted: [email],
+        rejected: [],
+      });
+
+      // Act
+      const result = await emailService.sendSecurityAlertEmail(email, firstName, alertMessage, timestamp);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+        from: `${mockConfig.from.name} <${mockConfig.from.email}>`,
+        to: email,
+        subject: 'Security Alert - Bakery CMS',
+        html: expect.stringContaining(firstName),
+        text: expect.stringContaining(alertMessage),
+      });
+    });
+
+    it('should handle send failure', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const alertMessage = 'Suspicious login attempt detected';
+      const timestamp = new Date();
+      
+      const error = new Error('Send failed');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.sendSecurityAlertEmail(email, firstName, alertMessage, timestamp);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to send security alert email');
+        expect(result.error.statusCode).toBe(500);
+      }
+    });
+  });
+
+  describe('HTML Template Generation', () => {
+    it('should generate verification email HTML template with proper content', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify?token=abc123';
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        // Capture the HTML content for verification
+        expect(mailOptions.html).toContain(firstName);
+        expect(mailOptions.html).toContain('verify');
+        expect(mailOptions.html).toContain(verificationLink);
+        expect(mailOptions.html).toContain('<!DOCTYPE html>');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendVerificationEmail(email, firstName, verificationLink);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+
+    it('should generate password reset email HTML template with proper content', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const resetLink = 'https://example.com/reset?token=xyz789';
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        // Capture the HTML content for verification
+        expect(mailOptions.html).toContain(firstName);
+        expect(mailOptions.html).toContain('reset');
+        expect(mailOptions.html).toContain(resetLink);
+        expect(mailOptions.html).toContain('<!DOCTYPE html>');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendPasswordResetEmail(email, firstName, resetLink);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+
+    it('should generate welcome email HTML template with proper content', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        // Capture the HTML content for verification
+        expect(mailOptions.html).toContain(firstName);
+        expect(mailOptions.html).toContain('Welcome');
+        expect(mailOptions.html).toContain('<!DOCTYPE html>');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendWelcomeEmail(email, firstName);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+
+    it('should generate security alert email HTML template with proper content', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const alertMessage = 'Suspicious login attempt';
+      const timestamp = new Date();
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        // Capture the HTML content for verification
+        expect(mailOptions.html).toContain(firstName);
+        expect(mailOptions.html).toContain('Security');
+        expect(mailOptions.html).toContain(alertMessage);
+        expect(mailOptions.html).toContain('<!DOCTYPE html>');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendSecurityAlertEmail(email, firstName, alertMessage, timestamp);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+  });
+
+  describe('Text Fallback Generation', () => {
+    it('should generate verification email text fallback', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify?token=abc123';
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        expect(mailOptions.text).toContain(firstName);
+        expect(mailOptions.text).toContain(verificationLink);
+        expect(mailOptions.text).not.toContain('<');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendVerificationEmail(email, firstName, verificationLink);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+
+    it('should generate password reset email text fallback', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const resetLink = 'https://example.com/reset?token=xyz789';
+      
+      mockTransporter.sendMail.mockImplementation((mailOptions) => {
+        expect(mailOptions.text).toContain(firstName);
+        expect(mailOptions.text).toContain(resetLink);
+        expect(mailOptions.text).not.toContain('<');
+        return Promise.resolve({ messageId: 'test' });
+      });
+
+      // Act
+      await emailService.sendPasswordResetEmail(email, firstName, resetLink);
+
+      // Assert
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+  });
+
+  describe('Configuration Validation', () => {
+    it('should handle invalid SMTP configuration', () => {
+      // Arrange
+      const invalidConfig: EmailConfig = {
+        smtp: {
+          host: '',
+          port: 0,
+          secure: false,
+          auth: {
+            user: '',
+            pass: '',
+          },
+        },
+        from: {
+          name: 'Test',
+          email: 'invalid-email',
+        },
+      };
+
+      // Act & Assert - Should not throw, but use default config
+      expect(() => new EmailService(invalidConfig)).not.toThrow();
+    });
+
+    it('should use environment variables when available', () => {
+      // This test would verify environment variable usage
+      // In a real implementation, you might want to test ENV var precedence
+      const envAwareService = new EmailService();
+      expect(envAwareService).toBeDefined();
+    });
+  });
+
+  describe('close', () => {
+    it('should close email transporter connection', async () => {
+      // Act
+      await emailService.close();
+
+      // Assert
+      expect(mockTransporter.close).toHaveBeenCalled();
+    });
+
+    it('should handle close error gracefully', async () => {
+      // Arrange
+      mockTransporter.close.mockRejectedValue(new Error('Close failed'));
+
+      // Act & Assert - Should not throw
+      await expect(emailService.close()).resolves.not.toThrow();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle transporter creation failure', () => {
+      // Arrange
+      mockNodemailer.createTransporter = jest.fn().mockImplementation(() => {
+        throw new Error('Transporter creation failed');
+      });
+
+      // Act & Assert - Should handle gracefully
+      expect(() => new EmailService(mockConfig)).not.toThrow();
+    });
+
+    it('should handle malformed email addresses', async () => {
+      // Arrange
+      const invalidEmail = 'not-an-email';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify';
+
+      const error = new Error('Invalid email address');
+      mockTransporter.sendMail.mockRejectedValue(error);
+
+      // Act
+      const result = await emailService.sendVerificationEmail(invalidEmail, firstName, verificationLink);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('should handle network timeout errors', async () => {
+      // Arrange
+      const email = 'user@example.com';
+      const firstName = 'John';
+      const verificationLink = 'https://example.com/verify';
+
+      const timeoutError = new Error('Network timeout');
+      timeoutError.name = 'ETIMEDOUT';
+      mockTransporter.sendMail.mockRejectedValue(timeoutError);
+
+      // Act
+      const result = await emailService.sendVerificationEmail(email, firstName, verificationLink);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Failed to send verification email');
+      }
+    });
+  });
+});

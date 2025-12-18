@@ -17,6 +17,13 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.UNAUTHORIZED]: 'Authentication required',
   [ErrorCode.FORBIDDEN]: 'Access forbidden',
   [ErrorCode.INVALID_TOKEN]: 'Invalid or expired token',
+  [ErrorCode.TOKEN_EXPIRED]: 'Token has expired',
+  [ErrorCode.TOKEN_INVALID]: 'Token is invalid',
+  [ErrorCode.TOKEN_GENERATION_FAILED]: 'Failed to generate token',
+  [ErrorCode.TOKEN_VERIFICATION_FAILED]: 'Token verification failed',
+  [ErrorCode.TOKEN_MISSING]: 'Token is missing',
+  [ErrorCode.AUTHORIZATION_HEADER_MISSING]: 'Authorization header is missing',
+  [ErrorCode.AUTHORIZATION_HEADER_INVALID]: 'Authorization header format is invalid',
 
   // Resource errors
   [ErrorCode.NOT_FOUND]: 'Resource not found',

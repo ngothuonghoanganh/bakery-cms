@@ -1,0 +1,438 @@
+openapi: 3.0.0
+info:
+  title: Authentication API
+  description: Core authentication endpoints for email/password login
+  version: 1.0.0
+  contact:
+    name: Bakery CMS Team
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+paths:
+  /auth/login:
+    post:
+      summary: User login with email and password
+      description: Authenticate user with email/password and return JWT tokens
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: Account locked due to failed attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      summary: User registration
+      description: Register new user with email and password
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Refresh token expired or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      description: Invalidate refresh token and end session
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/change-password:
+    put:
+      summary: Change user password
+      description: Change password for authenticated user
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Current password incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "admin@bakery.com"
+        password:
+          type: string
+          minLength: 8
+          example: "SecurePass123!"
+        rememberMe:
+          type: boolean
+          default: false
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          example: "SecurePass123!"
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "John"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Doe"
+        role:
+          type: string
+          enum: [customer, seller]
+          default: customer
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          example: "OldPass123!"
+        newPassword:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          example: "NewSecurePass123!"
+
+    AuthResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          required:
+            - user
+            - access_token
+            - refresh_token
+            - expires_in
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refresh_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expires_in:
+              type: integer
+              description: Token expiration time in seconds
+              example: 31536000
+            token_type:
+              type: string
+              example: "Bearer"
+
+    TokenResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          required:
+            - access_token
+            - expires_in
+          properties:
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expires_in:
+              type: integer
+              example: 31536000
+            token_type:
+              type: string
+              example: "Bearer"
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - first_name
+        - last_name
+        - role
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        role:
+          type: string
+          enum: [admin, seller, customer, viewer]
+          example: "customer"
+        status:
+          type: string
+          enum: [active, inactive, suspended, pending_verification]
+          example: "active"
+        provider:
+          type: string
+          enum: [local, google, facebook]
+          example: "local"
+        provider_id:
+          type: string
+          nullable: true
+          example: null
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T10:30:00Z"
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T14:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T14:30:00Z"
+
+    SuccessResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+      properties:
+        status:
+          type: string
+          example: "error"
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid email format"
+            details:
+              type: object
+              additionalProperties: true
+              example:
+                field: "email"
+                value: "invalid-email"

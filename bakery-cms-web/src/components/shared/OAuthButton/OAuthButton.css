@@ -1,0 +1,66 @@
+/**
+ * OAuth Button Styles
+ */
+
+.oauth-button {
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  margin-bottom: 12px;
+}
+
+.oauth-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.oauth-button:active {
+  transform: translateY(0);
+}
+
+/* Google Button */
+.oauth-button-google {
+  border-color: #4285f4;
+  color: #4285f4;
+  background-color: white;
+}
+
+.oauth-button-google:hover {
+  border-color: #4285f4;
+  color: white;
+  background-color: #4285f4;
+}
+
+.oauth-button-google:focus {
+  border-color: #4285f4;
+  color: #4285f4;
+}
+
+/* Facebook Button */
+.oauth-button-facebook {
+  border-color: #1877f2;
+  color: #1877f2;
+  background-color: white;
+}
+
+.oauth-button-facebook:hover {
+  border-color: #1877f2;
+  color: white;
+  background-color: #1877f2;
+}
+
+.oauth-button-facebook:focus {
+  border-color: #1877f2;
+  color: #1877f2;
+}
+
+/* Disabled state */
+.oauth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.oauth-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}

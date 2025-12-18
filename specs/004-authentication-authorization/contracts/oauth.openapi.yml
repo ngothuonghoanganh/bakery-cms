@@ -1,0 +1,467 @@
+openapi: 3.0.0
+info:
+  title: OAuth API
+  description: OAuth 2.0 authentication endpoints with PKCE support
+  version: 1.0.0
+  contact:
+    name: Bakery CMS Team
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+paths:
+  /oauth/auth-url/{provider}:
+    get:
+      summary: Get OAuth authorization URL
+      description: Generate OAuth authorization URL with PKCE challenge for specified provider
+      tags:
+        - OAuth
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, facebook]
+          description: OAuth provider
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: Redirect URI after authorization
+          example: "http://localhost:3000/auth/callback"
+      responses:
+        '200':
+          description: Authorization URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthUrlResponse'
+        '400':
+          description: Invalid provider or redirect URI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: OAuth configuration error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /oauth/callback/{provider}:
+    post:
+      summary: Handle OAuth callback
+      description: Process OAuth authorization callback and exchange code for tokens
+      tags:
+        - OAuth
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, facebook]
+          description: OAuth provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthCallbackRequest'
+      responses:
+        '200':
+          description: OAuth authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthCallbackResponse'
+        '201':
+          description: OAuth authentication successful, new user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthCallbackResponse'
+        '400':
+          description: Invalid authorization code or PKCE verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: OAuth provider authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Account exists with different provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: OAuth processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /oauth/link/{provider}:
+    post:
+      summary: Link OAuth account to existing user
+      description: Link an OAuth provider account to an authenticated user
+      tags:
+        - OAuth
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, facebook]
+          description: OAuth provider to link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthLinkRequest'
+      responses:
+        '200':
+          description: Account linked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthLinkResponse'
+        '400':
+          description: Invalid authorization code or user already linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: User not authenticated or OAuth provider failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Provider account already linked to another user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /oauth/unlink/{provider}:
+    delete:
+      summary: Unlink OAuth account
+      description: Remove OAuth provider link from authenticated user
+      tags:
+        - OAuth
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, facebook]
+          description: OAuth provider to unlink
+      responses:
+        '200':
+          description: Account unlinked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Cannot unlink - no password set or last provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Provider not linked to user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    OAuthCallbackRequest:
+      type: object
+      required:
+        - code
+        - state
+        - code_verifier
+      properties:
+        code:
+          type: string
+          description: Authorization code from OAuth provider
+          example: "4/P7q7W91a-oMsCeLvIaQm6bTrgtp7"
+        state:
+          type: string
+          description: State parameter for CSRF protection
+          example: "af0ifjsldkj"
+        code_verifier:
+          type: string
+          description: PKCE code verifier
+          example: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        redirect_uri:
+          type: string
+          format: uri
+          description: Redirect URI that was used for authorization
+          example: "http://localhost:3000/auth/callback"
+
+    OAuthLinkRequest:
+      type: object
+      required:
+        - code
+        - state
+        - code_verifier
+      properties:
+        code:
+          type: string
+          description: Authorization code from OAuth provider
+          example: "4/P7q7W91a-oMsCeLvIaQm6bTrgtp7"
+        state:
+          type: string
+          description: State parameter for CSRF protection
+          example: "af0ifjsldkj"
+        code_verifier:
+          type: string
+          description: PKCE code verifier
+          example: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        redirect_uri:
+          type: string
+          format: uri
+          description: Redirect URI that was used for authorization
+          example: "http://localhost:3000/auth/callback"
+
+    OAuthUrlResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          required:
+            - auth_url
+            - state
+            - code_verifier
+          properties:
+            auth_url:
+              type: string
+              format: uri
+              description: OAuth provider authorization URL
+              example: "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=..."
+            state:
+              type: string
+              description: State parameter for CSRF protection (store on client)
+              example: "af0ifjsldkj"
+            code_verifier:
+              type: string
+              description: PKCE code verifier (store on client)
+              example: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+
+    OAuthCallbackResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          required:
+            - user
+            - access_token
+            - refresh_token
+            - expires_in
+            - is_new_user
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refresh_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expires_in:
+              type: integer
+              description: Token expiration time in seconds
+              example: 31536000
+            token_type:
+              type: string
+              example: "Bearer"
+            is_new_user:
+              type: boolean
+              description: True if user was created during this OAuth flow
+              example: false
+
+    OAuthLinkResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          required:
+            - user
+            - linked_provider
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            linked_provider:
+              type: string
+              enum: [google, facebook]
+              example: "google"
+            provider_email:
+              type: string
+              format: email
+              description: Email from OAuth provider
+              example: "user@gmail.com"
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - first_name
+        - last_name
+        - role
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "john@gmail.com"
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        role:
+          type: string
+          enum: [admin, seller, customer, viewer]
+          example: "customer"
+        status:
+          type: string
+          enum: [active, inactive, suspended, pending_verification]
+          example: "active"
+        provider:
+          type: string
+          enum: [local, google, facebook]
+          example: "google"
+        provider_id:
+          type: string
+          nullable: true
+          description: OAuth provider user ID
+          example: "104177263742616000000"
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T10:30:00Z"
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-17T14:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T14:30:00Z"
+
+    SuccessResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+      properties:
+        status:
+          type: string
+          example: "error"
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum: 
+                - INVALID_PROVIDER
+                - INVALID_REDIRECT_URI
+                - INVALID_CODE
+                - PKCE_VERIFICATION_FAILED
+                - OAUTH_PROVIDER_ERROR
+                - ACCOUNT_EXISTS_DIFFERENT_PROVIDER
+                - PROVIDER_ACCOUNT_LINKED
+                - PROVIDER_NOT_LINKED
+                - CANNOT_UNLINK_LAST_PROVIDER
+              example: "INVALID_CODE"
+            message:
+              type: string
+              example: "Invalid authorization code"
+            details:
+              type: object
+              additionalProperties: true
+              example:
+                provider: "google"
+                error: "invalid_grant"
