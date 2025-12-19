@@ -9,6 +9,7 @@ import { createProductRepository } from './repositories/products.repositories';
 import { createProductService } from './services/products.services';
 import { createProductHandlers } from './handlers/products.handlers';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
+import { requireManager, requireSeller } from '../../middleware/rbac.middleware';
 import {
   createProductSchema,
   updateProductSchema,
@@ -33,52 +34,60 @@ export const createProductsRouter = (): Router => {
   /**
    * GET /api/products
    * Get all products with filtering and pagination
+   * Public access - no authentication required
    */
   router.get(
     '/',
     validateQuery(productListQuerySchema),
-    handlers.handleGetAllProducts
+    handlers.handleGetAllProducts as any
   );
 
   /**
    * GET /api/products/:id
    * Get product by ID
+   * Public access - no authentication required
    */
   router.get(
     '/:id',
     validateParams(productIdParamSchema),
-    handlers.handleGetProduct
+    handlers.handleGetProduct as any
   );
 
   /**
    * POST /api/products
    * Create new product
+   * Requires: Manager or Seller role
    */
   router.post(
     '/',
+    requireSeller as any,
     validateBody(createProductSchema),
-    handlers.handleCreateProduct
+    handlers.handleCreateProduct as any
   );
 
   /**
    * PATCH /api/products/:id
    * Update product by ID
+   * Requires: Manager or Seller role (sellers can only update own products)
    */
   router.patch(
     '/:id',
+    requireSeller as any,
     validateParams(productIdParamSchema),
     validateBody(updateProductSchema),
-    handlers.handleUpdateProduct
+    handlers.handleUpdateProduct as any
   );
 
   /**
    * DELETE /api/products/:id
    * Delete product by ID
+   * Requires: Manager role or higher
    */
   router.delete(
     '/:id',
+    requireManager as any,
     validateParams(productIdParamSchema),
-    handlers.handleDeleteProduct
+    handlers.handleDeleteProduct as any
   );
 
   return router;

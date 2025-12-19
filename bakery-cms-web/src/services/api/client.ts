@@ -32,10 +32,8 @@ const createAPIClient = (): AxiosInstance => {
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
       // Add authentication token if available
       const authState = useAuthStore.getState();
-      if (authState.user) {
-        // In a real app, we would get the token from authState
-        // For now, we'll add a placeholder
-        config.headers.Authorization = `Bearer ${authState.user.id}`;
+      if (authState.token) {
+        config.headers.Authorization = `Bearer ${authState.token}`;
       }
 
       // Add timestamp to prevent caching
@@ -67,22 +65,45 @@ const createAPIClient = (): AxiosInstance => {
       }
       return response;
     },
-    (error: AxiosError<{ error?: AppError }>): Promise<never> => {
+    async (error: AxiosError<{ error?: AppError }>): Promise<never> => {
       // Log errors in development
       if (import.meta.env.DEV) {
         console.error('[API Error]', error);
       }
 
-      // Handle authentication errors
-      if (error.response?.status === 401) {
-        const authState = useAuthStore.getState();
-        const notificationState = useNotificationStore.getState();
-        
-        authState.logout();
-        notificationState.error(
-          'Authentication Error',
-          'Your session has expired. Please login again.'
-        );
+      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+      // Handle authentication errors with token refresh
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        try {
+          // Try to refresh the token
+          const authState = useAuthStore.getState();
+          await authState.refreshAuth();
+
+          // Retry the original request with new token
+          const newToken = useAuthStore.getState().token;
+          if (newToken && originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+
+          return client(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, logout user
+          const authState = useAuthStore.getState();
+          const notificationState = useNotificationStore.getState();
+          
+          authState.clearAuth();
+          notificationState.error(
+            'Authentication Error',
+            'Your session has expired. Please login again.'
+          );
+
+          // Redirect to login page
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
       }
 
       // Handle authorization errors

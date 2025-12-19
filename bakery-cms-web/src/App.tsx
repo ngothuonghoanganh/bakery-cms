@@ -3,15 +3,35 @@
  * Configures Ant Design theme, routing, authentication, and error boundaries
  */
 
-import React, { useEffect, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import { useThemeStore } from './stores/themeStore';
-import { useAuthStore } from './stores/authStore';
 import { lightTheme, darkTheme } from './config/theme.config';
 import { DashboardLayout, ErrorBoundary, LoadingSpinner } from './components/shared';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 // Lazy load all page components for code splitting
+const LoginPage = lazy(() =>
+  import('./pages/LoginPage/LoginPage').then((module) => ({
+    default: module.LoginPage,
+  }))
+);
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage/RegisterPage').then((module) => ({
+    default: module.RegisterPage,
+  }))
+);
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage/ForgotPasswordPage').then((module) => ({
+    default: module.ForgotPasswordPage,
+  }))
+);
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage/ResetPasswordPage').then((module) => ({
+    default: module.ResetPasswordPage,
+  }))
+);
 const DashboardPage = lazy(() =>
   import('./pages/Dashboard/DashboardPage').then((module) => ({
     default: module.DashboardPage,
@@ -48,12 +68,6 @@ import './styles/antd-overrides.less';
 
 export const App = (): React.JSX.Element => {
   const { mode } = useThemeStore();
-  const { login } = useAuthStore();
-
-  // Mock login on app start (for development)
-  useEffect(() => {
-    login('admin@bakery.com', 'password');
-  }, [login]);
 
   const theme = mode === 'light' ? lightTheme : darkTheme;
 
@@ -64,65 +78,84 @@ export const App = (): React.JSX.Element => {
           <Router>
             <Suspense fallback={<LoadingSpinner fullScreen />}>
               <Routes>
-                {/* Dashboard routes with layout */}
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                {/* Protected routes with dashboard layout */}
                 <Route
                   path="/"
                   element={
-                    <DashboardLayout>
-                      <DashboardPage />
-                    </DashboardLayout>
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <DashboardPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
                   }
                 />
-            <Route
-              path="/products"
-              element={
-                <DashboardLayout>
-                  <ProductsPage />
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/products/:id"
-              element={
-                <DashboardLayout>
-                  <ProductDetailPage />
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/orders"
-              element={
-                <DashboardLayout>
-                  <OrdersPage />
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/orders/:id"
-              element={
-                <DashboardLayout>
-                  <OrderDetailPage />
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/payments"
-              element={
-                <DashboardLayout>
-                  <PaymentsPage />
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/payments/:id"
-              element={
-                <DashboardLayout>
-                  <PaymentDetailPage />
-                </DashboardLayout>
-              }
-            />
-            
-                
+                <Route
+                  path="/products"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <ProductsPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <ProductDetailPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/orders"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <OrdersPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/orders/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <OrderDetailPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payments"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <PaymentsPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payments/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <PaymentDetailPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Catch all - redirect to dashboard */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

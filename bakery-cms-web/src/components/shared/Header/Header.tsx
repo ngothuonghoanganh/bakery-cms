@@ -1,11 +1,13 @@
 import React from 'react';
-import { Layout, Button, Space, Dropdown } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Layout, Button, Space, Dropdown, Avatar } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BulbOutlined,
   UserOutlined,
   LogoutOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useThemeStore } from '../../../stores/themeStore';
@@ -15,17 +17,43 @@ import type { HeaderProps } from './Header.types';
 const { Header: AntHeader } = Layout;
 
 export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) => {
+  const navigate = useNavigate();
   const { mode, toggleTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Profile',
+      onClick: () => navigate('/profile'),
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
+      onClick: () => navigate('/settings'),
+    },
+    {
+      type: 'divider',
+    },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Logout',
-      onClick: logout,
+      onClick: handleLogout,
     },
   ];
+
+  const getUserDisplayName = () => {
+    if (!user) return 'Guest';
+    return `${user.firstName} ${user.lastName}`;
+  };
 
   return (
     <AntHeader
@@ -57,8 +85,11 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) =>
 
         {user && (
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" icon={<UserOutlined />} style={{ fontSize: 16 }}>
-              {user.name}
+            <Button type="text" style={{ fontSize: 16, height: 'auto', padding: '4px 8px' }}>
+              <Space>
+                <Avatar size="small" icon={<UserOutlined />} />
+                <span>{getUserDisplayName()}</span>
+              </Space>
             </Button>
           </Dropdown>
         )}

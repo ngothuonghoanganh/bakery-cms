@@ -14,8 +14,16 @@ export enum ErrorCode {
 
   // Authentication/Authorization errors (401, 403)
   UNAUTHORIZED = 'UNAUTHORIZED',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   FORBIDDEN = 'FORBIDDEN',
   INVALID_TOKEN = 'INVALID_TOKEN',
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  TOKEN_INVALID = 'TOKEN_INVALID',
+  TOKEN_GENERATION_FAILED = 'TOKEN_GENERATION_FAILED',
+  TOKEN_VERIFICATION_FAILED = 'TOKEN_VERIFICATION_FAILED',
+  TOKEN_MISSING = 'TOKEN_MISSING',
+  AUTHORIZATION_HEADER_MISSING = 'AUTHORIZATION_HEADER_MISSING',
+  AUTHORIZATION_HEADER_INVALID = 'AUTHORIZATION_HEADER_INVALID',
 
   // Resource errors (404, 409)
   NOT_FOUND = 'NOT_FOUND',
@@ -31,6 +39,7 @@ export enum ErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   DATABASE_ERROR = 'DATABASE_ERROR',
   EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+  CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
 
   // Rate limiting (429)
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
@@ -129,5 +138,29 @@ export const createDatabaseError = (
   code: ErrorCode.DATABASE_ERROR,
   message,
   statusCode: 500,
+  timestamp: new Date(),
+});
+
+/**
+ * Create an unauthorized error (401)
+ */
+export const createUnauthorizedError = (
+  message: string = 'Authentication required'
+): AppError => ({
+  code: ErrorCode.UNAUTHORIZED,
+  message,
+  statusCode: 401,
+  timestamp: new Date(),
+});
+
+/**
+ * Create a forbidden error (403)
+ */
+export const createForbiddenError = (
+  message: string = 'Access forbidden'
+): AppError => ({
+  code: ErrorCode.FORBIDDEN,
+  message,
+  statusCode: 403,
   timestamp: new Date(),
 });

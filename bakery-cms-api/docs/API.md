@@ -63,6 +63,668 @@ Production:  https://api.bakery-cms.com/api
 
 ---
 
+## Authentication API
+
+### Register
+```http
+POST /api/auth/register
+```
+
+**Rate Limit:** 3 requests per hour
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "SecureP@ss123",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+**Password Requirements (BR-005):**
+- Minimum 8 characters
+- At least one uppercase letter (A-Z)
+- At least one lowercase letter (a-z)
+- At least one number (0-9)
+- At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "role": "CUSTOMER",
+      "status": "ACTIVE",
+      "isEmailVerified": false
+    },
+    "tokens": {
+      "accessToken": "jwt-token",
+      "refreshToken": "refresh-token",
+      "expiresIn": 31536000
+    }
+  }
+}
+```
+
+### Login
+```http
+POST /api/auth/login
+```
+
+**Rate Limit:** 5 requests per 15 minutes (30-minute block on limit)
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "SecureP@ss123"
+}
+```
+
+**Account Lockout (BR-008):**
+- 5 failed login attempts → Account locked for 30 minutes
+- Login attempts reset after 15 minutes of inactivity
+- Locked accounts receive remaining time in error response
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "role": "CUSTOMER",
+      "status": "ACTIVE"
+    },
+    "tokens": {
+      "accessToken": "jwt-token",
+      "refreshToken": "refresh-token",
+      "expiresIn": 31536000
+    }
+  }
+}
+```
+
+**Error Response (Account Locked):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ACCOUNT_LOCKED",
+    "message": "Account locked due to too many failed login attempts",
+    "statusCode": 403,
+    "details": {
+      "lockedUntil": "2024-01-01T12:30:00.000Z",
+      "remainingMinutes": 25
+    }
+  }
+}
+```
+
+### Refresh Token
+```http
+POST /api/auth/refresh
+```
+
+**Request Body:**
+```json
+{
+  "refreshToken": "refresh-token"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "new-jwt-token",
+    "refreshToken": "new-refresh-token",
+    "expiresIn": 31536000
+  }
+}
+```
+
+### Logout
+```http
+POST /api/auth/logout
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "refreshToken": "refresh-token"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+### Logout All Devices
+```http
+POST /api/auth/logout/all
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "All sessions terminated"
+}
+```
+
+### Change Password
+```http
+PATCH /api/auth/password
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Request Body:**
+```json
+{
+  "currentPassword": "OldP@ss123",
+  "newPassword": "NewP@ss456"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+### Forgot Password
+```http
+POST /api/auth/forgot-password
+```
+
+**Rate Limit:** 3 requests per hour
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password reset email sent"
+}
+```
+
+### Reset Password
+```http
+POST /api/auth/reset-password
+```
+
+**Rate Limit:** 3 requests per hour
+
+**Request Body:**
+```json
+{
+  "token": "reset-token-from-email",
+  "newPassword": "NewP@ss456"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+### Verify Email
+```http
+GET /api/auth/verify-email?token=verification-token
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+---
+
+## OAuth Authentication
+
+### Google OAuth Login
+```http
+GET /api/auth/google
+```
+
+**Rate Limit:** 10 requests per 15 minutes
+
+**Description:** Redirects to Google OAuth consent screen
+
+**OAuth Implementation:** PKCE (Proof Key for Code Exchange) for enhanced security (BR-007)
+
+### Google OAuth Callback
+```http
+GET /api/auth/google/callback?code=auth-code&state=state-token
+```
+
+**Response:** Redirects to frontend with tokens in URL parameters
+
+### Facebook OAuth Login
+```http
+GET /api/auth/facebook
+```
+
+**Rate Limit:** 10 requests per 15 minutes
+
+**Description:** Redirects to Facebook OAuth consent screen
+
+### Facebook OAuth Callback
+```http
+GET /api/auth/facebook/callback?code=auth-code&state=state-token
+```
+
+**Response:** Redirects to frontend with tokens in URL parameters
+
+---
+
+## Admin Management API
+
+**All admin endpoints require Admin role authentication**
+
+### List Users
+```http
+GET /api/auth/admin/users?page=1&limit=10&role=CUSTOMER&status=ACTIVE&search=john
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Query Parameters:**
+- `page` (number, optional): Page number (default: 1)
+- `limit` (number, optional): Items per page (default: 10, max: 100)
+- `role` (UserRole, optional): Filter by role (ADMIN, MANAGER, STAFF, SELLER, CUSTOMER, VIEWER)
+- `status` (UserStatus, optional): Filter by status (ACTIVE, INACTIVE, SUSPENDED, PENDING)
+- `search` (string, optional): Search by email, firstName, or lastName
+- `sortBy` (string, optional): Sort field (createdAt, email, role)
+- `sortOrder` (string, optional): Sort direction (ASC, DESC)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": "uuid",
+        "email": "user@example.com",
+        "firstName": "John",
+        "lastName": "Doe",
+        "role": "CUSTOMER",
+        "status": "ACTIVE",
+        "provider": "email",
+        "isEmailVerified": true,
+        "loginAttempts": 0,
+        "lastLoginAt": "2024-01-01T12:00:00.000Z",
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 50,
+      "totalPages": 5
+    }
+  }
+}
+```
+
+### Get User by ID
+```http
+GET /api/auth/admin/users/:id
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "CUSTOMER",
+    "status": "ACTIVE",
+    "provider": "email",
+    "isEmailVerified": true,
+    "loginAttempts": 0,
+    "lockedUntil": null,
+    "lastLoginAt": "2024-01-01T12:00:00.000Z",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+### Create User
+```http
+POST /api/auth/admin/users
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Request Body:**
+```json
+{
+  "email": "newuser@example.com",
+  "password": "SecureP@ss123",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "role": "STAFF"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "email": "newuser@example.com",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "role": "STAFF",
+    "status": "ACTIVE",
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+### Update User
+```http
+PATCH /api/auth/admin/users/:id
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Request Body (all fields optional):**
+```json
+{
+  "email": "updated@example.com",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "role": "MANAGER",
+  "status": "SUSPENDED"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "email": "updated@example.com",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "role": "MANAGER",
+    "status": "SUSPENDED",
+    "updatedAt": "2024-01-01T13:00:00.000Z"
+  }
+}
+```
+
+### Delete User (Soft Delete)
+```http
+DELETE /api/auth/admin/users/:id
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Response:**
+```http
+204 No Content
+```
+
+### Restore User
+```http
+POST /api/auth/admin/users/:id/restore
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "deletedAt": null,
+    "restoredAt": "2024-01-01T14:00:00.000Z"
+  }
+}
+```
+
+### Unlock User Account
+```http
+POST /api/auth/admin/users/:id/unlock
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Request Body:**
+```json
+{
+  "reason": "Customer support request"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Account unlocked successfully"
+}
+```
+
+### Reset User Password
+```http
+POST /api/auth/admin/users/:id/reset-password
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Request Body:**
+```json
+{
+  "newPassword": "NewP@ss456",
+  "requirePasswordChange": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+### Revoke User Sessions
+```http
+POST /api/auth/admin/users/:id/revoke-sessions
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Request Body:**
+```json
+{
+  "reason": "Security breach suspected"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Sessions revoked successfully"
+}
+```
+
+### Get Admin Statistics
+```http
+GET /api/auth/admin/statistics
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalUsers": 150,
+    "activeUsers": 120,
+    "usersByRole": {
+      "ADMIN": 2,
+      "MANAGER": 5,
+      "STAFF": 10,
+      "SELLER": 20,
+      "CUSTOMER": 110,
+      "VIEWER": 3
+    },
+    "usersByStatus": {
+      "ACTIVE": 120,
+      "INACTIVE": 10,
+      "SUSPENDED": 5,
+      "PENDING": 15
+    },
+    "recentRegistrations": 25,
+    "lockedAccounts": 3
+  }
+}
+```
+
+---
+
+## Role-Based Access Control (RBAC)
+
+**User Roles (BR-003):**
+1. **ADMIN** - Full system access, can manage all users and data
+2. **MANAGER** - Can manage products, orders, and payments
+3. **STAFF** - Can view and update orders and payments
+4. **SELLER** - Can create and manage own products
+5. **CUSTOMER** - Can create orders and view own data
+6. **VIEWER** - Read-only access to public data
+
+**Role Hierarchy:** Admin > Manager > Staff > Seller > Customer > Viewer
+
+**Protected Endpoints:**
+- Admin endpoints (`/api/auth/admin/*`): Require ADMIN role
+- Product creation/update: Require SELLER role or higher
+- Order management: Require STAFF role or higher  
+- Payment processing: Require STAFF role or higher
+- User can only access their own data unless they have STAFF role or higher
+
+---
+
+## Security Features
+
+### Rate Limiting
+All authentication endpoints are rate-limited to prevent brute force attacks:
+- **Login**: 5 requests per 15 minutes (30-minute block)
+- **Register**: 3 requests per hour (1-hour block)
+- **Password Reset**: 3 requests per hour (1-hour block)
+- **OAuth**: 10 requests per 15 minutes (15-minute block)
+- **API endpoints**: 100 requests per 15 minutes
+
+### JWT Tokens
+- **Access Token**: 365-day expiration (BR-001)
+- **Refresh Token**: Used to obtain new access tokens
+- **Token Storage**: HttpOnly cookies (secure in production)
+- **Token Validation**: Every request validates token signature and expiration
+
+### Password Security (BR-005, BR-006)
+- Hashed with bcrypt (12 rounds)
+- Minimum 8 characters with complexity requirements
+- Password strength indicator in frontend
+- Secure password reset flow with time-limited tokens
+
+### Session Management
+- Multiple device support with session tracking
+- Logout from single device or all devices
+- Admin can revoke user sessions remotely
+- Session cleanup on password change
+
+---
+
 ## Products API
 
 ### List Products

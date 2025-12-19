@@ -15,8 +15,16 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
 
   // Authentication/Authorization errors
   [ErrorCode.UNAUTHORIZED]: 'Authentication required',
+  [ErrorCode.AUTHENTICATION_ERROR]: 'Authentication failed',
   [ErrorCode.FORBIDDEN]: 'Access forbidden',
   [ErrorCode.INVALID_TOKEN]: 'Invalid or expired token',
+  [ErrorCode.TOKEN_EXPIRED]: 'Token has expired',
+  [ErrorCode.TOKEN_INVALID]: 'Token is invalid',
+  [ErrorCode.TOKEN_GENERATION_FAILED]: 'Failed to generate token',
+  [ErrorCode.TOKEN_VERIFICATION_FAILED]: 'Token verification failed',
+  [ErrorCode.TOKEN_MISSING]: 'Token is missing',
+  [ErrorCode.AUTHORIZATION_HEADER_MISSING]: 'Authorization header is missing',
+  [ErrorCode.AUTHORIZATION_HEADER_INVALID]: 'Authorization header format is invalid',
 
   // Resource errors
   [ErrorCode.NOT_FOUND]: 'Resource not found',
@@ -32,6 +40,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ErrorCode.INTERNAL_ERROR]: 'An internal error occurred',
   [ErrorCode.DATABASE_ERROR]: 'Database operation failed',
   [ErrorCode.EXTERNAL_SERVICE_ERROR]: 'External service error',
+  [ErrorCode.CONFIGURATION_ERROR]: 'Configuration error occurred',
 
   // Rate limiting
   [ErrorCode.RATE_LIMIT_EXCEEDED]: 'Too many requests, please try again later',

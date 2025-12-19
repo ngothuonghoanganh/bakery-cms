@@ -17,4 +17,7 @@ export {
   OrderModel,
   OrderItemModel,
   PaymentModel,
+  UserModel,
+  AuthSessionModel,
+  TokenType,
 } from './models';

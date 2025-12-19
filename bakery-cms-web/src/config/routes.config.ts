@@ -48,6 +48,11 @@ export const routesConfig: RouteConfig[] = [
     hideInMenu: true,
     component: '@/pages/Payments/PaymentDetailPage',
   },
+  {
+    path: '/auth/oauth/callback',
+    hideInMenu: true,
+    component: '@/pages/OAuthCallback/OAuthCallback',
+  },
 ];
 
 // Export menu items (filtered to show only in menu)

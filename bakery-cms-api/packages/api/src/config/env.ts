@@ -30,6 +30,11 @@ export type EnvConfig = {
   readonly RATE_LIMIT_WINDOW_MS: number;
   readonly RATE_LIMIT_MAX_REQUESTS: number;
   readonly LOG_LEVEL: string;
+  readonly BASE_URL: string;
+  readonly GOOGLE_CLIENT_ID: string;
+  readonly GOOGLE_CLIENT_SECRET: string;
+  readonly FACEBOOK_CLIENT_ID: string;
+  readonly FACEBOOK_CLIENT_SECRET: string;
 };
 
 /**
@@ -106,6 +111,11 @@ export const loadEnvConfig = (): EnvConfig => {
     RATE_LIMIT_WINDOW_MS: parseIntEnv('RATE_LIMIT_WINDOW_MS', 900000), // 15 minutes
     RATE_LIMIT_MAX_REQUESTS: parseIntEnv('RATE_LIMIT_MAX_REQUESTS', 100),
     LOG_LEVEL: getOptionalEnv('LOG_LEVEL', 'info'),
+    BASE_URL: getOptionalEnv('BASE_URL', `http://localhost:${parseIntEnv('PORT', 3000)}`),
+    GOOGLE_CLIENT_ID: getOptionalEnv('GOOGLE_CLIENT_ID', ''),
+    GOOGLE_CLIENT_SECRET: getOptionalEnv('GOOGLE_CLIENT_SECRET', ''),
+    FACEBOOK_CLIENT_ID: getOptionalEnv('FACEBOOK_CLIENT_ID', ''),
+    FACEBOOK_CLIENT_SECRET: getOptionalEnv('FACEBOOK_CLIENT_SECRET', ''),
   };
 };
 
