@@ -9,6 +9,7 @@ import { createPaymentRepository } from './repositories/payments.repositories';
 import { createPaymentService } from './services/payments.services';
 import { createPaymentHandlers } from './handlers/payments.handlers';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
+import { requireAuthenticated, requireStaff } from '../../middleware/rbac.middleware';
 import {
   createPaymentSchema,
   paymentIdParamSchema,
@@ -35,31 +36,37 @@ export const createPaymentsRouter = (): Router => {
   /**
    * GET /api/payments
    * Get all payments with filtering and pagination
+   * Requires: Staff role or higher
    */
   router.get(
     '/',
+    requireStaff as any,
     validateQuery(paymentListQuerySchema),
-    handlers.handleGetAllPayments
+    handlers.handleGetAllPayments as any
   );
 
   /**
    * GET /api/payments/order/:orderId
    * Get payment by order ID
+   * Requires: Authenticated user (customers can only see own payments)
    */
   router.get(
     '/order/:orderId',
+    requireAuthenticated as any,
     validateParams(orderIdParamSchema),
-    handlers.handleGetPaymentByOrder
+    handlers.handleGetPaymentByOrder as any
   );
 
   /**
    * GET /api/payments/order/:orderId/vietqr
    * Generate VietQR for order
+   * Requires: Authenticated user
    */
   router.get(
     '/order/:orderId/vietqr',
+    requireAuthenticated as any,
     validateParams(orderIdParamSchema),
-    handlers.handleGetVietQR
+    handlers.handleGetVietQR as any
   );
 
   /**
@@ -69,7 +76,7 @@ export const createPaymentsRouter = (): Router => {
   router.get(
     '/:id',
     validateParams(paymentIdParamSchema),
-    handlers.handleGetPayment
+    handlers.handleGetPayment as any
   );
 
   /**
@@ -79,7 +86,7 @@ export const createPaymentsRouter = (): Router => {
   router.post(
     '/',
     validateBody(createPaymentSchema),
-    handlers.handleCreatePayment
+    handlers.handleCreatePayment as any
   );
 
   /**
@@ -90,7 +97,7 @@ export const createPaymentsRouter = (): Router => {
     '/:id/mark-paid',
     validateParams(paymentIdParamSchema),
     validateBody(markAsPaidSchema),
-    handlers.handleMarkAsPaid
+    handlers.handleMarkAsPaid as any
   );
 
   return router;

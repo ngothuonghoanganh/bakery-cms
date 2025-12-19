@@ -5,6 +5,7 @@
 
 import { OAuthProvider } from '../types/api/oauth.api';
 import { apiClient } from './api/client';
+import type { User } from './auth.service';
 
 /**
  * OAuth authorization response
@@ -18,14 +19,7 @@ export interface OAuthAuthorizationResponse {
  * OAuth login response
  */
 export interface OAuthLoginResponse {
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    provider: string;
-  };
+  user: User;
   tokens: {
     accessToken: string;
     refreshToken: string;

@@ -255,63 +255,63 @@ Frontend Tests:
 
 ### Step 1: Create/Update Code Structure
 
-- [ ] T119 [P] [RBAC] Create RBAC middleware directory in bakery-cms-api/packages/api/src/middleware/rbac.middleware.ts
-- [ ] T120 [P] [RBAC] Create permission management utilities in bakery-cms-api/packages/api/src/modules/auth/utils/permissions.utils.ts
-- [ ] T121 [P] [RBAC] Create role management components in bakery-cms-web/src/components/features/rbac/
+- [X] T119 [P] [RBAC] Create RBAC middleware directory in bakery-cms-api/packages/api/src/middleware/rbac.middleware.ts
+- [X] T120 [P] [RBAC] Create permission management utilities in bakery-cms-api/packages/api/src/modules/auth/utils/permissions.utils.ts
+- [X] T121 [P] [RBAC] Create role management components in bakery-cms-web/src/components/features/rbac/
 
 ### Step 2: Create/Update Data Types
 
 Backend RBAC Types:
-- [ ] T122 [P] [RBAC] Define permission types in bakery-cms-api/packages/common/src/types/permissions.types.ts
-- [ ] T123 [P] [RBAC] Define RBAC service function types in bakery-cms-api/packages/common/src/types/rbac.types.ts
-- [ ] T124 [P] [RBAC] Create role-based DTOs for API access control
+- [X] T122 [P] [RBAC] Define permission types in bakery-cms-api/packages/common/src/types/permissions.types.ts
+- [X] T123 [P] [RBAC] Define RBAC service function types in bakery-cms-api/packages/common/src/types/rbac.types.ts
+- [X] T124 [P] [RBAC] Create role-based DTOs for API access control
 
 Frontend RBAC Types:
-- [ ] T125 [P] [RBAC] Create role-based component prop types
-- [ ] T126 [P] [RBAC] Define permission check function types
+- [X] T125 [P] [RBAC] Create role-based component prop types
+- [X] T126 [P] [RBAC] Define permission check function types
 
 ### Step 3: Create/Update Data Models
 
-- [ ] T127 [P] [RBAC] Update User model with role validation and default values
-- [ ] T128 [P] [RBAC] Create permission mapping constants for each role
-- [ ] T129 [P] [RBAC] Update user repository with role-based queries
+- [X] T127 [P] [RBAC] Update User model with role validation and default values
+- [X] T128 [P] [RBAC] Create permission mapping constants for each role
+- [X] T129 [P] [RBAC] Update user repository with role-based queries
 
 ### Step 4: Create/Update Migration Files
 
-- [ ] T130 [RBAC] Create role configuration migration (if needed) in bakery-cms-api/packages/database/src/migrations/007-configure-user-roles.ts
-- [ ] T131 [RBAC] Add role-based database indexes for performance
-- [ ] T132 [RBAC] Run RBAC migration: `npm run migrate:up`
+- [X] T130 [RBAC] Create role configuration migration (if needed) in bakery-cms-api/packages/database/src/migrations/007-configure-user-roles.ts
+- [X] T131 [RBAC] Add role-based database indexes for performance
+- [X] T132 [RBAC] Run RBAC migration: `npm run migrate:up`
 
 ### Step 5: Create/Update Seed Data
 
-- [ ] T133 [P] [RBAC] Add users with different roles to development seeders
-- [ ] T134 [RBAC] Verify role-based seeding works correctly
+- [X] T133 [P] [RBAC] Add users with different roles to development seeders
+- [X] T134 [RBAC] Verify role-based seeding works correctly
 
 ### Step 6: Create/Update Business Functions/Components
 
 Backend Functions:
-- [ ] T135 [P] [RBAC] Implement permission check functions in bakery-cms-api/packages/api/src/modules/auth/utils/permissions.utils.ts
-- [ ] T136 [P] [RBAC] Implement role-based service functions in bakery-cms-api/packages/api/src/modules/auth/services/rbac.service.ts
-- [ ] T137 [P] [RBAC] Create role validation functions
+- [X] T135 [P] [RBAC] Implement permission check functions in bakery-cms-api/packages/api/src/modules/auth/utils/permissions.utils.ts
+- [X] T136 [P] [RBAC] Implement role-based service functions in bakery-cms-api/packages/api/src/modules/auth/services/rbac.service.ts
+- [X] T137 [P] [RBAC] Create role validation functions
 
 Frontend Components:
-- [ ] T138 [P] [RBAC] Create Core RoleGate component in bakery-cms-web/src/components/core/RoleGate/RoleGate.tsx
-- [ ] T139 [P] [RBAC] Create Shared ProtectedRoute component in bakery-cms-web/src/components/shared/ProtectedRoute/ProtectedRoute.tsx
-- [ ] T140 [RBAC] Update navigation components with role-based visibility
+- [X] T138 [P] [RBAC] Create Core RoleGate component in bakery-cms-web/src/components/core/RoleGate/RoleGate.tsx
+- [X] T139 [P] [RBAC] Create Shared ProtectedRoute component in bakery-cms-web/src/components/shared/ProtectedRoute/ProtectedRoute.tsx
+- [X] T140 [RBAC] Update navigation components with role-based visibility
 
 ### Step 7: Create/Update Logic
 
 Backend Logic:
-- [ ] T141 [RBAC] Implement RBAC middleware in bakery-cms-api/packages/api/src/middleware/rbac.middleware.ts
-- [ ] T142 [RBAC] Apply RBAC middleware to protected API endpoints
-- [ ] T143 [RBAC] Implement role-based authorization checks in controllers
-- [ ] T144 [RBAC] Add role-based error responses and handling
+- [X] T141 [RBAC] Implement RBAC middleware in bakery-cms-api/packages/api/src/middleware/rbac.middleware.ts
+- [X] T142 [RBAC] Apply RBAC middleware to protected API endpoints
+- [X] T143 [RBAC] Implement role-based authorization checks in controllers
+- [X] T144 [RBAC] Add role-based error responses and handling
 
 Frontend Logic:
-- [ ] T145 [RBAC] Implement role-based service functions in bakery-cms-web/src/services/rbac.service.ts
-- [ ] T146 [RBAC] Create useRole custom hook in bakery-cms-web/src/hooks/useRole.ts
-- [ ] T147 [RBAC] Add role-based state management to auth store
-- [ ] T148 [RBAC] Implement role-based route protection and UI rendering
+- [X] T145 [RBAC] Implement role-based service functions in bakery-cms-web/src/services/rbac.service.ts
+- [X] T146 [RBAC] Create useRole custom hook in bakery-cms-web/src/hooks/useRole.ts
+- [X] T147 [RBAC] Add role-based state management to auth store
+- [X] T148 [RBAC] Implement role-based route protection and UI rendering
 
 ### Step 8: Create/Update Unit Tests
 
@@ -339,65 +339,65 @@ Frontend Tests:
 
 ### Step 1: Create/Update Code Structure
 
-- [ ] T157 [P] [SECURITY] Create security utilities directory in bakery-cms-api/packages/api/src/modules/auth/utils/security.utils.ts
-- [ ] T158 [P] [SECURITY] Create rate limiting middleware in bakery-cms-api/packages/api/src/middleware/rate-limit.middleware.ts
-- [ ] T159 [P] [SECURITY] Create security validation components in bakery-cms-web/src/components/shared/PasswordStrength/
+- [X] T157 [P] [SECURITY] Create security utilities directory in bakery-cms-api/packages/api/src/modules/auth/utils/security.utils.ts
+- [X] T158 [P] [SECURITY] Create rate limiting middleware in bakery-cms-api/packages/api/src/middleware/rate-limit.middleware.ts
+- [X] T159 [P] [SECURITY] Create security validation components in bakery-cms-web/src/components/shared/PasswordStrength/
 
 ### Step 2: Create/Update Data Types
 
 Backend Security Types:
-- [ ] T160 [P] [SECURITY] Define security policy types in bakery-cms-api/packages/common/src/types/security.types.ts
-- [ ] T161 [P] [SECURITY] Define rate limiting configuration types
-- [ ] T162 [P] [SECURITY] Create security validation DTOs
+- [X] T160 [P] [SECURITY] Define security policy types in bakery-cms-api/packages/common/src/types/security.types.ts
+- [X] T161 [P] [SECURITY] Define rate limiting configuration types
+- [X] T162 [P] [SECURITY] Create security validation DTOs
 
 Frontend Security Types:
-- [ ] T163 [P] [SECURITY] Create password validation component types
-- [ ] T164 [P] [SECURITY] Define security state management types
+- [X] T163 [P] [SECURITY] Create password validation component types
+- [X] T164 [P] [SECURITY] Define security state management types
 
 ### Step 3: Create/Update Data Models
 
-- [ ] T165 [P] [SECURITY] Update User model with login attempts and lockout fields
-- [ ] T166 [P] [SECURITY] Add security audit fields to AuthSession model
-- [ ] T167 [P] [SECURITY] Create security event logging model (optional)
+- [X] T165 [P] [SECURITY] Update User model with login attempts and lockout fields
+- [X] T166 [P] [SECURITY] Add security audit fields to AuthSession model
+- [X] T167 [P] [SECURITY] Create security event logging model (optional)
 
 ### Step 4: Create/Update Migration Files
 
-- [ ] T168 [SECURITY] Create migration for account lockout fields in bakery-cms-api/packages/database/src/migrations/008-add-security-fields-to-users.ts
-- [ ] T169 [SECURITY] Add security-related indexes for login attempts tracking
-- [ ] T170 [SECURITY] Run security migration: `npm run migrate:up`
+- [X] T168 [SECURITY] Create migration for account lockout fields in bakery-cms-api/packages/database/src/migrations/008-add-security-fields-to-users.ts
+- [X] T169 [SECURITY] Add security-related indexes for login attempts tracking
+- [X] T170 [SECURITY] Run security migration: `npm run migrate:up`
 
 ### Step 5: Create/Update Seed Data
 
-- [ ] T171 [P] [SECURITY] Update admin seeder with strong password
-- [ ] T172 [SECURITY] Verify security seeding requirements
+- [X] T171 [P] [SECURITY] Update admin seeder with strong password
+- [X] T172 [SECURITY] Verify security seeding requirements
 
 ### Step 6: Create/Update Business Functions/Components
 
 Backend Functions:
-- [ ] T173 [P] [SECURITY] Implement password strength validation in bakery-cms-api/packages/api/src/modules/auth/utils/security.utils.ts
-- [ ] T174 [P] [SECURITY] Implement account lockout logic in authentication service
-- [ ] T175 [P] [SECURITY] Implement secure session management with httpOnly cookies
-- [ ] T176 [P] [SECURITY] Implement CSRF protection middleware
+- [X] T173 [P] [SECURITY] Implement password strength validation in bakery-cms-api/packages/api/src/modules/auth/utils/security.utils.ts
+- [X] T174 [P] [SECURITY] Implement account lockout logic in authentication service
+- [X] T175 [P] [SECURITY] Implement secure session management with httpOnly cookies
+- [X] T176 [P] [SECURITY] Implement CSRF protection middleware
 
 Frontend Components:
-- [ ] T177 [P] [SECURITY] Create Shared PasswordStrength component in bakery-cms-web/src/components/shared/PasswordStrength/PasswordStrength.tsx
-- [ ] T178 [SECURITY] Update registration form with password strength indicator
-- [ ] T179 [SECURITY] Create secure session management in auth store
+- [X] T177 [P] [SECURITY] Create Shared PasswordStrength component in bakery-cms-web/src/components/shared/PasswordStrength/PasswordStrength.tsx
+- [X] T178 [SECURITY] Update registration form with password strength indicator
+- [X] T179 [SECURITY] Create secure session management in auth store
 
 ### Step 7: Create/Update Logic
 
 Backend Logic:
-- [ ] T180 [SECURITY] Implement rate limiting middleware in bakery-cms-api/packages/api/src/middleware/rate-limit.middleware.ts
-- [ ] T181 [SECURITY] Apply security middleware to authentication endpoints
-- [ ] T182 [SECURITY] Implement account lockout in authentication service
-- [ ] T183 [SECURITY] Add security audit logging to authentication events
-- [ ] T184 [SECURITY] Implement secure cookie configuration and CSRF protection
+- [X] T180 [SECURITY] Implement rate limiting middleware in bakery-cms-api/packages/api/src/middleware/rate-limit.middleware.ts
+- [X] T181 [SECURITY] Apply security middleware to authentication endpoints
+- [X] T182 [SECURITY] Implement account lockout in authentication service
+- [X] T183 [SECURITY] Add security audit logging to authentication events
+- [X] T184 [SECURITY] Implement secure cookie configuration and CSRF protection
 
 Frontend Logic:
-- [ ] T185 [SECURITY] Implement password validation in registration form
-- [ ] T186 [SECURITY] Add real-time password strength feedback
-- [ ] T187 [SECURITY] Implement secure token storage and management
-- [ ] T188 [SECURITY] Add security notifications for login attempts and lockouts
+- [X] T185 [SECURITY] Implement password validation in registration form
+- [X] T186 [SECURITY] Add real-time password strength feedback
+- [X] T187 [SECURITY] Implement secure token storage and management
+- [X] T188 [SECURITY] Add security notifications for login attempts and lockouts
 
 ### Step 8: Create/Update Unit Tests
 

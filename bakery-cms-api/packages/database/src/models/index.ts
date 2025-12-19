@@ -11,6 +11,9 @@ import { PaymentModel, initPaymentModel } from './payment.model';
 import { UserModel, initUserModel } from './user.model';
 import { AuthSessionModel, initAuthSessionModel } from './auth-session.model';
 
+// Re-export TokenType for convenience
+export { TokenType } from './auth-session.model';
+
 /**
  * Initialize all models and define their associations
  * Pure function that takes a Sequelize instance and returns configured models

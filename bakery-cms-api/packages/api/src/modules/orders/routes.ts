@@ -9,6 +9,7 @@ import { createOrderRepository } from './repositories/orders.repositories';
 import { createOrderService } from './services/orders.services';
 import { createOrderHandlers } from './handlers/orders.handlers';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
+import { requireAuthenticated, requireStaff } from '../../middleware/rbac.middleware';
 import {
   createOrderSchema,
   updateOrderSchema,
@@ -36,42 +37,50 @@ export const createOrdersRouter = (): Router => {
   /**
    * GET /api/orders
    * Get all orders with filtering and pagination
+   * Requires: Staff role or higher
    */
   router.get(
     '/',
+    requireStaff as any,
     validateQuery(orderListQuerySchema),
-    handlers.handleGetAllOrders
+    handlers.handleGetAllOrders as any
   );
 
   /**
    * GET /api/orders/:id
    * Get order by ID
+   * Requires: Authenticated user (customers can only see own orders)
    */
   router.get(
     '/:id',
+    requireAuthenticated as any,
     validateParams(orderIdParamSchema),
-    handlers.handleGetOrder
+    handlers.handleGetOrder as any
   );
 
   /**
    * POST /api/orders
    * Create new order
+   * Requires: Authenticated user
    */
   router.post(
     '/',
+    requireAuthenticated as any,
     validateBody(createOrderSchema),
-    handlers.handleCreateOrder
+    handlers.handleCreateOrder as any
   );
 
   /**
    * PATCH /api/orders/:id
    * Update order by ID
+   * Requires: Staff role or higher
    */
   router.patch(
     '/:id',
+    requireStaff as any,
     validateParams(orderIdParamSchema),
     validateBody(updateOrderSchema),
-    handlers.handleUpdateOrder
+    handlers.handleUpdateOrder as any
   );
 
   /**
@@ -82,7 +91,7 @@ export const createOrdersRouter = (): Router => {
     '/:id/confirm',
     validateParams(orderIdParamSchema),
     validateBody(confirmOrderSchema),
-    handlers.handleConfirmOrder
+    handlers.handleConfirmOrder as any
   );
 
   /**
@@ -93,7 +102,7 @@ export const createOrdersRouter = (): Router => {
     '/:id/cancel',
     validateParams(orderIdParamSchema),
     validateBody(cancelOrderSchema),
-    handlers.handleCancelOrder
+    handlers.handleCancelOrder as any
   );
 
   /**
@@ -103,7 +112,7 @@ export const createOrdersRouter = (): Router => {
   router.delete(
     '/:id',
     validateParams(orderIdParamSchema),
-    handlers.handleDeleteOrder
+    handlers.handleDeleteOrder as any
   );
 
   return router;

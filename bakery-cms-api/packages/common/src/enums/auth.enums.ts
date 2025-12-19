@@ -46,24 +46,6 @@ export enum AuthEventType {
   TOKEN_REFRESH = 'token_refresh',
 }
 
-export enum PermissionAction {
-  CREATE = 'create',
-  READ = 'read',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  MANAGE = 'manage',
-}
-
-export enum PermissionResource {
-  USER = 'user',
-  PRODUCT = 'product',
-  ORDER = 'order',
-  PAYMENT = 'payment',
-  REPORT = 'report',
-  SETTINGS = 'settings',
-  ADMIN = 'admin',
-}
-
 // Export all enums as a combined type for convenience
 export const AuthEnums = {
   UserRole,
@@ -71,6 +53,4 @@ export const AuthEnums = {
   AuthProvider,
   TokenType,
   AuthEventType,
-  PermissionAction,
-  PermissionResource,
 } as const;

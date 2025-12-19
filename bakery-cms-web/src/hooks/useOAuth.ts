@@ -96,13 +96,9 @@ export const useOAuth = (): UseOAuthReturn => {
 
       // Store user and token in auth store
       setUser(
-        {
-          id: response.user.id,
-          email: response.user.email,
-          name: `${response.user.firstName} ${response.user.lastName}`,
-          role: response.user.role,
-        },
-        response.tokens.accessToken
+        response.user,
+        response.tokens.accessToken,
+        response.tokens.refreshToken
       );
 
       // Show success notification

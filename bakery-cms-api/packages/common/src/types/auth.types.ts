@@ -3,33 +3,12 @@
  * Type definitions for authentication system
  */
 
-// User and Authentication Enums
-export enum UserRole {
-  ADMIN = 'admin',
-  SELLER = 'seller',
-  CUSTOMER = 'customer',
-  VIEWER = 'viewer',
-}
+import { UserRole, UserStatus, AuthProvider, TokenType } from '../enums/auth.enums';
+import type { Permission } from './permissions.types';
 
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-  PENDING_VERIFICATION = 'pending_verification',
-}
-
-export enum AuthProvider {
-  LOCAL = 'local',
-  GOOGLE = 'google',
-  FACEBOOK = 'facebook',
-}
-
-export enum TokenType {
-  ACCESS = 'access',
-  REFRESH = 'refresh',
-  EMAIL_VERIFICATION = 'email_verification',
-  PASSWORD_RESET = 'password_reset',
-}
+// Note: Enums are imported from ../enums/auth.enums and used but NOT re-exported
+// to avoid duplicate exports. Import them from @bakery-cms/common which exports
+// both types and enums.
 
 // Core Domain Types
 export type User = {
@@ -303,15 +282,11 @@ export type LoginAttempt = {
   readonly failureReason?: string;
 };
 
-// Permission Types
-export type Permission = {
-  readonly resource: string;
-  readonly action: string;
-  readonly conditions?: Record<string, unknown>;
-};
-
+// Role Permission Mappings (uses Permission from permissions.types.ts)
 export type RolePermissions = {
   readonly [UserRole.ADMIN]: Permission[];
+  readonly [UserRole.MANAGER]: Permission[];
+  readonly [UserRole.STAFF]: Permission[];
   readonly [UserRole.SELLER]: Permission[];
   readonly [UserRole.CUSTOMER]: Permission[];
   readonly [UserRole.VIEWER]: Permission[];

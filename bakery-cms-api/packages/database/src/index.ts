@@ -19,4 +19,5 @@ export {
   PaymentModel,
   UserModel,
   AuthSessionModel,
+  TokenType,
 } from './models';

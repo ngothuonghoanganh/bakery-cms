@@ -14,8 +14,15 @@ import { createOAuthPKCEService } from './services/oauth-pkce.service';
 import { createOAuthController } from './controllers/oauth.controller';
 import { createAuthHandlers } from './controllers/auth.controllers';
 import { createOAuthHandlers } from './controllers/oauth.controllers';
+import { createAdminRouter } from './routes/admin.routes';
 import { validateBody } from '../../middleware/validation';
 import { createJwtAuthMiddleware, requireStatus } from '../../middleware/jwt-auth';
+import {
+  rateLimitLogin,
+  rateLimitRegister,
+  rateLimitPasswordReset,
+  rateLimitOAuth,
+} from '../../middleware/rate-limit.middleware';
 import {
   validateOAuthProvider,
   validateOAuthCallback,
@@ -64,9 +71,11 @@ export const createAuthRouter = (): Router => {
   /**
    * POST /auth/login
    * Authenticate user with email/password
+   * Rate limited: 5 attempts per 15 minutes
    */
   router.post(
     '/login',
+    rateLimitLogin,
     validateBody(loginSchema),
     handlers.handleLogin
   );
@@ -74,9 +83,11 @@ export const createAuthRouter = (): Router => {
   /**
    * POST /auth/register
    * Register new user account
+   * Rate limited: 3 attempts per hour
    */
   router.post(
     '/register',
+    rateLimitRegister,
     validateBody(registerSchema),
     handlers.handleRegister
   );
@@ -129,9 +140,11 @@ export const createAuthRouter = (): Router => {
   /**
    * POST /auth/forgot-password
    * Initiate password reset process
+   * Rate limited: 3 attempts per hour
    */
   router.post(
     '/forgot-password',
+    rateLimitPasswordReset,
     validateBody(forgotPasswordSchema),
     handlers.handleForgotPassword
   );
@@ -139,9 +152,11 @@ export const createAuthRouter = (): Router => {
   /**
    * POST /auth/reset-password
    * Reset password using token
+   * Rate limited: 3 attempts per hour
    */
   router.post(
     '/reset-password',
+    rateLimitPasswordReset,
     validateBody(resetPasswordSchema),
     handlers.handleResetPassword
   );
@@ -198,26 +213,30 @@ export const createAuthRouter = (): Router => {
   /**
    * GET /auth/google
    * Initiate Google OAuth flow
+   * Rate limited: 10 attempts per 15 minutes
    */
-  router.get('/google', oauthHandlers.initiateGoogleAuth);
+  router.get('/google', rateLimitOAuth, oauthHandlers.initiateGoogleAuth);
 
   /**
    * GET /auth/google/callback
    * Handle Google OAuth callback
+   * Rate limited: 10 attempts per 15 minutes
    */
-  router.get('/google/callback', ...oauthHandlers.handleGoogleCallback);
+  router.get('/google/callback', rateLimitOAuth, ...oauthHandlers.handleGoogleCallback);
 
   /**
    * GET /auth/facebook
    * Initiate Facebook OAuth flow
+   * Rate limited: 10 attempts per 15 minutes
    */
-  router.get('/facebook', oauthHandlers.initiateFacebookAuth);
+  router.get('/facebook', rateLimitOAuth, oauthHandlers.initiateFacebookAuth);
 
   /**
    * GET /auth/facebook/callback
    * Handle Facebook OAuth callback
+   * Rate limited: 10 attempts per 15 minutes
    */
-  router.get('/facebook/callback', ...oauthHandlers.handleFacebookCallback);
+  router.get('/facebook/callback', rateLimitOAuth, ...oauthHandlers.handleFacebookCallback);
 
   /**
    * GET /auth/oauth/urls
@@ -289,6 +308,16 @@ export const createAuthRouter = (): Router => {
     logOAuthEvent('exchange'),
     oauthController.exchangeCode.bind(oauthController)
   );
+
+  // =======================
+  // Admin Routes
+  // =======================
+  
+  /**
+   * Mount admin management routes under /auth/admin
+   * All routes require admin role
+   */
+  router.use('/admin', createAdminRouter());
 
   return router;
 };

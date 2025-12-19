@@ -6,7 +6,7 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { UserModel } from './user.model';
 
-enum TokenType {
+export enum TokenType {
   REFRESH = 'refresh',
   ACCESS = 'access',
   EMAIL_VERIFICATION = 'email_verification',

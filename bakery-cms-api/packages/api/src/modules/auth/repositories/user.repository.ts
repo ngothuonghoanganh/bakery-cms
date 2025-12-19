@@ -36,6 +36,7 @@ export interface UpdateUserAttributes {
   providerId?: string;
   emailVerifiedAt?: Date;
   lastLoginAt?: Date;
+  lastLoginAttemptAt?: Date;
   loginAttempts?: number;
   lockedUntil?: Date;
 }
@@ -74,6 +75,9 @@ export interface UserRepository {
   lockAccount(id: string, durationMinutes?: number): Promise<UserModel | null>;
   updateLastLogin(id: string): Promise<UserModel | null>;
   verifyEmail(id: string): Promise<UserModel | null>;
+  findByRole(role: UserRole): Promise<UserModel[]>;
+  countByRole(role: UserRole): Promise<number>;
+  hasRole(id: string, role: UserRole): Promise<boolean>;
 }
 
 /**
@@ -329,6 +333,32 @@ export const createUserRepository = (
     return user;
   };
 
+  /**
+   * Find all users by role
+   */
+  const findByRole = async (role: UserRole): Promise<UserModel[]> => {
+    return await model.findAll({
+      where: { role },
+    });
+  };
+
+  /**
+   * Count users by role
+   */
+  const countByRole = async (role: UserRole): Promise<number> => {
+    return await model.count({
+      where: { role },
+    });
+  };
+
+  /**
+   * Check if user has specific role
+   */
+  const hasRole = async (id: string, role: UserRole): Promise<boolean> => {
+    const user = await findById(id);
+    return user?.role === role;
+  };
+
   return {
     findById,
     findByEmail,
@@ -345,6 +375,9 @@ export const createUserRepository = (
     lockAccount,
     updateLastLogin,
     verifyEmail,
+    findByRole,
+    countByRole,
+    hasRole,
   };
 };
 

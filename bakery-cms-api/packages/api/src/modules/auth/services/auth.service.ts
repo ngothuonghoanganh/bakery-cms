@@ -7,7 +7,7 @@
 import { Result, ok, err } from 'neverthrow';
 import { AppError } from '@bakery-cms/common';
 import { UserRole, AuthProvider } from '@bakery-cms/common';
-import { UserModel } from '@bakery-cms/database/src/models/user.model';
+import { UserModel, TokenType } from '@bakery-cms/database';
 import { UserRepository } from '../repositories/user.repository';
 import { AuthSessionRepository } from '../repositories/auth-session.repository';
 import { EmailService } from './email.service';
@@ -31,8 +31,15 @@ import {
 import {
   hashPassword,
   verifyPassword,
-  validatePassword,
 } from '../utils/password.utils';
+import {
+  validatePassword,
+  shouldLockAccount,
+  calculateLockoutExpiration,
+  isAccountLocked,
+  shouldResetAttempts,
+  LOCKOUT_CONFIG,
+} from '../utils/security.utils';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -119,10 +126,17 @@ export const createAuthService = (
         return err(createAuthenticationError('Invalid email or password'));
       }
 
-      // Check if account is locked
-      if (user.isLocked) {
-        logger.warn('Login failed: account locked', { userId: user.id });
-        return err(createAuthorizationError('Account is temporarily locked'));
+      // Check if account is locked (BR-008: Account Lockout)
+      if (isAccountLocked(user.lockedUntil)) {
+        const remainingMinutes = Math.ceil((new Date(user.lockedUntil!).getTime() - Date.now()) / (1000 * 60));
+        logger.warn('Login blocked: account locked', { userId: user.id, remainingMinutes });
+        return err(createAuthorizationError(`Account is temporarily locked. Try again in ${remainingMinutes} minutes.`));
+      }
+
+      // Check if login attempts should be reset (BR-008: Reset after 15 minutes of inactivity)
+      if (user.lastLoginAttemptAt && shouldResetAttempts(user.lastLoginAttemptAt)) {
+        await userRepository.resetLoginAttempts(user.id);
+        user.loginAttempts = 0;
       }
 
       // For OAuth users, password login is not allowed
@@ -142,19 +156,40 @@ export const createAuthService = (
         logger.error('Password verification failed', { userId: user.id, error: passwordVerifyResult.error });
         await userRepository.incrementLoginAttempts(user.id);
         
-        // Check if should lock account after failed attempt
+        // Check if should lock account after failed attempt (BR-008: Lock after 5 attempts)
         const updatedUser = await userRepository.findById(user.id);
-        if (updatedUser && updatedUser.loginAttempts >= 5) {
-          await userRepository.lockAccount(user.id, 30); // Lock for 30 minutes
-          logger.warn('Account locked due to excessive login attempts', { userId: user.id });
+        if (updatedUser && shouldLockAccount(updatedUser.loginAttempts)) {
+          const lockoutExpiration = calculateLockoutExpiration();
+          await userRepository.lockAccount(user.id, LOCKOUT_CONFIG.lockoutDurationMinutes);
+          logger.warn('Account locked due to excessive login attempts', { 
+            userId: user.id, 
+            attempts: updatedUser.loginAttempts,
+            lockedUntil: lockoutExpiration 
+          });
+          return err(createAuthorizationError('Account locked due to too many failed login attempts. Try again in 30 minutes.'));
         }
         
-        return err(createAuthenticationError('Invalid email or password'));
+        const remainingAttempts = LOCKOUT_CONFIG.maxAttempts - (updatedUser?.loginAttempts || 0);
+        return err(createAuthenticationError(`Invalid email or password. ${remainingAttempts} attempts remaining before account lockout.`));
       }
 
       if (!passwordVerifyResult.value) {
         await userRepository.incrementLoginAttempts(user.id);
-        return err(createAuthenticationError('Invalid email or password'));
+        
+        const updatedUser = await userRepository.findById(user.id);
+        if (updatedUser && shouldLockAccount(updatedUser.loginAttempts)) {
+          const lockoutExpiration = calculateLockoutExpiration();
+          await userRepository.lockAccount(user.id, LOCKOUT_CONFIG.lockoutDurationMinutes);
+          logger.warn('Account locked due to excessive login attempts', { 
+            userId: user.id, 
+            attempts: updatedUser.loginAttempts,
+            lockedUntil: lockoutExpiration 
+          });
+          return err(createAuthorizationError('Account locked due to too many failed login attempts. Try again in 30 minutes.'));
+        }
+        
+        const remainingAttempts = LOCKOUT_CONFIG.maxAttempts - (updatedUser?.loginAttempts || 0);
+        return err(createAuthenticationError(`Invalid email or password. ${remainingAttempts} attempts remaining before account lockout.`));
       }
 
       // Check if email is verified for local users
@@ -181,7 +216,7 @@ export const createAuthService = (
       const sessionData = {
         userId: user.id,
         refreshToken: refreshTokenResult.value,
-        tokenType: 'Bearer',
+        tokenType: TokenType.REFRESH,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days
         deviceInfo: dto.deviceInfo || undefined,
         ipAddress: undefined,
@@ -194,8 +229,9 @@ export const createAuthService = (
         return err(createDatabaseError('Authentication failed'));
       }
 
-      // Update user login information
+      // Update user login information and reset login attempts
       await userRepository.updateLastLogin(user.id);
+      await userRepository.resetLoginAttempts(user.id);
 
       logger.info('User login successful', { userId: user.id });
 
@@ -232,11 +268,14 @@ export const createAuthService = (
         return err(createConflictError('Email already registered'));
       }
 
-      // Validate password strength
-      const passwordValidation = await validatePassword(dto.password);
+      // Validate password strength (BR-005: Password Requirements)
+      const passwordValidation = validatePassword(dto.password);
       if (!passwordValidation.isValid) {
-        logger.warn('Registration failed: weak password', { email: dto.email });
-        return err(createInvalidInputError(passwordValidation.errors.join(', ')));
+        logger.warn('Registration failed: weak password', { 
+          email: dto.email, 
+          errors: passwordValidation.errors 
+        });
+        return err(createInvalidInputError(`Password requirements not met: ${passwordValidation.errors.join(', ')}`));
       }
 
       // Hash password
@@ -421,11 +460,14 @@ export const createAuthService = (
         return err(createAuthenticationError('Current password is incorrect'));
       }
 
-      // Validate new password strength
-      const passwordValidation = await validatePassword(dto.newPassword);
+      // Validate new password strength (BR-005: Password Requirements)
+      const passwordValidation = validatePassword(dto.newPassword);
       if (!passwordValidation.isValid) {
-        logger.warn('Password change failed: weak new password', { userId });
-        return err(createInvalidInputError(passwordValidation.errors.join(', ')));
+        logger.warn('Password change failed: weak new password', { 
+          userId, 
+          errors: passwordValidation.errors 
+        });
+        return err(createInvalidInputError(`Password requirements not met: ${passwordValidation.errors.join(', ')}`));
       }
 
       // Hash new password
@@ -445,7 +487,7 @@ export const createAuthService = (
         return err(createDatabaseError('Password change failed'));
       }
 
-      // Revoke all existing sessions for security
+      // Revoke all existing sessions for security (BR-006: Secure Session Management)
       await authSessionRepository.revokeAllForUser(userId);
 
       logger.info('Password changed successfully', { userId });
@@ -528,11 +570,14 @@ export const createAuthService = (
         return err(createNotFoundError('User', userId));
       }
 
-      // Validate new password strength
-      const passwordValidation = await validatePassword(dto.newPassword);
+      // Validate new password strength (BR-005: Password Requirements)
+      const passwordValidation = validatePassword(dto.newPassword);
       if (!passwordValidation.isValid) {
-        logger.warn('Password reset failed: weak password', { userId });
-        return err(createInvalidInputError(passwordValidation.errors.join(', ')));
+        logger.warn('Password reset failed: weak password', { 
+          userId, 
+          errors: passwordValidation.errors 
+        });
+        return err(createInvalidInputError(`Password requirements not met: ${passwordValidation.errors.join(', ')}`));
       }
 
       // Hash new password
@@ -542,11 +587,12 @@ export const createAuthService = (
         return err(createDatabaseError('Password reset failed'));
       }
 
-      // Update user password and reset login attempts
+      // Update user password and reset login attempts/lockout (BR-008: Reset on password reset)
       const updatedUser = await userRepository.update(userId, {
         passwordHash: hashResult.value,
         loginAttempts: 0,
         lockedUntil: undefined,
+        lastLoginAttemptAt: undefined,
       });
 
       if (!updatedUser) {
@@ -554,7 +600,7 @@ export const createAuthService = (
         return err(createDatabaseError('Password reset failed'));
       }
 
-      // Revoke all existing sessions for security
+      // Revoke all existing sessions for security (BR-006: Secure Session Management)
       await authSessionRepository.revokeAllForUser(userId);
 
       logger.info('Password reset successful', { userId });
@@ -777,7 +823,7 @@ export const createAuthService = (
     const sessionData = {
       userId: user.id,
       refreshToken: refreshTokenResult.value,
-      tokenType: 'Bearer',
+      tokenType: TokenType.REFRESH,
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days
       deviceInfo: undefined,
       ipAddress: undefined,

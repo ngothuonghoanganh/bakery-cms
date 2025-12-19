@@ -268,14 +268,98 @@ GET    /health                 # Health check endpoint
 
 ## 🔐 Authentication & Authorization
 
-> **Note**: Authentication is planned for future implementation.
+**Full authentication and authorization system implemented!**
 
-The current version focuses on core business logic. JWT-based authentication will be added in a future release.
+### Features
+
+- **Multi-Provider Authentication**:
+  - Email/Password registration and login
+  - OAuth 2.0 (Google & Facebook) with PKCE security
+  - JWT tokens with 365-day expiration (BR-001)
+  - Refresh token mechanism
+
+- **Role-Based Access Control (RBAC - BR-003)**:
+  - 6 user roles: Admin → Manager → Staff → Seller → Customer → Viewer
+  - Hierarchical role permissions
+  - Resource and action-based authorization
+  - Ownership checking for user data
+
+- **Security Features**:
+  - **Password Requirements (BR-005)**: 8+ chars, upper/lower/number/special
+  - **Account Lockout (BR-008)**: 5 failed attempts → 30-min lock
+  - **Rate Limiting**: Login (5/15min), Register (3/hr), OAuth (10/15min)
+  - **Secure Sessions**: Multi-device support with session tracking
+  - **PKCE OAuth (BR-007)**: Enhanced security for OAuth flows
+
+- **Admin Management (BR-004)**:
+  - Admin user seeding via environment variables
+  - User management: CRUD operations, unlock accounts, reset passwords
+  - Session revocation and audit trail
+  - Statistics dashboard
+
+### Environment Setup
+
+Required environment variables:
+```env
+# JWT Configuration
+JWT_SECRET=your_secret_key_min_32_chars
+JWT_EXPIRES_IN=365d
+JWT_REFRESH_SECRET=your_refresh_secret
+JWT_REFRESH_EXPIRES_IN=730d
+
+# Admin User (for seeding)
+ADMIN_EMAIL=admin@bakery.com
+ADMIN_PASSWORD=AdminPass123!
+ADMIN_FIRST_NAME=Admin
+ADMIN_LAST_NAME=User
+
+# OAuth (Optional)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
+FACEBOOK_CLIENT_ID=your_facebook_app_id
+FACEBOOK_CLIENT_SECRET=your_facebook_app_secret
+FACEBOOK_REDIRECT_URI=http://localhost:3000/api/auth/facebook/callback
+
+# Email Service (Optional - for password reset)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+```
+
+### Quick Start
+
+1. **Seed Admin User**:
+   ```bash
+   yarn seed:admin
+   ```
+
+2. **Login as Admin**:
+   ```bash
+   curl -X POST http://localhost:3000/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"admin@bakery.com","password":"AdminPass123!"}'
+   ```
+
+3. **Use Access Token**:
+   ```bash
+   curl http://localhost:3000/api/auth/admin/users \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+   ```
+
+See [API.md](./docs/API.md) for full authentication endpoint documentation.
 
 ## 🛡️ Security
 
+- **Authentication**: JWT with 365-day tokens, refresh mechanism
+- **Authorization**: RBAC with 6 role levels  
+- **Password Security**: bcrypt hashing (12 rounds), strength requirements
+- **Account Protection**: Rate limiting, account lockout after 5 failures
+- **OAuth Security**: PKCE implementation for enhanced security
+- **Session Management**: Multi-device support, remote session revocation
 - Helmet.js for security headers
-- Rate limiting on all endpoints
 - Input validation with Joi
 - SQL injection prevention via Sequelize
 - CORS configuration

@@ -57,7 +57,11 @@ export interface OAuthUser {
   firstName: string;
   lastName: string;
   role: string;
-  provider: string;
+  status: string;
+  provider?: string;
+  isEmailVerified?: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
 }
 
 /**

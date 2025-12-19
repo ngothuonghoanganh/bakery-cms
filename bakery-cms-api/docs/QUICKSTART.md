@@ -133,7 +133,185 @@ Expected response:
 
 ✅ If you see this response, your server is running correctly!
 
-## Step 5: Test Products CRUD
+## Step 5: Test Authentication & Admin Login
+
+### 5.1 Verify Admin User Seeding
+
+The admin user should be automatically seeded on first startup. Check the logs for:
+```
+[INFO] Admin user seeded successfully: admin@bakery.com
+```
+
+**Default Admin Credentials:**
+- Email: `admin@bakery.com` (from `ADMIN_EMAIL` env var)
+- Password: `AdminPass123!` (from `ADMIN_PASSWORD` env var)
+
+⚠️ **IMPORTANT**: Change these credentials immediately in production!
+
+### 5.2 Admin Login
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@bakery.com",
+    "password": "AdminPass123!"
+  }'
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "admin@bakery.com",
+      "firstName": "Admin",
+      "lastName": "User",
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "isEmailVerified": true
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "refresh-token-here",
+      "expiresIn": 31536000
+    }
+  }
+}
+```
+
+✅ Save the `accessToken` for authenticated requests!
+
+**Account Lockout Test:**
+Try logging in with wrong password 5 times. On the 6th attempt:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ACCOUNT_LOCKED",
+    "message": "Account locked due to too many failed login attempts",
+    "statusCode": 403,
+    "details": {
+      "lockedUntil": "2024-01-01T12:30:00.000Z",
+      "remainingMinutes": 30
+    }
+  }
+}
+```
+
+### 5.3 Register New User
+
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "customer@example.com",
+    "password": "SecureP@ss123",
+    "firstName": "Jane",
+    "lastName": "Doe"
+  }'
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "customer@example.com",
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "role": "CUSTOMER",
+      "status": "ACTIVE",
+      "isEmailVerified": false
+    },
+    "tokens": {
+      "accessToken": "jwt-token",
+      "refreshToken": "refresh-token",
+      "expiresIn": 31536000
+    }
+  }
+}
+```
+
+**Password Requirements (BR-005):**
+- ✅ Minimum 8 characters
+- ✅ At least one uppercase letter
+- ✅ At least one lowercase letter
+- ✅ At least one number
+- ✅ At least one special character
+
+**Rate Limiting:**
+- Register: 3 attempts per hour
+- Login: 5 attempts per 15 minutes
+
+### 5.4 Test Admin User Management
+
+Get list of users (requires admin token):
+```bash
+curl http://localhost:3000/api/auth/admin/users \
+  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN"
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": "uuid",
+        "email": "admin@bakery.com",
+        "role": "ADMIN",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "uuid",
+        "email": "customer@example.com",
+        "role": "CUSTOMER",
+        "status": "ACTIVE"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 2,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+Get admin statistics:
+```bash
+curl http://localhost:3000/api/auth/admin/statistics \
+  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN"
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "totalUsers": 2,
+    "activeUsers": 2,
+    "usersByRole": {
+      "ADMIN": 1,
+      "CUSTOMER": 1
+    },
+    "usersByStatus": {
+      "ACTIVE": 2
+    }
+  }
+}
+```
+
+✅ If you can list users and see statistics, admin management is working!
+
+## Step 6: Test Products CRUD
 
 ### 5.1 Create a Product
 
@@ -245,7 +423,7 @@ Expected response:
 
 ✅ Prices should be updated.
 
-## Step 6: Test Orders CRUD
+## Step 7: Test Orders CRUD
 
 ### 6.1 Create an Order
 
@@ -384,7 +562,7 @@ Expected response:
 
 ✅ Status should change from DRAFT to CONFIRMED.
 
-## Step 7: Test Payments & VietQR
+## Step 8: Test Payments & VietQR
 
 ### 7.1 Create Payment
 
@@ -518,7 +696,7 @@ Expected response:
 
 ✅ Order status should automatically change to PAID!
 
-## Step 8: Test Error Handling
+## Step 9: Test Error Handling
 
 ### 8.1 Validation Error
 
@@ -583,7 +761,7 @@ Expected response (422):
 
 ✅ Cannot confirm an order that's already PAID.
 
-## Step 9: Run Tests
+## Step 10: Run Tests
 
 ```bash
 yarn test
@@ -603,7 +781,7 @@ Tests:       11 passed, 11 total
 
 ✅ All tests should pass.
 
-## Step 10: Check Test Coverage
+## Step 11: Check Test Coverage
 
 ```bash
 yarn test:coverage

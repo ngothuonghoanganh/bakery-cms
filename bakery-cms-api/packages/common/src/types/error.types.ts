@@ -140,3 +140,27 @@ export const createDatabaseError = (
   statusCode: 500,
   timestamp: new Date(),
 });
+
+/**
+ * Create an unauthorized error (401)
+ */
+export const createUnauthorizedError = (
+  message: string = 'Authentication required'
+): AppError => ({
+  code: ErrorCode.UNAUTHORIZED,
+  message,
+  statusCode: 401,
+  timestamp: new Date(),
+});
+
+/**
+ * Create a forbidden error (403)
+ */
+export const createForbiddenError = (
+  message: string = 'Access forbidden'
+): AppError => ({
+  code: ErrorCode.FORBIDDEN,
+  message,
+  statusCode: 403,
+  timestamp: new Date(),
+});

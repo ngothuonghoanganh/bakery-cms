@@ -18,6 +18,7 @@ export interface UserAttributes {
   providerId?: string;
   emailVerifiedAt?: Date;
   lastLoginAt?: Date;
+  lastLoginAttemptAt?: Date;
   loginAttempts: number;
   lockedUntil?: Date;
   createdAt: Date;
@@ -41,6 +42,7 @@ export class UserModel extends Model<UserAttributes, UserCreationAttributes> imp
   declare providerId?: string;
   declare emailVerifiedAt?: Date;
   declare lastLoginAt?: Date;
+  declare lastLoginAttemptAt?: Date;
   declare loginAttempts: number;
   declare lockedUntil?: Date;
   declare readonly createdAt: Date;
@@ -70,14 +72,17 @@ export class UserModel extends Model<UserAttributes, UserCreationAttributes> imp
 
   // Instance methods
   async incrementLoginAttempts(): Promise<void> {
-    await this.increment('loginAttempts');
-    await this.reload();
+    await this.update({
+      loginAttempts: this.loginAttempts + 1,
+      lastLoginAttemptAt: new Date(),
+    });
   }
 
   async resetLoginAttempts(): Promise<void> {
     await this.update({
       loginAttempts: 0,
       lockedUntil: undefined,
+      lastLoginAttemptAt: undefined,
     });
   }
 
@@ -229,6 +234,11 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
       allowNull: true,
       field: 'last_login_at',
     },
+    lastLoginAttemptAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'last_login_attempt_at',
+    },
     loginAttempts: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -305,6 +315,10 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
       {
         fields: ['last_login_at'],
         name: 'users_last_login_at_index',
+      },
+      {
+        fields: ['last_login_attempt_at'],
+        name: 'users_last_login_attempt_at_index',
       },
       {
         fields: ['locked_until'],
