@@ -3,10 +3,10 @@
  * Transform API responses to domain models
  */
 
-import type { 
-  PaymentAPIResponse, 
+import type {
+  PaymentAPIResponse,
   VietQRDataAPIResponse,
-  PaginatedPaymentsAPIResponse 
+  PaginatedPaymentsAPIResponse,
 } from '@/types/api/payment.api';
 import type { Payment, VietQRData } from '@/types/models/payment.model';
 import { PaymentMethod, PaymentStatus } from '@/types/models/payment.model';
@@ -58,4 +58,3 @@ export const mapVietQRDataFromAPI = (apiData: VietQRDataAPIResponse): VietQRData
   description: apiData.description,
   qrDataURL: apiData.qrDataURL,
 });
-

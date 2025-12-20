@@ -19,7 +19,7 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -217,13 +217,7 @@ export const ResetPasswordPage: React.FC = () => {
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0 }}>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  block
-                  loading={isLoading}
-                  size="large"
-                >
+                <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
                   Reset Password
                 </Button>
               </Form.Item>

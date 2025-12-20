@@ -1,10 +1,6 @@
 import React from 'react';
 import { Card, List, Space, Typography, Avatar } from 'antd';
-import {
-  ShoppingCartOutlined,
-  DollarOutlined,
-  AppstoreOutlined,
-} from '@ant-design/icons';
+import { ShoppingCartOutlined, DollarOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { StatusBadge } from '../../../shared';
 import { formatRelativeTime } from '../../../../utils/format.utils';
 import type { RecentActivityProps, ActivityItem } from './RecentActivity.types';
@@ -35,11 +31,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
   onItemClick,
 }) => {
   return (
-    <Card
-      title="Recent Activity"
-      bordered={false}
-      style={{ height: '100%' }}
-    >
+    <Card title="Recent Activity" bordered={false} style={{ height: '100%' }}>
       <List
         loading={loading}
         dataSource={items}
@@ -59,10 +51,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
                 <Space>
                   <span>{item.title}</span>
                   {item.status && (
-                    <StatusBadge
-                      status={item.status}
-                      text={item.status.toUpperCase()}
-                    />
+                    <StatusBadge status={item.status} text={item.status.toUpperCase()} />
                   )}
                 </Space>
               }

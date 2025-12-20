@@ -3,28 +3,20 @@
  * Represents order and order item data in the frontend domain layer
  */
 
-export const OrderStatus = {
-  DRAFT: 'draft',
-  CONFIRMED: 'confirmed',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-} as const;
 
-export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+// Import enums as both types and values from common package
+import { OrderStatus, BusinessModel, OrderType } from '@bakery-cms/common';
 
-export const OrderType = {
-  TEMPORARY: 'temporary',
-  OFFICIAL: 'official',
-} as const;
+// Re-export for component usage
+export { OrderStatus, BusinessModel, OrderType };
 
-export type OrderType = (typeof OrderType)[keyof typeof OrderType];
+// Also export with Type suffix for backward compatibility
+export type {
+  OrderStatus as OrderStatusType,
+  BusinessModel as BusinessModelType,
+  OrderType as OrderTypeType,
+}
 
-export const BusinessModel = {
-  MADE_TO_ORDER: 'made_to_order',
-  READY_TO_SELL: 'ready_to_sell',
-} as const;
-
-export type BusinessModel = (typeof BusinessModel)[keyof typeof BusinessModel];
 
 export type OrderItem = {
   readonly id: string;

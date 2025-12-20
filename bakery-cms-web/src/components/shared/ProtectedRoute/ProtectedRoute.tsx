@@ -13,12 +13,12 @@ export interface ProtectedRouteProps {
    * Required roles to access the route
    */
   allowedRoles: UserRole[];
-  
+
   /**
    * Path to redirect to if access is denied
    */
   redirectTo?: string;
-  
+
   /**
    * Content to render if user has access
    */
@@ -27,7 +27,7 @@ export interface ProtectedRouteProps {
 
 /**
  * ProtectedRoute component that redirects unauthorized users
- * 
+ *
  * @example
  * ```tsx
  * <Route
@@ -74,7 +74,10 @@ export const AdminRoute = ({ children, redirectTo }: Omit<ProtectedRouteProps, '
 /**
  * Manager and above protected route
  */
-export const ManagerRoute = ({ children, redirectTo }: Omit<ProtectedRouteProps, 'allowedRoles'>) => (
+export const ManagerRoute = ({
+  children,
+  redirectTo,
+}: Omit<ProtectedRouteProps, 'allowedRoles'>) => (
   <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} redirectTo={redirectTo}>
     {children}
   </ProtectedRoute>

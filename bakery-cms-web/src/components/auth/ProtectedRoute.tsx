@@ -12,12 +12,14 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export const ProtectedRoute = ({ 
-  children, 
-  redirectTo = '/login' 
-}: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+export const ProtectedRoute = ({ children, redirectTo = '/login' }: ProtectedRouteProps) => {
+  const { isAuthenticated, isLoading, _hasHydrated } = useAuthStore();
   const location = useLocation();
+
+  // Wait for state to be hydrated from localStorage
+  if (!_hasHydrated) {
+    return <div>Loading...</div>; // Replace with your loading component
+  }
 
   // Show loading state while checking authentication
   if (isLoading) {

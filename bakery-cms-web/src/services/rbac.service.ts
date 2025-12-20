@@ -18,7 +18,7 @@ export const Resource = {
   SETTINGS: 'settings',
 } as const;
 
-export type Resource = typeof Resource[keyof typeof Resource];
+export type Resource = (typeof Resource)[keyof typeof Resource];
 
 /**
  * Action types
@@ -32,16 +32,12 @@ export const Action = {
   MANAGE: 'manage',
 } as const;
 
-export type Action = typeof Action[keyof typeof Action];
+export type Action = (typeof Action)[keyof typeof Action];
 
 /**
  * Check if a user role has permission for a specific resource and action
  */
-export const hasPermission = (
-  role: UserRole,
-  resource: Resource,
-  action: Action
-): boolean => {
+export const hasPermission = (role: UserRole, resource: Resource, action: Action): boolean => {
   // Admin can do everything
   if (role === UserRole.ADMIN) {
     return true;

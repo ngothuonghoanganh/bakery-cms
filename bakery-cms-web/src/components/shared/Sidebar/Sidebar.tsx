@@ -14,7 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, isMobile = false })
   const menuItems = getMenuItems().map((item) => {
     // Dynamically get icon component
     const IconComponent = Icons[item.icon as keyof typeof Icons] as React.ComponentType;
-    
+
     return {
       key: item.path,
       icon: IconComponent ? <IconComponent /> : null,
@@ -54,12 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, isMobile = false })
       >
         {collapsed ? 'B' : 'Bakery CMS'}
       </div>
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        items={menuItems}
-      />
+      <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={menuItems} />
     </Sider>
   );
 };

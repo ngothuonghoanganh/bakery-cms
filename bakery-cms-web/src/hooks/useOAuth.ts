@@ -90,16 +90,10 @@ export const useOAuth = (): UseOAuthReturn => {
       const searchParams = new URLSearchParams(window.location.search);
 
       // Process OAuth callback
-      const response: OAuthLoginResponse = await oauthService.handleOAuthCallback(
-        searchParams
-      );
+      const response: OAuthLoginResponse = await oauthService.handleOAuthCallback(searchParams);
 
       // Store user and token in auth store
-      setUser(
-        response.user,
-        response.tokens.accessToken,
-        response.tokens.refreshToken
-      );
+      setUser(response.user, response.tokens.accessToken, response.tokens.refreshToken);
 
       // Show success notification
       success(

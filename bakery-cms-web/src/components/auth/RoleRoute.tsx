@@ -15,14 +15,19 @@ interface RoleRouteProps {
   fallbackMessage?: string;
 }
 
-export const RoleRoute = ({ 
-  children, 
+export const RoleRoute = ({
+  children,
   allowedRoles,
   redirectTo = '/unauthorized',
-  fallbackMessage = 'You do not have permission to access this page.'
+  fallbackMessage = 'You do not have permission to access this page.',
 }: RoleRouteProps) => {
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading, _hasHydrated } = useAuthStore();
   const location = useLocation();
+
+  // Wait for state to be hydrated from localStorage
+  if (!_hasHydrated) {
+    return <div>Loading...</div>; // Replace with your loading component
+  }
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -37,13 +42,13 @@ export const RoleRoute = ({
   // Check if user has required role
   if (!hasRole(user, allowedRoles)) {
     return (
-      <Navigate 
-        to={redirectTo} 
-        state={{ 
+      <Navigate
+        to={redirectTo}
+        state={{
           from: location,
-          message: fallbackMessage 
-        }} 
-        replace 
+          message: fallbackMessage,
+        }}
+        replace
       />
     );
   }

@@ -85,7 +85,7 @@ const update = async (
   data: UpdateProductRequest
 ): Promise<Result<Product, AppError>> => {
   try {
-    const response = await apiClient.put<ProductAPIResponse>(`/products/${id}`, data);
+    const response = await apiClient.patch<ProductAPIResponse>(`/products/${id}`, data);
     const product = mapProductFromAPI(response.data);
     return ok(product);
   } catch (error) {

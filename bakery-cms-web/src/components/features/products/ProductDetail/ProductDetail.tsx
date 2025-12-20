@@ -7,8 +7,7 @@ import type { ProductDetailProps } from './ProductDetail.types';
 
 const getStatusColor = (status: string) => {
   const colorMap: Record<string, string> = {
-    [ProductStatus.ACTIVE]: 'success',
-    [ProductStatus.INACTIVE]: 'default',
+    [ProductStatus.AVAILABLE]: 'success',
     [ProductStatus.OUT_OF_STOCK]: 'error',
   };
   return colorMap[status] || 'default';
@@ -18,6 +17,7 @@ const getBusinessTypeLabel = (type: string) => {
   const labelMap: Record<string, string> = {
     [BusinessType.MADE_TO_ORDER]: 'Made to Order',
     [BusinessType.READY_TO_SELL]: 'Ready to Sell',
+    [BusinessType.BOTH]: 'Both',
   };
   return labelMap[type] || type;
 };
@@ -70,9 +70,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </strong>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Category">
-            {product.category || '-'}
-          </Descriptions.Item>
+          <Descriptions.Item label="Category">{product.category || '-'}</Descriptions.Item>
           <Descriptions.Item label="Business Type">
             <Tag color="blue">{getBusinessTypeLabel(product.businessType)}</Tag>
           </Descriptions.Item>

@@ -20,7 +20,7 @@ const getStatusColor = (status: PaymentStatus): string => {
     [PaymentStatus.PENDING]: 'warning',
     [PaymentStatus.PAID]: 'success',
     [PaymentStatus.FAILED]: 'error',
-    [PaymentStatus.REFUNDED]: 'default',
+    [PaymentStatus.CANCELLED]: 'default',
   };
   return colorMap[status] || 'default';
 };
@@ -30,7 +30,7 @@ const getStatusLabel = (status: PaymentStatus): string => {
     [PaymentStatus.PENDING]: 'Pending',
     [PaymentStatus.PAID]: 'Paid',
     [PaymentStatus.FAILED]: 'Failed',
-    [PaymentStatus.REFUNDED]: 'Refunded',
+    [PaymentStatus.CANCELLED]: 'Cancelled',
   };
   return labelMap[status] || status;
 };

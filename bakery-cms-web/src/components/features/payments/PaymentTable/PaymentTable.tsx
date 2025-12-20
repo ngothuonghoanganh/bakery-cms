@@ -5,12 +5,7 @@
 
 import React from 'react';
 import { Space, Button, Tag, Popconfirm } from 'antd';
-import {
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons';
+import { EyeOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { DataTable } from '../../../shared/DataTable/DataTable';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
@@ -23,7 +18,7 @@ const getStatusColor = (status: PaymentStatus): string => {
     [PaymentStatus.PENDING]: 'warning',
     [PaymentStatus.PAID]: 'success',
     [PaymentStatus.FAILED]: 'error',
-    [PaymentStatus.REFUNDED]: 'default',
+    [PaymentStatus.CANCELLED]: 'default',
   };
   return colorMap[status] || 'default';
 };
@@ -33,7 +28,7 @@ const getStatusLabel = (status: PaymentStatus): string => {
     [PaymentStatus.PENDING]: 'Pending',
     [PaymentStatus.PAID]: 'Paid',
     [PaymentStatus.FAILED]: 'Failed',
-    [PaymentStatus.REFUNDED]: 'Refunded',
+    [PaymentStatus.CANCELLED]: 'Cancelled',
   };
   return labelMap[status] || status;
 };
@@ -104,7 +99,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
         { text: 'Pending', value: PaymentStatus.PENDING },
         { text: 'Paid', value: PaymentStatus.PAID },
         { text: 'Failed', value: PaymentStatus.FAILED },
-        { text: 'Refunded', value: PaymentStatus.REFUNDED },
+        { text: 'Cancelled', value: PaymentStatus.CANCELLED },
       ],
       onFilter: (value, record) => record.status === value,
     },
@@ -189,12 +184,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
                 okText="Yes"
                 cancelText="No"
               >
-                <Button
-                  type="link"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                >
+                <Button type="link" size="small" danger icon={<DeleteOutlined />}>
                   Delete
                 </Button>
               </Popconfirm>

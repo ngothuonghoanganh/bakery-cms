@@ -74,12 +74,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) =>
       />
 
       <Space size="middle">
-        <Button
-          type="text"
-          icon={<BulbOutlined />}
-          onClick={toggleTheme}
-          style={{ fontSize: 16 }}
-        >
+        <Button type="text" icon={<BulbOutlined />} onClick={toggleTheme} style={{ fontSize: 16 }}>
           {mode === 'light' ? 'Dark' : 'Light'}
         </Button>
 

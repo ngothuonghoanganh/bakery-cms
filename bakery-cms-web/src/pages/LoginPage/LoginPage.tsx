@@ -88,10 +88,7 @@ export const LoginPage: React.FC = () => {
         <Title level={2} style={{ textAlign: 'center', marginBottom: 8 }}>
           Welcome Back
         </Title>
-        <Text
-          type="secondary"
-          style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}
-        >
+        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>
           Sign in to your Bakery CMS account
         </Text>
 
@@ -169,13 +166,7 @@ export const LoginPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={isLoading}
-              size="large"
-            >
+            <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
               Sign In
             </Button>
           </Form.Item>

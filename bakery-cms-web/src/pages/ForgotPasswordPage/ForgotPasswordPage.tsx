@@ -100,24 +100,14 @@ export const ForgotPasswordPage: React.FC = () => {
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 16 }}>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  block
-                  loading={isLoading}
-                  size="large"
-                >
+                <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
                   Send Reset Link
                 </Button>
               </Form.Item>
             </Form>
 
             <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate('/login')}
-              >
+              <Button type="link" icon={<ArrowLeftOutlined />} onClick={() => navigate('/login')}>
                 Back to Login
               </Button>
             </div>

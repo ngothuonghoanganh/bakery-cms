@@ -30,7 +30,7 @@ const PasswordStrengthLevel = {
   VERY_STRONG: 'very_strong',
 } as const;
 
-type PasswordStrengthType = typeof PasswordStrengthLevel[keyof typeof PasswordStrengthLevel];
+type PasswordStrengthType = (typeof PasswordStrengthLevel)[keyof typeof PasswordStrengthLevel];
 
 /**
  * Validation result
@@ -82,7 +82,9 @@ const validatePassword = (password: string): ValidationResult => {
     score += 20;
   }
 
-  const specialCharRegex = new RegExp(`[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`);
+  const specialCharRegex = new RegExp(
+    `[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`
+  );
   if (PASSWORD_REQUIREMENTS.requireSpecialChar && !specialCharRegex.test(password)) {
     errors.push('One special character');
   } else if (specialCharRegex.test(password)) {
@@ -214,8 +216,18 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({
             )}
             <span>One number (0-9)</span>
           </li>
-          <li className={new RegExp(`[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password) ? 'met' : ''}>
-            {new RegExp(`[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(password) ? (
+          <li
+            className={
+              new RegExp(
+                `[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`
+              ).test(password)
+                ? 'met'
+                : ''
+            }
+          >
+            {new RegExp(
+              `[${PASSWORD_REQUIREMENTS.specialChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`
+            ).test(password) ? (
               <CheckCircleOutlined style={{ color: '#52c41a' }} />
             ) : (
               <CloseCircleOutlined style={{ color: '#d9d9d9' }} />

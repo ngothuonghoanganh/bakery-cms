@@ -68,12 +68,7 @@ export const LoginPage: React.FC = () => {
       </Divider>
 
       {/* Regular Login Form */}
-      <Form
-        name="login"
-        onFinish={handleLogin}
-        layout="vertical"
-        size="large"
-      >
+      <Form name="login" onFinish={handleLogin} layout="vertical" size="large">
         <Form.Item
           name="email"
           rules={[
@@ -81,11 +76,7 @@ export const LoginPage: React.FC = () => {
             { type: 'email', message: 'Please enter a valid email' },
           ]}
         >
-          <Input
-            prefix={<MailOutlined />}
-            placeholder="Email"
-            autoComplete="email"
-          />
+          <Input prefix={<MailOutlined />} placeholder="Email" autoComplete="email" />
         </Form.Item>
 
         <Form.Item
@@ -100,13 +91,7 @@ export const LoginPage: React.FC = () => {
         </Form.Item>
 
         <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            block
-            loading={loading}
-            size="large"
-          >
+          <Button type="primary" htmlType="submit" block loading={loading} size="large">
             Sign In
           </Button>
         </Form.Item>
@@ -114,8 +99,7 @@ export const LoginPage: React.FC = () => {
 
       <div style={{ textAlign: 'center', marginTop: 16 }}>
         <Text type="secondary">
-          Don't have an account?{' '}
-          <a href="/auth/register">Sign up</a>
+          Don't have an account? <a href="/auth/register">Sign up</a>
         </Text>
       </div>
     </div>

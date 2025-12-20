@@ -6,6 +6,12 @@ import path from 'path';
 export default defineConfig({
   // @ts-expect-error - Monorepo has duplicate Vite versions causing type conflicts
   plugins: [react()],
+  define: {
+    // Fix "process is not defined" error in production builds
+    'process.env': {},
+    'process.platform': JSON.stringify(''),
+    'process.version': JSON.stringify(''),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -16,6 +22,7 @@ export default defineConfig({
       '@/store': path.resolve(__dirname, './src/store'),
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/pages': path.resolve(__dirname, './src/pages'),
+      '@bakery-cms/common': path.resolve(__dirname, '../bakery-cms-api/packages/common/src/index.ts'),
     },
   },
   css: {

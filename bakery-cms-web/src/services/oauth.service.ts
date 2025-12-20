@@ -87,10 +87,7 @@ export const initiateOAuthLogin = async (
   usePopup: boolean = false
 ): Promise<{ state: string; codeVerifier: string }> => {
   // Get authorization URL from backend
-  const { authorizationUrl, state } = await getOAuthAuthorizationUrl(
-    provider,
-    redirectUri
-  );
+  const { authorizationUrl, state } = await getOAuthAuthorizationUrl(provider, redirectUri);
 
   // Store state and codeVerifier in sessionStorage for callback validation
   // Note: In production with PKCE, codeVerifier should be stored securely

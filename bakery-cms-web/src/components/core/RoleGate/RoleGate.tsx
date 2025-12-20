@@ -12,17 +12,17 @@ export interface RoleGateProps {
    * Required roles to view the content
    */
   allowedRoles: UserRole[];
-  
+
   /**
    * Content to render if user has required role
    */
   children: ReactNode;
-  
+
   /**
    * Optional fallback content if user doesn't have required role
    */
   fallback?: ReactNode;
-  
+
   /**
    * If true, renders fallback instead of null when access denied
    */
@@ -31,7 +31,7 @@ export interface RoleGateProps {
 
 /**
  * RoleGate component that controls access based on user role
- * 
+ *
  * @example
  * ```tsx
  * <RoleGate allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
@@ -98,7 +98,11 @@ export const useIsStaffOrHigher = (): boolean => {
 /**
  * Admin-only gate
  */
-export const AdminGate = ({ children, fallback, showFallback }: Omit<RoleGateProps, 'allowedRoles'>) => (
+export const AdminGate = ({
+  children,
+  fallback,
+  showFallback,
+}: Omit<RoleGateProps, 'allowedRoles'>) => (
   <RoleGate allowedRoles={[UserRole.ADMIN]} fallback={fallback} showFallback={showFallback}>
     {children}
   </RoleGate>
@@ -107,8 +111,16 @@ export const AdminGate = ({ children, fallback, showFallback }: Omit<RoleGatePro
 /**
  * Manager and above gate
  */
-export const ManagerGate = ({ children, fallback, showFallback }: Omit<RoleGateProps, 'allowedRoles'>) => (
-  <RoleGate allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} fallback={fallback} showFallback={showFallback}>
+export const ManagerGate = ({
+  children,
+  fallback,
+  showFallback,
+}: Omit<RoleGateProps, 'allowedRoles'>) => (
+  <RoleGate
+    allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}
+    fallback={fallback}
+    showFallback={showFallback}
+  >
     {children}
   </RoleGate>
 );
@@ -116,7 +128,11 @@ export const ManagerGate = ({ children, fallback, showFallback }: Omit<RoleGateP
 /**
  * Staff and above gate
  */
-export const StaffGate = ({ children, fallback, showFallback }: Omit<RoleGateProps, 'allowedRoles'>) => (
+export const StaffGate = ({
+  children,
+  fallback,
+  showFallback,
+}: Omit<RoleGateProps, 'allowedRoles'>) => (
   <RoleGate
     allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF]}
     fallback={fallback}

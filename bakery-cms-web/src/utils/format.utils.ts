@@ -17,10 +17,7 @@ export const formatCurrency = (amount: number, currency = 'USD'): string => {
 /**
  * Format date using dayjs
  */
-export const formatDate = (
-  date: string | Date | dayjs.Dayjs,
-  format = 'YYYY-MM-DD'
-): string => {
+export const formatDate = (date: string | Date | dayjs.Dayjs, format = 'YYYY-MM-DD'): string => {
   return dayjs(date).format(format);
 };
 

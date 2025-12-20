@@ -5,11 +5,17 @@
 
 import React from 'react';
 import { Space, Button, Popconfirm, Tag, Typography } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import {
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CheckOutlined,
+  CloseOutlined,
+} from '@ant-design/icons';
 import { DataTable } from '../../../shared/DataTable/DataTable';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { OrderTableProps } from './OrderTable.types';
-import type { Order, OrderStatus } from '../../../../types/models/order.model';
+import type { Order, OrderStatusType as OrderStatus } from '../../../../types/models/order.model';
 
 const { Text } = Typography;
 
@@ -18,7 +24,7 @@ const getStatusColor = (status: OrderStatus): string => {
   const colorMap: Record<OrderStatus, string> = {
     draft: 'default',
     confirmed: 'processing',
-    completed: 'success',
+    paid: 'success',
     cancelled: 'error',
   };
   return colorMap[status] || 'default';
@@ -29,7 +35,7 @@ const getStatusLabel = (status: OrderStatus): string => {
   const labelMap: Record<OrderStatus, string> = {
     draft: 'Draft',
     confirmed: 'Confirmed',
-    completed: 'Completed',
+    paid: 'Completed',
     cancelled: 'Cancelled',
   };
   return labelMap[status] || status;
@@ -98,9 +104,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       key: 'items',
       width: 80,
       align: 'center' as const,
-      render: (_: any, record: Order) => (
-        <Text>{record.items ? record.items.length : 0}</Text>
-      ),
+      render: (_: any, record: Order) => <Text>{record.items ? record.items.length : 0}</Text>,
     },
     {
       title: 'Total Amount',
@@ -135,12 +139,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       width: 200,
       render: (_: any, record: Order) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => onView(record)}
-          >
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => onView(record)}>
             View
           </Button>
           {record.status === 'draft' && (
@@ -160,11 +159,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                 okText="Yes"
                 cancelText="No"
               >
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<CheckOutlined />}
-                >
+                <Button type="link" size="small" icon={<CheckOutlined />}>
                   Confirm
                 </Button>
               </Popconfirm>
@@ -178,12 +173,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
               okText="Yes"
               cancelText="No"
             >
-              <Button
-                type="link"
-                danger
-                size="small"
-                icon={<CloseOutlined />}
-              >
+              <Button type="link" danger size="small" icon={<CloseOutlined />}>
                 Cancel
               </Button>
             </Popconfirm>
@@ -195,12 +185,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
             okText="Yes"
             cancelText="No"
           >
-            <Button
-              type="link"
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-            >
+            <Button type="link" danger size="small" icon={<DeleteOutlined />}>
               Delete
             </Button>
           </Popconfirm>

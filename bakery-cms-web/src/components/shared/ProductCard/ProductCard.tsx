@@ -17,8 +17,16 @@ export const ProductCard = ({ product, onEdit, onDelete }: ProductCardProps): Re
     subtitle={`$${product.price.toFixed(2)} - ${product.status}`}
     footer={
       <div className="flex gap-2">
-        {onEdit && <Button size="sm" onClick={() => onEdit(product)}>Edit</Button>}
-        {onDelete && <Button size="sm" variant="danger" onClick={() => onDelete(product)}>Delete</Button>}
+        {onEdit && (
+          <Button size="sm" onClick={() => onEdit(product)}>
+            Edit
+          </Button>
+        )}
+        {onDelete && (
+          <Button size="sm" variant="danger" onClick={() => onDelete(product)}>
+            Delete
+          </Button>
+        )}
       </div>
     }
   >

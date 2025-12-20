@@ -4,7 +4,18 @@
  */
 
 import React, { useEffect, useMemo } from 'react';
-import { Form, Input, Select, InputNumber, Button, Space, Typography, Divider, Row, Col } from 'antd';
+import {
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Button,
+  Space,
+  Typography,
+  Divider,
+  Row,
+  Col,
+} from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AntModal } from '../../../core';
 import { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
@@ -191,7 +202,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           {(fields, { add, remove }, { errors: listErrors }) => (
             <>
               {fields.map((field, index) => (
-                <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                <Space
+                  key={field.key}
+                  style={{ display: 'flex', marginBottom: 8 }}
+                  align="baseline"
+                >
                   {/* Product Selection */}
                   <Form.Item
                     {...field}
@@ -225,12 +240,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     ]}
                     style={{ marginBottom: 0, width: 100 }}
                   >
-                    <InputNumber
-                      placeholder="Qty"
-                      min={1}
-                      max={9999}
-                      style={{ width: '100%' }}
-                    />
+                    <InputNumber placeholder="Qty" min={1} max={9999} style={{ width: '100%' }} />
                   </Form.Item>
 
                   {/* Unit Price */}
@@ -254,9 +264,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
                   {/* Subtotal Display */}
                   <Text strong style={{ width: 120, textAlign: 'right' }}>
-                    {formatCurrency(
-                      (items[index]?.quantity || 0) * (items[index]?.unitPrice || 0)
-                    )}
+                    {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unitPrice || 0))}
                   </Text>
 
                   {/* Remove Button */}
@@ -308,7 +316,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             <Select placeholder="Select status">
               <Option value={OrderStatus.DRAFT}>Draft</Option>
               <Option value={OrderStatus.CONFIRMED}>Confirmed</Option>
-              <Option value={OrderStatus.COMPLETED}>Completed</Option>
+              <Option value={OrderStatus.PAID}>Paid</Option>
               <Option value={OrderStatus.CANCELLED}>Cancelled</Option>
             </Select>
           </Form.Item>

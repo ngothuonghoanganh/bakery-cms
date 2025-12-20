@@ -15,11 +15,7 @@ export const Card = ({
   onClick,
   hoverable = false,
 }: CardProps): React.JSX.Element => {
-  const classNames = [
-    'card',
-    hoverable || onClick ? 'card-hoverable' : '',
-    className,
-  ]
+  const classNames = ['card', hoverable || onClick ? 'card-hoverable' : '', className]
     .filter(Boolean)
     .join(' ');
 

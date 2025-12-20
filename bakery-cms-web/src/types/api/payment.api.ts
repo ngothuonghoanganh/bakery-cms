@@ -60,4 +60,3 @@ export type PaymentFiltersRequest = {
 export type MarkAsPaidRequest = {
   readonly transactionId?: string;
 };
-

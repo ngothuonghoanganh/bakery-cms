@@ -16,20 +16,10 @@ export type { AntModalProps } from './AntModal/AntModal.types';
 export { AntDrawer } from './AntDrawer/AntDrawer';
 export type { AntDrawerProps } from './AntDrawer/AntDrawer.types';
 
-export {
-  AntForm,
-  AntFormItem,
-  AntFormList,
-  AntFormProvider,
-} from './AntForm/AntForm';
+export { AntForm, AntFormItem, AntFormList, AntFormProvider } from './AntForm/AntForm';
 export type { AntFormProps } from './AntForm/AntForm.types';
 
-export {
-  AntInput,
-  AntTextArea,
-  AntInputPassword,
-  AntInputSearch,
-} from './AntInput/AntInput';
+export { AntInput, AntTextArea, AntInputPassword, AntInputSearch } from './AntInput/AntInput';
 export type { AntInputProps, AntTextAreaProps } from './AntInput/AntInput.types';
 
 export { AntCard, AntCardMeta, AntCardGrid } from './AntCard/AntCard';

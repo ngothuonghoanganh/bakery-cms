@@ -112,11 +112,7 @@ export const PaymentDetailPage: React.FC = () => {
   }
 
   if (!payment) {
-    return (
-      <EmptyState
-        description="Payment not found"
-      />
-    );
+    return <EmptyState description="Payment not found" />;
   }
 
   const getFormInitialValues = (): PaymentFormValues => ({

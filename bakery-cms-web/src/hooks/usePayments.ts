@@ -44,7 +44,7 @@ export const usePayments = (options: UsePaymentsOptions = {}): UsePaymentsReturn
     setError(null);
 
     const result = await paymentService.getAll(mapFiltersToRequest(filters));
-    
+
     if (result.success) {
       setPayments([...result.data.payments]);
       setTotal(result.data.total);

@@ -5,16 +5,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Form,
-  Input,
-  Button,
-  Typography,
-  Alert,
-  Card,
-  Progress,
-  Space,
-} from 'antd';
+import { Form, Input, Button, Typography, Alert, Card, Progress, Space } from 'antd';
 import {
   MailOutlined,
   LockOutlined,
@@ -134,10 +125,7 @@ export const RegisterPage: React.FC = () => {
         <Title level={2} style={{ textAlign: 'center', marginBottom: 8 }}>
           Create Account
         </Title>
-        <Text
-          type="secondary"
-          style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}
-        >
+        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>
           Sign up for Bakery CMS
         </Text>
 
@@ -175,10 +163,7 @@ export const RegisterPage: React.FC = () => {
           </Button>
         </div>
 
-        <Text
-          type="secondary"
-          style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}
-        >
+        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
           or sign up with email
         </Text>
 
@@ -190,11 +175,7 @@ export const RegisterPage: React.FC = () => {
               rules={[{ required: true, message: 'Required' }]}
               style={{ flex: 1, marginBottom: 16 }}
             >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="First Name"
-                disabled={isLoading}
-              />
+              <Input prefix={<UserOutlined />} placeholder="First Name" disabled={isLoading} />
             </Form.Item>
 
             <Form.Item
@@ -202,11 +183,7 @@ export const RegisterPage: React.FC = () => {
               rules={[{ required: true, message: 'Required' }]}
               style={{ flex: 1, marginBottom: 16 }}
             >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="Last Name"
-                disabled={isLoading}
-              />
+              <Input prefix={<UserOutlined />} placeholder="Last Name" disabled={isLoading} />
             </Form.Item>
           </Space>
 
@@ -287,13 +264,7 @@ export const RegisterPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={isLoading}
-              size="large"
-            >
+            <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
               Create Account
             </Button>
           </Form.Item>

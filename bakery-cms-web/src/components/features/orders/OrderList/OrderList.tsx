@@ -69,7 +69,7 @@ export const OrderList: React.FC<OrderListProps> = ({
   const handleFormSubmit = async (values: OrderFormValues) => {
     try {
       setSubmitting(true);
-      
+
       if (selectedOrder) {
         await onUpdate(selectedOrder.id, values);
         success('Order updated successfully');
@@ -77,7 +77,7 @@ export const OrderList: React.FC<OrderListProps> = ({
         await onCreate(values);
         success('Order created successfully');
       }
-      
+
       close();
       setSelectedOrder(null);
     } catch (error) {
@@ -131,11 +131,12 @@ export const OrderList: React.FC<OrderListProps> = ({
       customerName: selectedOrder.customerName || '',
       customerPhone: selectedOrder.customerPhone || '',
       notes: selectedOrder.notes || '',
-      items: selectedOrder.items?.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })) || [],
+      items:
+        selectedOrder.items?.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })) || [],
       status: selectedOrder.status,
     };
   };
@@ -147,22 +148,14 @@ export const OrderList: React.FC<OrderListProps> = ({
         subtitle="Manage customer orders and tracking"
         extra={
           <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            >
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
               Create Order
             </Button>
           </Space>
         }
       />
 
-      <OrderFilters
-        value={filters}
-        onChange={onFiltersChange}
-        onReset={onFiltersReset}
-      />
+      <OrderFilters value={filters} onChange={onFiltersChange} onReset={onFiltersReset} />
 
       <OrderTable
         orders={orders}

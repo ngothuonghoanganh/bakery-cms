@@ -24,14 +24,14 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   const handleBusinessTypeChange = (value: string) => {
     onChange({
       ...filters,
-      businessType: value ? (value as typeof BusinessType[keyof typeof BusinessType]) : undefined,
+      businessType: value ? (value as (typeof BusinessType)[keyof typeof BusinessType]) : undefined,
     });
   };
 
   const handleStatusChange = (value: string) => {
     onChange({
       ...filters,
-      status: value ? (value as typeof ProductStatus[keyof typeof ProductStatus]) : undefined,
+      status: value ? (value as (typeof ProductStatus)[keyof typeof ProductStatus]) : undefined,
     });
   };
 
@@ -70,6 +70,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           >
             <Option value={BusinessType.READY_TO_SELL}>Ready to Sell</Option>
             <Option value={BusinessType.MADE_TO_ORDER}>Made to Order</Option>
+            <Option value={BusinessType.BOTH}>Both</Option>
           </Select>
         </Col>
 
@@ -82,8 +83,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
             allowClear
             style={{ width: '100%' }}
           >
-            <Option value={ProductStatus.ACTIVE}>Active</Option>
-            <Option value={ProductStatus.INACTIVE}>Inactive</Option>
+            <Option value={ProductStatus.AVAILABLE}>Available</Option>
             <Option value={ProductStatus.OUT_OF_STOCK}>Out of Stock</Option>
           </Select>
         </Col>

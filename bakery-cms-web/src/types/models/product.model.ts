@@ -3,20 +3,14 @@
  * Represents product data in the frontend domain layer
  */
 
-export const BusinessType = {
-  MADE_TO_ORDER: 'made_to_order',
-  READY_TO_SELL: 'ready_to_sell',
-} as const;
+import { BusinessType, ProductStatus } from '@bakery-cms/common';
 
-export type BusinessType = (typeof BusinessType)[keyof typeof BusinessType];
-
-export const ProductStatus = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-  OUT_OF_STOCK: 'out_of_stock',
-} as const;
-
-export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus];
+// Re-export for backward compatibility
+export { BusinessType, ProductStatus };
+export type {
+  BusinessType as BusinessTypeType,
+  ProductStatus as ProductStatusType,
+} from '@bakery-cms/common';
 
 export type Product = {
   readonly id: string;

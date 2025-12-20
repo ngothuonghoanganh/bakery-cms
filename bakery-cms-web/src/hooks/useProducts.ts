@@ -24,7 +24,7 @@ interface UseProductsReturn {
 
 export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn => {
   const { filters, pagination, autoFetch = true } = options;
-  
+
   const [products, setProducts] = useState<readonly Product[] | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(autoFetch);
@@ -33,12 +33,12 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   const fetchProducts = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
-    
+
     const result = await productService.getAll({
       ...filters,
       ...pagination,
     });
-    
+
     if (result.success) {
       setProducts(result.data.products);
       setTotal(result.data.total);
@@ -48,7 +48,7 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
       setTotal(0);
       setError(result.error);
     }
-    
+
     setLoading(false);
   }, [filters, pagination]);
 

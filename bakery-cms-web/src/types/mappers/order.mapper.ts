@@ -3,9 +3,13 @@
  * Transform API responses to domain models
  */
 
-import type { OrderAPIResponse, OrderItemAPIResponse, PaginatedOrdersAPIResponse } from '@/types/api/order.api';
+import type {
+  OrderAPIResponse,
+  OrderItemAPIResponse,
+  PaginatedOrdersAPIResponse,
+} from '@/types/api/order.api';
 import type { Order, OrderItem, PaginatedOrders } from '@/types/models/order.model';
-import { OrderStatus, OrderType, BusinessModel } from '@/types/models/order.model';
+import type {  OrderStatusType as OrderStatus, OrderTypeType as OrderType, BusinessModelType as BusinessModel } from '@/types/models/order.model';
 
 /**
  * Map API response to OrderItem domain model

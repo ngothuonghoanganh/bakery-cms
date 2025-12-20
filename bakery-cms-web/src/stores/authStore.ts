@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as authService from '@/services/auth.service';
-import type { User, LoginRequest, RegisterRequest, ChangePasswordRequest } from '@/services/auth.service';
+import type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  ChangePasswordRequest,
+} from '@/services/auth.service';
 
 // Re-export User type for convenience
 export type { User } from '@/services/auth.service';
@@ -12,7 +17,8 @@ type AuthStore = {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+  _hasHydrated: boolean;
+
   // Actions
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
@@ -23,6 +29,7 @@ type AuthStore = {
   changePassword: (data: ChangePasswordRequest) => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   clearAuth: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -33,12 +40,13 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
-      
+      _hasHydrated: false,
+
       login: async (credentials: LoginRequest): Promise<void> => {
         try {
           set({ isLoading: true });
           const response = await authService.login(credentials);
-          
+
           set({
             user: response.user,
             token: response.tokens.accessToken,
@@ -51,12 +59,12 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
-      
+
       register: async (data: RegisterRequest): Promise<void> => {
         try {
           set({ isLoading: true });
           const response = await authService.register(data);
-          
+
           set({
             user: response.user,
             token: response.tokens.accessToken,
@@ -69,7 +77,7 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
-      
+
       logout: async (): Promise<void> => {
         try {
           const { refreshToken } = get();
@@ -82,7 +90,7 @@ export const useAuthStore = create<AuthStore>()(
           get().clearAuth();
         }
       },
-      
+
       logoutAll: async (): Promise<void> => {
         try {
           await authService.logoutAll();
@@ -92,7 +100,7 @@ export const useAuthStore = create<AuthStore>()(
           get().clearAuth();
         }
       },
-      
+
       setUser: (user: User, accessToken: string, refreshToken: string) => {
         set({
           user,
@@ -101,7 +109,7 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: true,
         });
       },
-      
+
       refreshAuth: async (): Promise<void> => {
         try {
           const { refreshToken } = get();
@@ -110,7 +118,7 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           const tokens = await authService.refreshToken(refreshToken);
-          
+
           set({
             token: tokens.accessToken,
             refreshToken: tokens.refreshToken,
@@ -120,11 +128,11 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
-      
+
       changePassword: async (data: ChangePasswordRequest): Promise<void> => {
         await authService.changePassword(data);
       },
-      
+
       fetchCurrentUser: async (): Promise<void> => {
         try {
           set({ isLoading: true });
@@ -136,9 +144,8 @@ export const useAuthStore = create<AuthStore>()(
           throw error;
         }
       },
-      
+
       clearAuth: () => {
-        localStorage.removeItem('bakery-cms-auth');
         set({
           user: null,
           token: null,
@@ -146,9 +153,16 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false,
         });
       },
+
+      setHasHydrated: (hasHydrated: boolean) => {
+        set({ _hasHydrated: hasHydrated });
+      },
     }),
     {
       name: 'bakery-cms-auth',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

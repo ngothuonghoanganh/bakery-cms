@@ -5,7 +5,12 @@
 
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import { ErrorCode, createNetworkError, createInternalError, type AppError } from '@/types/common/error.types';
+import {
+  ErrorCode,
+  createNetworkError,
+  createInternalError,
+  type AppError,
+} from '@/types/common/error.types';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 
@@ -61,7 +66,10 @@ const createAPIClient = (): AxiosInstance => {
     (response: AxiosResponse): AxiosResponse => {
       // Log responses in development
       if (import.meta.env.DEV) {
-        console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
+        console.log(
+          `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`,
+          response.data
+        );
       }
       return response;
     },
@@ -93,7 +101,7 @@ const createAPIClient = (): AxiosInstance => {
           // Refresh failed, logout user
           const authState = useAuthStore.getState();
           const notificationState = useNotificationStore.getState();
-          
+
           authState.clearAuth();
           notificationState.error(
             'Authentication Error',

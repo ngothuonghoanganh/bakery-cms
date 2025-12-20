@@ -91,9 +91,7 @@ export const createNetworkError = (message: string = 'Network error occurred'): 
 /**
  * Create an internal error
  */
-export const createInternalError = (
-  message: string = 'An internal error occurred'
-): AppError => ({
+export const createInternalError = (message: string = 'An internal error occurred'): AppError => ({
   code: ErrorCode.INTERNAL_ERROR,
   message,
   statusCode: 500,

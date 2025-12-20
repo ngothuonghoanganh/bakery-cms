@@ -12,7 +12,10 @@ import { ProductForm } from '../ProductForm/ProductForm';
 import { ProductFilters } from '../ProductFilters/ProductFilters';
 import { useNotification } from '../../../../hooks/useNotification';
 import { useModal } from '../../../../hooks/useModal';
-import type { Product, ProductFilters as ProductFiltersType } from '../../../../types/models/product.model';
+import type {
+  Product,
+  ProductFilters as ProductFiltersType,
+} from '../../../../types/models/product.model';
 import type { ProductFormValues } from '../ProductForm/ProductForm.types';
 
 interface ProductListProps {
@@ -76,10 +79,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         close();
         setSelectedProduct(null);
       } catch (err) {
-        error(
-          'Operation Failed',
-          err instanceof Error ? err.message : 'An error occurred'
-        );
+        error('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setFormLoading(false);
       }
@@ -93,10 +93,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         await onDelete(id);
         success('Product Deleted', 'Product has been deleted successfully');
       } catch (err) {
-        error(
-          'Delete Failed',
-          err instanceof Error ? err.message : 'Failed to delete product'
-        );
+        error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete product');
       }
     },
     [onDelete, success, error]

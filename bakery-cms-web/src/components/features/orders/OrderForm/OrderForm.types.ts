@@ -2,12 +2,13 @@
  * OrderForm component types
  */
 
-import type { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
+import type {  OrderStatusType as OrderStatus, OrderTypeType as OrderType, BusinessModelType as BusinessModel }  from '../../../../types/models/order.model';
 
 export type OrderItemFormValue = {
   productId: string;
   quantity: number;
   unitPrice: number;
+  subtotal?: number; // Calculated field
 };
 
 export type OrderFormValues = {

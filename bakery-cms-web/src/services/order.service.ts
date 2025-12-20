@@ -33,7 +33,9 @@ export type OrderService = {
 /**
  * Get all orders with optional filters
  */
-const getAll = async (filters?: OrderFiltersRequest): Promise<Result<PaginatedOrders, AppError>> => {
+const getAll = async (
+  filters?: OrderFiltersRequest
+): Promise<Result<PaginatedOrders, AppError>> => {
   try {
     const response = await apiClient.get<PaginatedOrdersAPIResponse>('/orders', {
       params: filters,
@@ -76,7 +78,7 @@ const create = async (data: CreateOrderRequest): Promise<Result<Order, AppError>
  */
 const update = async (id: string, data: UpdateOrderRequest): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.put<OrderAPIResponse>(`/orders/${id}`, data);
+    const response = await apiClient.patch<OrderAPIResponse>(`/orders/${id}`, data);
     const order = mapOrderFromAPI(response.data);
     return ok(order);
   } catch (error) {

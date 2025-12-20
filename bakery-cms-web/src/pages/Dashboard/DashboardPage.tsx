@@ -172,10 +172,7 @@ export const DashboardPage: React.FC = () => {
       {/* Recent Activity */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={24}>
-          <RecentActivity
-            items={recentActivities}
-            onItemClick={handleActivityClick}
-          />
+          <RecentActivity items={recentActivities} onItemClick={handleActivityClick} />
         </Col>
       </Row>
     </div>

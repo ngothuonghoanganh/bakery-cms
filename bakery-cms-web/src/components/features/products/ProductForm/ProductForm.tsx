@@ -32,7 +32,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       form.resetFields();
       form.setFieldsValue({
         businessType: BusinessType.READY_TO_SELL,
-        status: ProductStatus.ACTIVE,
+        status: ProductStatus.AVAILABLE,
       });
     }
   }, [visible, product, form]);
@@ -62,11 +62,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       width={700}
       okText={isEditMode ? 'Update' : 'Create'}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        requiredMark="optional"
-      >
+      <Form form={form} layout="vertical" requiredMark="optional">
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
@@ -86,14 +82,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <Form.Item
               name="description"
               label="Description"
-              rules={[
-                { max: 1000, message: 'Description must not exceed 1000 characters' },
-              ]}
+              rules={[{ max: 1000, message: 'Description must not exceed 1000 characters' }]}
             >
-              <TextArea
-                rows={4}
-                placeholder="Enter product description"
-              />
+              <TextArea rows={4} placeholder="Enter product description" />
             </Form.Item>
           </Col>
 
@@ -120,9 +111,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <Form.Item
               name="category"
               label="Category"
-              rules={[
-                { max: 100, message: 'Category must not exceed 100 characters' },
-              ]}
+              rules={[{ max: 100, message: 'Category must not exceed 100 characters' }]}
             >
               <Input placeholder="Enter category" />
             </Form.Item>
@@ -137,6 +126,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <Select placeholder="Select business type">
                 <Option value={BusinessType.READY_TO_SELL}>Ready to Sell</Option>
                 <Option value={BusinessType.MADE_TO_ORDER}>Made to Order</Option>
+                <Option value={BusinessType.BOTH}>Both</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -148,8 +138,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               rules={[{ required: true, message: 'Status is required' }]}
             >
               <Select placeholder="Select status">
-                <Option value={ProductStatus.ACTIVE}>Active</Option>
-                <Option value={ProductStatus.INACTIVE}>Inactive</Option>
+                <Option value={ProductStatus.AVAILABLE}>Available</Option>
                 <Option value={ProductStatus.OUT_OF_STOCK}>Out of Stock</Option>
               </Select>
             </Form.Item>
@@ -159,9 +148,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <Form.Item
               name="imageUrl"
               label="Image URL"
-              rules={[
-                { type: 'url', message: 'Please enter a valid URL' },
-              ]}
+              rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
             >
               <Input placeholder="https://example.com/image.jpg" />
             </Form.Item>

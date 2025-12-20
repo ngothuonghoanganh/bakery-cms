@@ -24,7 +24,7 @@ const PAYMENT_STATUS_OPTIONS = [
   { label: 'Pending', value: PaymentStatus.PENDING },
   { label: 'Paid', value: PaymentStatus.PAID },
   { label: 'Failed', value: PaymentStatus.FAILED },
-  { label: 'Refunded', value: PaymentStatus.REFUNDED },
+  { label: 'Cancelled', value: PaymentStatus.CANCELLED },
 ];
 
 export const PaymentFilters: React.FC<PaymentFiltersProps> = ({ value = {}, onChange }) => {

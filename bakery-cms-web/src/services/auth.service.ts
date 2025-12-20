@@ -4,32 +4,11 @@
  */
 
 import { apiClient } from './api/client';
+import { UserRole, UserStatus } from '@bakery-cms/common';
 
-/**
- * User role enum (matches backend)
- */
-export const UserRole = {
-  ADMIN: 'ADMIN',
-  MANAGER: 'MANAGER',
-  STAFF: 'STAFF',
-  SELLER: 'SELLER',
-  CUSTOMER: 'CUSTOMER',
-  VIEWER: 'VIEWER',
-} as const;
-
-export type UserRole = typeof UserRole[keyof typeof UserRole];
-
-/**
- * User status enum
- */
-export const UserStatus = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE',
-  SUSPENDED: 'SUSPENDED',
-  PENDING: 'PENDING',
-} as const;
-
-export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
+// Re-export for backward compatibility
+export { UserRole, UserStatus };
+export type { UserRole as UserRoleType, UserStatus as UserStatusType } from '@bakery-cms/common';
 
 /**
  * User interface
@@ -155,10 +134,9 @@ export const logoutAll = async (): Promise<void> => {
  * Refresh access token
  */
 export const refreshToken = async (refreshToken: string): Promise<AuthTokens> => {
-  const response = await apiClient.post<{ success: boolean; data: AuthTokens }>(
-    '/auth/refresh',
-    { refreshToken }
-  );
+  const response = await apiClient.post<{ success: boolean; data: AuthTokens }>('/auth/refresh', {
+    refreshToken,
+  });
   return response.data.data;
 };
 

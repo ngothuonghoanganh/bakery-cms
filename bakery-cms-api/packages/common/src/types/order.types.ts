@@ -51,6 +51,8 @@ export type OrderWithItems = Order & {
 export type CreateOrderItemDTO = {
   readonly productId: string;
   readonly quantity: number;
+  readonly unitPrice: number;
+  readonly subtotal: number;
 };
 
 /**

@@ -11,6 +11,10 @@ import { lightTheme, darkTheme } from './config/theme.config';
 import { DashboardLayout, ErrorBoundary, LoadingSpinner } from './components/shared';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
+// TEMPORARY TEST: Verify @bakery-cms/common import resolution
+import { UserRole, PaymentMethod } from '@bakery-cms/common';
+console.log('Test import successful:', { UserRole, PaymentMethod });
+
 // Lazy load all page components for code splitting
 const LoginPage = lazy(() =>
   import('./pages/LoginPage/LoginPage').then((module) => ({

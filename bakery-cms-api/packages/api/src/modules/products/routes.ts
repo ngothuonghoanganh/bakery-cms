@@ -9,6 +9,7 @@ import { createProductRepository } from './repositories/products.repositories';
 import { createProductService } from './services/products.services';
 import { createProductHandlers } from './handlers/products.handlers';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
+import { authenticateJWT } from '../../middleware';
 import { requireManager, requireSeller } from '../../middleware/rbac.middleware';
 import {
   createProductSchema,
@@ -60,6 +61,7 @@ export const createProductsRouter = (): Router => {
    */
   router.post(
     '/',
+    authenticateJWT as any,
     requireSeller as any,
     validateBody(createProductSchema),
     handlers.handleCreateProduct as any
@@ -72,6 +74,7 @@ export const createProductsRouter = (): Router => {
    */
   router.patch(
     '/:id',
+    authenticateJWT as any,
     requireSeller as any,
     validateParams(productIdParamSchema),
     validateBody(updateProductSchema),
@@ -85,6 +88,7 @@ export const createProductsRouter = (): Router => {
    */
   router.delete(
     '/:id',
+    authenticateJWT as any,
     requireManager as any,
     validateParams(productIdParamSchema),
     handlers.handleDeleteProduct as any

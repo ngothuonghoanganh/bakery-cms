@@ -2,7 +2,7 @@ import React from 'react';
 import { Spin } from 'antd';
 import type { LoadingSpinnerProps } from './LoadingSpinner.types';
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   tip = 'Loading...',
   fullScreen = false,
 }) => {

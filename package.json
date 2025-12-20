@@ -23,6 +23,7 @@
   },
   "workspaces": [
     "bakery-cms-api",
+    "bakery-cms-api/packages/*",
     "bakery-cms-web"
   ],
   "devDependencies": {

@@ -3,22 +3,14 @@
  * Represents payment data in the frontend domain layer
  */
 
-export const PaymentMethod = {
-  CASH: 'cash',
-  VIETQR: 'vietqr',
-  BANK_TRANSFER: 'bank_transfer',
-} as const;
+import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
 
-export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
-
-export const PaymentStatus = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  FAILED: 'failed',
-  REFUNDED: 'refunded',
-} as const;
-
-export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+// Re-export for backward compatibility
+export { PaymentMethod, PaymentStatus };
+export type {
+  PaymentMethod as PaymentMethodType,
+  PaymentStatus as PaymentStatusType,
+} from '@bakery-cms/common';
 
 export type Payment = {
   readonly id: string;

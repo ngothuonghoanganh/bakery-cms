@@ -14,10 +14,7 @@ dayjs.extend(customParseFormat);
  * Date utility functions using dayjs
  */
 
-export const parseDate = (
-  date: string | Date | dayjs.Dayjs,
-  format?: string
-): dayjs.Dayjs => {
+export const parseDate = (date: string | Date | dayjs.Dayjs, format?: string): dayjs.Dayjs => {
   if (format) {
     return dayjs(date, format);
   }
@@ -50,17 +47,11 @@ export const isSame = (
   return dayjs(date1).isSame(dayjs(date2), unit);
 };
 
-export const addDays = (
-  date: string | Date | dayjs.Dayjs,
-  days: number
-): dayjs.Dayjs => {
+export const addDays = (date: string | Date | dayjs.Dayjs, days: number): dayjs.Dayjs => {
   return dayjs(date).add(days, 'day');
 };
 
-export const subtractDays = (
-  date: string | Date | dayjs.Dayjs,
-  days: number
-): dayjs.Dayjs => {
+export const subtractDays = (date: string | Date | dayjs.Dayjs, days: number): dayjs.Dayjs => {
   return dayjs(date).subtract(days, 'day');
 };
 

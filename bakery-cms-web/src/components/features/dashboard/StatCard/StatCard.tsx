@@ -20,12 +20,9 @@ export const StatCard: React.FC<StatCardProps> = ({
           <Text type="secondary">{title}</Text>
           <div style={{ fontSize: 24, color }}>{icon}</div>
         </div>
-        
-        <Statistic
-          value={value}
-          valueStyle={{ fontSize: 24, fontWeight: 600 }}
-        />
-        
+
+        <Statistic value={value} valueStyle={{ fontSize: 24, fontWeight: 600 }} />
+
         {trend && (
           <Space size={4}>
             {trend.isPositive ? (

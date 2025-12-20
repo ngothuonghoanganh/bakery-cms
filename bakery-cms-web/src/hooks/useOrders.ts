@@ -42,7 +42,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
     setError(null);
 
     const result = await orderService.getAll(mapFiltersToRequest(filters));
-    
+
     if (result.success) {
       setOrders([...result.data.orders]);
       setTotal(result.data.total);
@@ -51,7 +51,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
       setOrders([]);
       setTotal(0);
     }
-    
+
     setLoading(false);
   }, [filters]);
 

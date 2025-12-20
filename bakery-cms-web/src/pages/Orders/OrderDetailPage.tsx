@@ -11,7 +11,13 @@ import { LoadingSpinner } from '../../components/shared/LoadingSpinner/LoadingSp
 import { EmptyState } from '../../components/shared/EmptyState/EmptyState';
 import { useModal } from '../../hooks/useModal';
 import { useNotification } from '../../hooks/useNotification';
-import { getOrderById, updateOrder, deleteOrder, confirmOrder, cancelOrder } from '../../services/order.service';
+import {
+  getOrderById,
+  updateOrder,
+  deleteOrder,
+  confirmOrder,
+  cancelOrder,
+} from '../../services/order.service';
 import type { Order } from '../../types/models/order.model';
 import type { OrderFormValues } from '../../components/features/orders/OrderForm/OrderForm.types';
 
@@ -72,7 +78,7 @@ export const OrderDetailPage: React.FC = () => {
         customerName: values.customerName || undefined,
         customerPhone: values.customerPhone || undefined,
         notes: values.notes || undefined,
-        items: values.items.map(item => ({
+        items: values.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
@@ -169,11 +175,12 @@ export const OrderDetailPage: React.FC = () => {
       customerName: order.customerName || '',
       customerPhone: order.customerPhone || '',
       notes: order.notes || '',
-      items: order.items?.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })) || [],
+      items:
+        order.items?.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })) || [],
       status: order.status,
     };
   };
@@ -185,11 +192,7 @@ export const OrderDetailPage: React.FC = () => {
 
   // Order not found
   if (!order) {
-    return (
-      <EmptyState
-        description="The order you're looking for doesn't exist."
-      />
-    );
+    return <EmptyState description="The order you're looking for doesn't exist." />;
   }
 
   return (

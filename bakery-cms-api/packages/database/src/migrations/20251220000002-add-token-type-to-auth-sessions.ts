@@ -10,7 +10,7 @@ import { QueryInterface, DataTypes } from 'sequelize';
 export const up = async (queryInterface: QueryInterface): Promise<void> => {
   // Add token_type column
   await queryInterface.addColumn('auth_sessions', 'token_type', {
-    type: DataTypes.ENUM('refresh', 'access', 'email_verification', 'password_reset'),
+    type: DataTypes.STRING(50),
     allowNull: false,
     defaultValue: 'refresh',
     comment: 'Type of token stored in this session',

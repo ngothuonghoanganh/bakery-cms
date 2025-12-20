@@ -19,9 +19,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
               }}
             >
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div style={{ fontSize: 32, color: action.color }}>
-                  {action.icon}
-                </div>
+                <div style={{ fontSize: 32, color: action.color }}>{action.icon}</div>
                 <div>
                   <Title level={5} style={{ margin: 0 }}>
                     {action.title}

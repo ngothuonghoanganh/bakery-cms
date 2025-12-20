@@ -27,12 +27,7 @@ export const Button = ({
     .join(' ');
 
   return (
-    <button
-      type={type}
-      className={classNames}
-      disabled={disabled}
-      onClick={onClick}
-    >
+    <button type={type} className={classNames} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );

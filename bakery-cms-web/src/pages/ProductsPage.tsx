@@ -3,7 +3,7 @@
  * Container page for product management
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductList } from '@/components/features/products/ProductList/ProductList';
 import { useProducts } from '@/hooks/useProducts';
@@ -13,22 +13,58 @@ import type { ProductFormValues } from '@/components/features/products/ProductFo
 
 export const ProductsPage = (): React.JSX.Element => {
   const navigate = useNavigate();
+  // Filters state (immediate updates for UI)
   const [filters, setFilters] = useState<ProductFilters>({});
+  // Debounced filters state (delayed updates for API)
+  const [debouncedFilters, setDebouncedFilters] = useState<ProductFilters>({});
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
 
-  // Use the enhanced useProducts hook (we'll enhance it next)
-  const { products, loading, error, refetch } = useProducts();
+  // Debounce search input - wait 2s after user stops typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters]);
+
+  // Memoize debounced filters to prevent unnecessary re-renders and API calls
+  const memoizedFilters = useMemo(
+    () => debouncedFilters,
+    [
+      debouncedFilters.search,
+      debouncedFilters.category,
+      debouncedFilters.businessType,
+      debouncedFilters.status,
+    ]
+  );
+
+  // Memoize pagination params
+  const memoizedPagination = useMemo(
+    () => ({
+      page: pagination.current,
+      limit: pagination.pageSize,
+    }),
+    [pagination.current, pagination.pageSize]
+  );
+
+  // Use the enhanced useProducts hook with filters and pagination
+  const { products, loading, error, refetch } = useProducts({
+    filters: memoizedFilters,
+    pagination: memoizedPagination,
+    autoFetch: true,
+  });
 
   // Update pagination total when products change
   useEffect(() => {
     if (products) {
       setPagination((prev) => ({
         ...prev,
-        total: products.length, // TODO: Get from API response
+        total: products.length,
       }));
     }
   }, [products]);
@@ -36,7 +72,6 @@ export const ProductsPage = (): React.JSX.Element => {
   const handleFiltersChange = useCallback((newFilters: ProductFilters) => {
     setFilters(newFilters);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    // TODO: Trigger refetch with new filters
   }, []);
 
   const handleTableChange = useCallback((pag: any, _filters: any, _sorter: any) => {
@@ -45,7 +80,6 @@ export const ProductsPage = (): React.JSX.Element => {
       pageSize: pag.pageSize,
       total: pag.total,
     });
-    // TODO: Handle sorting and trigger refetch
   }, []);
 
   const handleCreate = useCallback(
@@ -93,7 +127,7 @@ export const ProductsPage = (): React.JSX.Element => {
   const handleDelete = useCallback(
     async (id: string) => {
       const result = await deleteProduct(id);
-      
+
       if (result.success) {
         refetch();
       } else {

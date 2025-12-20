@@ -12,10 +12,7 @@ export const orderItemSchema = z.object({
     .number()
     .min(1, 'Quantity must be at least 1')
     .max(9999, 'Quantity cannot exceed 9999'),
-  unitPrice: z
-    .number()
-    .min(0, 'Price must be non-negative')
-    .max(999999999, 'Price is too large'),
+  unitPrice: z.number().min(0, 'Price must be non-negative').max(999999999, 'Price is too large'),
 });
 
 // Order form validation schema
@@ -37,17 +34,13 @@ export const orderFormSchema = z.object({
     .max(20, 'Phone number cannot exceed 20 characters')
     .optional()
     .or(z.literal('')),
-  notes: z
-    .string()
-    .max(500, 'Notes cannot exceed 500 characters')
-    .optional()
-    .or(z.literal('')),
+  notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional().or(z.literal('')),
   items: z
     .array(orderItemSchema)
     .min(1, 'At least one item is required')
     .max(100, 'Cannot exceed 100 items per order'),
   status: z.enum(
-    [OrderStatus.DRAFT, OrderStatus.CONFIRMED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+    [OrderStatus.DRAFT, OrderStatus.CONFIRMED, OrderStatus.PAID, OrderStatus.CANCELLED],
     {
       errorMap: () => ({ message: 'Status is required' }),
     }

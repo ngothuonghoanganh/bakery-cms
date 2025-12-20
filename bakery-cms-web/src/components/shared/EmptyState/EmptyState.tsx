@@ -2,7 +2,7 @@ import React from 'react';
 import { Empty } from 'antd';
 import type { EmptyStateProps } from './EmptyState.types';
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ 
+export const EmptyState: React.FC<EmptyStateProps> = ({
   description = 'No data available',
   action,
 }) => {

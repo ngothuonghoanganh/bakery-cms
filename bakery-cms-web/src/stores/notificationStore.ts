@@ -25,7 +25,7 @@ export const useNotificationStore = create<NotificationStore>(() => ({
       ...defaultConfig,
     });
   },
-  
+
   success: (message: string, description?: string) => {
     notification.success({
       message,
@@ -33,7 +33,7 @@ export const useNotificationStore = create<NotificationStore>(() => ({
       ...defaultConfig,
     });
   },
-  
+
   error: (message: string, description?: string) => {
     notification.error({
       message,
@@ -42,7 +42,7 @@ export const useNotificationStore = create<NotificationStore>(() => ({
       duration: 4, // Longer duration for errors
     });
   },
-  
+
   warning: (message: string, description?: string) => {
     notification.warning({
       message,
@@ -50,7 +50,7 @@ export const useNotificationStore = create<NotificationStore>(() => ({
       ...defaultConfig,
     });
   },
-  
+
   info: (message: string, description?: string) => {
     notification.info({
       message,

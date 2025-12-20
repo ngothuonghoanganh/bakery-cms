@@ -69,5 +69,3 @@ export const getMenuItems = (): Array<{
       icon: route.icon!,
     }));
 };
-
-

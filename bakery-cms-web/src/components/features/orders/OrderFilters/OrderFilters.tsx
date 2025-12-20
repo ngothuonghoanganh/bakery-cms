@@ -14,11 +14,7 @@ import dayjs from 'dayjs';
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-export const OrderFilters: React.FC<OrderFiltersProps> = ({
-  value,
-  onChange,
-  onReset,
-}) => {
+export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onReset }) => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...value, search: e.target.value });
   };
@@ -51,9 +47,8 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
     }
   };
 
-  const dateRange = value.dateFrom && value.dateTo
-    ? [dayjs(value.dateFrom), dayjs(value.dateTo)]
-    : undefined;
+  const dateRange =
+    value.dateFrom && value.dateTo ? [dayjs(value.dateFrom), dayjs(value.dateTo)] : undefined;
 
   return (
     <FilterPanel onReset={onReset}>
@@ -80,7 +75,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({
           >
             <Option value={OrderStatus.DRAFT}>Draft</Option>
             <Option value={OrderStatus.CONFIRMED}>Confirmed</Option>
-            <Option value={OrderStatus.COMPLETED}>Completed</Option>
+            <Option value={OrderStatus.PAID}>Paid</Option>
             <Option value={OrderStatus.CANCELLED}>Cancelled</Option>
           </Select>
         </Col>

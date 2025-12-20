@@ -30,10 +30,7 @@ export const Input = ({
     .filter(Boolean)
     .join(' ');
 
-  const wrapperClassNames = [
-    'input-wrapper',
-    fullWidth ? 'input-wrapper-full-width' : '',
-  ]
+  const wrapperClassNames = ['input-wrapper', fullWidth ? 'input-wrapper-full-width' : '']
     .filter(Boolean)
     .join(' ');
 

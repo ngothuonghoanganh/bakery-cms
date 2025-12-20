@@ -4,10 +4,7 @@ import { z } from 'zod';
  * Common validation schemas
  */
 
-export const emailSchema = z
-  .string()
-  .min(1, 'Email is required')
-  .email('Invalid email format');
+export const emailSchema = z.string().min(1, 'Email is required').email('Invalid email format');
 
 export const passwordSchema = z
   .string()
@@ -16,19 +13,13 @@ export const passwordSchema = z
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
   .regex(/[0-9]/, 'Password must contain at least one number');
 
-export const phoneSchema = z
-  .string()
-  .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format');
+export const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format');
 
 export const urlSchema = z.string().url('Invalid URL format');
 
-export const positiveNumberSchema = z
-  .number()
-  .positive('Must be a positive number');
+export const positiveNumberSchema = z.number().positive('Must be a positive number');
 
-export const nonNegativeNumberSchema = z
-  .number()
-  .nonnegative('Must be a non-negative number');
+export const nonNegativeNumberSchema = z.number().nonnegative('Must be a non-negative number');
 
 /**
  * Validation helper functions
@@ -58,7 +49,7 @@ export const createValidationSchema = <T extends z.ZodType>(
   errorMessages?: Record<string, string>
 ): T => {
   if (!errorMessages) return schema;
-  
+
   // Custom error mapping could be implemented here
   return schema;
 };

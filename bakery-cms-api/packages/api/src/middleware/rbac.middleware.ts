@@ -24,7 +24,7 @@ export interface AuthenticatedRequest extends Request {
  * Middleware to check if user has required role
  * @param allowedRoles - Array of roles that are allowed to access the endpoint
  */
-export const requireRole = (allowedRoles: UserRole[]) => {
+export const requireRole = (allowedRoles: UserRole[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     // Check if user is authenticated
     if (!req.user) {

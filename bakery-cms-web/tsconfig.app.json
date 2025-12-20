@@ -26,7 +26,8 @@
       "@/hooks/*": ["src/hooks/*"],
       "@/store/*": ["src/store/*"],
       "@/utils/*": ["src/utils/*"],
-      "@/pages/*": ["src/pages/*"]
+      "@/pages/*": ["src/pages/*"],
+      "@bakery-cms/common": ["../bakery-cms-api/packages/common/src/index.ts"]
     },
 
     /* Linting */
@@ -37,5 +38,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../bakery-cms-api/packages/common" }
+  ]
 }

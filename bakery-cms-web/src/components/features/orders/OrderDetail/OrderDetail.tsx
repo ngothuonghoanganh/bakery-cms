@@ -23,7 +23,7 @@ const getStatusColor = (status: OrderStatus): string => {
   const colorMap: Record<OrderStatus, string> = {
     draft: 'default',
     confirmed: 'processing',
-    completed: 'success',
+    paid: 'success',
     cancelled: 'error',
   };
   return colorMap[status] || 'default';
@@ -34,7 +34,7 @@ const getStatusLabel = (status: OrderStatus): string => {
   const labelMap: Record<OrderStatus, string> = {
     draft: 'Draft',
     confirmed: 'Confirmed',
-    completed: 'Completed',
+    paid: 'Paid',
     cancelled: 'Cancelled',
   };
   return labelMap[status] || status;
@@ -109,19 +109,13 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
     <div>
       {/* Header with actions */}
       <Space style={{ marginBottom: 24, width: '100%', justifyContent: 'space-between' }}>
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={onBack}
-        >
+        <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
           Back to Orders
         </Button>
 
         <Space>
           {canEdit && (
-            <Button
-              icon={<EditOutlined />}
-              onClick={onEdit}
-            >
+            <Button icon={<EditOutlined />} onClick={onEdit}>
               Edit
             </Button>
           )}
@@ -133,10 +127,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               okText="Yes"
               cancelText="No"
             >
-              <Button
-                type="primary"
-                icon={<CheckOutlined />}
-              >
+              <Button type="primary" icon={<CheckOutlined />}>
                 Confirm Order
               </Button>
             </Popconfirm>
@@ -149,10 +140,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               okText="Yes"
               cancelText="No"
             >
-              <Button
-                danger
-                icon={<CloseOutlined />}
-              >
+              <Button danger icon={<CloseOutlined />}>
                 Cancel Order
               </Button>
             </Popconfirm>
@@ -164,10 +152,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             okText="Yes"
             cancelText="No"
           >
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-            >
+            <Button danger icon={<DeleteOutlined />}>
               Delete
             </Button>
           </Popconfirm>
@@ -196,7 +181,9 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             {order.customerPhone || <Text type="secondary">N/A</Text>}
           </Descriptions.Item>
           <Descriptions.Item label="Total Amount" span={2}>
-            <Text strong style={{ fontSize: 18 }}>{formatCurrency(order.totalAmount)}</Text>
+            <Text strong style={{ fontSize: 18 }}>
+              {formatCurrency(order.totalAmount)}
+            </Text>
           </Descriptions.Item>
           <Descriptions.Item label="Created At">
             {formatDateTime(order.createdAt)}

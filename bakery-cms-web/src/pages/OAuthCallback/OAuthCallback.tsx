@@ -26,10 +26,7 @@ export const OAuthCallback: React.FC = () => {
       <div className="oauth-callback-content">
         {isLoading && (
           <>
-            <Spin
-              indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
-              size="large"
-            />
+            <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} size="large" />
             <h2>Completing authentication...</h2>
             <p>Please wait while we log you in.</p>
           </>

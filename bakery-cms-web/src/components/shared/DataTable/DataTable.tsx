@@ -10,11 +10,5 @@ export const DataTable = <T extends object>({
   },
   ...props
 }: DataTableProps<T>): React.ReactElement => {
-  return (
-    <AntTable
-      {...props}
-      pagination={pagination}
-      scroll={{ x: 'max-content' }}
-    />
-  );
+  return <AntTable {...props} pagination={pagination} scroll={{ x: 'max-content' }} />;
 };

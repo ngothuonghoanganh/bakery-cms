@@ -18,17 +18,19 @@ import type {
 } from '@/types/api/payment.api';
 import type { Payment, VietQRData } from '@/types/models/payment.model';
 import type { PaginatedPayments } from '@/types/mappers/payment.mapper';
-import { 
-  mapPaymentFromAPI, 
-  mapPaginatedPaymentsFromAPI, 
-  mapVietQRDataFromAPI 
+import {
+  mapPaymentFromAPI,
+  mapPaginatedPaymentsFromAPI,
+  mapVietQRDataFromAPI,
 } from '@/types/mappers/payment.mapper';
 
 /**
  * Payment service type definition
  */
 export type PaymentService = {
-  readonly getAll: (filters?: PaymentFiltersRequest) => Promise<Result<PaginatedPayments, AppError>>;
+  readonly getAll: (
+    filters?: PaymentFiltersRequest
+  ) => Promise<Result<PaginatedPayments, AppError>>;
   readonly getById: (id: string) => Promise<Result<Payment | null, AppError>>;
   readonly create: (data: CreatePaymentRequest) => Promise<Result<Payment, AppError>>;
   readonly update: (id: string, data: UpdatePaymentRequest) => Promise<Result<Payment, AppError>>;
@@ -93,7 +95,7 @@ const update = async (
   data: UpdatePaymentRequest
 ): Promise<Result<Payment, AppError>> => {
   try {
-    const response = await apiClient.put<PaymentAPIResponse>(`/payments/${id}`, data);
+    const response = await apiClient.patch<PaymentAPIResponse>(`/payments/${id}`, data);
     const payment = mapPaymentFromAPI(response.data);
     return ok(payment);
   } catch (error) {
@@ -129,7 +131,10 @@ const getByOrderId = async (orderId: string): Promise<Result<Payment, AppError>>
 /**
  * Mark payment as paid
  */
-const markAsPaid = async (id: string, data?: MarkAsPaidRequest): Promise<Result<Payment, AppError>> => {
+const markAsPaid = async (
+  id: string,
+  data?: MarkAsPaidRequest
+): Promise<Result<Payment, AppError>> => {
   try {
     const response = await apiClient.post<PaymentAPIResponse>(`/payments/${id}/mark-paid`, data);
     const payment = mapPaymentFromAPI(response.data);
@@ -175,4 +180,3 @@ export const deletePayment = deletePaymentFunc;
 export const getPaymentByOrderId = getByOrderId;
 export const markPaymentAsPaid = markAsPaid;
 export const getPaymentVietQR = getVietQR;
-
