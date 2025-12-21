@@ -1,0 +1,1083 @@
+openapi: 3.0.3
+info:
+  title: Stock Management API
+  description: API for managing stock items, brands, and inventory movements
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Base API path
+
+tags:
+  - name: Stock Items
+    description: Stock item management operations
+  - name: Brands
+    description: Brand management operations
+  - name: Stock Movements
+    description: Stock movement audit log
+  - name: Product Stock Items
+    description: Product recipe/BOM management
+
+paths:
+  # ==================== STOCK ITEMS ====================
+  /stock-items:
+    get:
+      tags: [Stock Items]
+      summary: List all stock items
+      description: Get paginated list of stock items with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or brand name
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StockItemStatus'
+          description: Filter by stock status
+        - name: brandId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by brand
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Stock Items]
+      summary: Create a new stock item
+      description: Create a stock item with optional initial brands
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStockItemRequest'
+      responses:
+        '201':
+          description: Stock item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /stock-items/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Stock Items]
+      summary: Get stock item by ID
+      description: Get detailed stock item information including brands
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Stock Items]
+      summary: Update stock item
+      description: Update stock item details (not quantity - use receive/adjust)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStockItemRequest'
+      responses:
+        '200':
+          description: Stock item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Stock Items]
+      summary: Delete stock item
+      description: Soft delete a stock item (warns if linked to products)
+      responses:
+        '204':
+          description: Stock item deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict - stock item is linked to products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictResponse'
+
+  /stock-items/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    post:
+      tags: [Stock Items]
+      summary: Restore deleted stock item
+      description: Restore a soft-deleted stock item
+      responses:
+        '200':
+          description: Stock item restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== STOCK ITEM BRANDS ====================
+  /stock-items/{id}/brands:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Stock Items]
+      summary: Get brands for stock item
+      description: Get all brands associated with a stock item
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockItemBrandResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Stock Items]
+      summary: Add brand to stock item
+      description: Associate a brand with pricing to a stock item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddStockItemBrandRequest'
+      responses:
+        '201':
+          description: Brand added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemBrandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Brand already associated with this stock item
+
+  /stock-items/{id}/brands/{brandId}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+      - name: brandId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags: [Stock Items]
+      summary: Update brand pricing
+      description: Update pricing for a brand on a stock item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStockItemBrandRequest'
+      responses:
+        '200':
+          description: Brand pricing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockItemBrandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Stock Items]
+      summary: Remove brand from stock item
+      description: Remove the association between a brand and stock item
+      responses:
+        '204':
+          description: Brand removed
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== STOCK QUANTITY OPERATIONS ====================
+  /stock-items/{id}/receive:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    post:
+      tags: [Stock Items]
+      summary: Receive stock
+      description: Add quantity to stock item (e.g., supplier delivery)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveStockRequest'
+      responses:
+        '200':
+          description: Stock received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /stock-items/{id}/adjust:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    post:
+      tags: [Stock Items]
+      summary: Adjust stock
+      description: Adjust stock quantity with reason (correction, damage, expired)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustStockRequest'
+      responses:
+        '200':
+          description: Stock adjusted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== BRANDS ====================
+  /brands:
+    get:
+      tags: [Brands]
+      summary: List all brands
+      description: Get paginated list of brands
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandListResponse'
+
+    post:
+      tags: [Brands]
+      summary: Create a new brand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBrandRequest'
+      responses:
+        '201':
+          description: Brand created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /brands/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Brands]
+      summary: Get brand by ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Brands]
+      summary: Update brand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBrandRequest'
+      responses:
+        '200':
+          description: Brand updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Brands]
+      summary: Delete brand
+      description: Soft delete a brand
+      responses:
+        '204':
+          description: Brand deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== STOCK MOVEMENTS ====================
+  /stock-movements:
+    get:
+      tags: [Stock Movements]
+      summary: List stock movements
+      description: Get paginated list of stock movements (audit log)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: stockItemId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by stock item
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/MovementType'
+          description: Filter by movement type
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter movements from this date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter movements until this date
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementListResponse'
+
+  /stock-movements/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Stock Movements]
+      summary: Get stock movement by ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== PRODUCT STOCK ITEMS ====================
+  /products/{id}/stock-items:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Product Stock Items]
+      summary: Get product recipe
+      description: Get all stock items required for a product
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductStockItemResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [Product Stock Items]
+      summary: Add stock item to recipe
+      description: Add a stock item requirement to product recipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProductStockItemRequest'
+      responses:
+        '201':
+          description: Stock item added to recipe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductStockItemResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Stock item already in recipe
+
+  /products/{id}/stock-items/{stockItemId}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+      - name: stockItemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags: [Product Stock Items]
+      summary: Update recipe item
+      description: Update quantity or preferred brand for recipe item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductStockItemRequest'
+      responses:
+        '200':
+          description: Recipe item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductStockItemResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Product Stock Items]
+      summary: Remove stock item from recipe
+      responses:
+        '204':
+          description: Stock item removed from recipe
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{id}/cost:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Product Stock Items]
+      summary: Calculate product cost
+      description: Calculate total cost based on linked stock items and brand prices
+      parameters:
+        - name: useTax
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Use after-tax prices (default) or before-tax prices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductCostResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  schemas:
+    # Enums
+    StockItemStatus:
+      type: string
+      enum: [available, low_stock, out_of_stock]
+
+    MovementType:
+      type: string
+      enum: [received, used, adjusted, damaged, expired]
+
+    # Stock Item Schemas
+    CreateStockItemRequest:
+      type: object
+      required: [name, unitOfMeasure]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        unitOfMeasure:
+          type: string
+          minLength: 1
+          maxLength: 50
+        currentQuantity:
+          type: number
+          minimum: 0
+          default: 0
+        reorderThreshold:
+          type: number
+          minimum: 0
+        brands:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockItemBrandInput'
+
+    UpdateStockItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        unitOfMeasure:
+          type: string
+          minLength: 1
+          maxLength: 50
+        reorderThreshold:
+          type: number
+          minimum: 0
+
+    StockItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        unitOfMeasure:
+          type: string
+        currentQuantity:
+          type: number
+        reorderThreshold:
+          type: number
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StockItemStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StockItemDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/StockItemResponse'
+        - type: object
+          properties:
+            brands:
+              type: array
+              items:
+                $ref: '#/components/schemas/StockItemBrandResponse'
+            productCount:
+              type: integer
+              description: Number of products using this stock item
+
+    StockItemListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockItemResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Stock Item Brand Schemas
+    StockItemBrandInput:
+      type: object
+      required: [brandId, priceBeforeTax, priceAfterTax]
+      properties:
+        brandId:
+          type: string
+          format: uuid
+        priceBeforeTax:
+          type: number
+          minimum: 0
+        priceAfterTax:
+          type: number
+          minimum: 0
+        isPreferred:
+          type: boolean
+          default: false
+
+    AddStockItemBrandRequest:
+      $ref: '#/components/schemas/StockItemBrandInput'
+
+    UpdateStockItemBrandRequest:
+      type: object
+      properties:
+        priceBeforeTax:
+          type: number
+          minimum: 0
+        priceAfterTax:
+          type: number
+          minimum: 0
+        isPreferred:
+          type: boolean
+
+    StockItemBrandResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brandId:
+          type: string
+          format: uuid
+        brandName:
+          type: string
+        priceBeforeTax:
+          type: number
+        priceAfterTax:
+          type: number
+        isPreferred:
+          type: boolean
+
+    # Stock Operations Schemas
+    ReceiveStockRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: number
+          minimum: 0.001
+        reason:
+          type: string
+          maxLength: 500
+
+    AdjustStockRequest:
+      type: object
+      required: [quantity, type, reason]
+      properties:
+        quantity:
+          type: number
+          description: Positive to add, negative to deduct
+        type:
+          type: string
+          enum: [adjusted, damaged, expired]
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+
+    # Brand Schemas
+    CreateBrandRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+
+    UpdateBrandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        isActive:
+          type: boolean
+
+    BrandResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BrandListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrandResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Stock Movement Schemas
+    StockMovementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stockItemId:
+          type: string
+          format: uuid
+        stockItemName:
+          type: string
+        type:
+          $ref: '#/components/schemas/MovementType'
+        quantity:
+          type: number
+        previousQuantity:
+          type: number
+        newQuantity:
+          type: number
+        reason:
+          type: string
+          nullable: true
+        referenceType:
+          type: string
+          nullable: true
+        referenceId:
+          type: string
+          format: uuid
+          nullable: true
+        userId:
+          type: string
+          format: uuid
+        userName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    StockMovementListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockMovementResponse'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Product Stock Item Schemas
+    AddProductStockItemRequest:
+      type: object
+      required: [stockItemId, quantity]
+      properties:
+        stockItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          minimum: 0.001
+        preferredBrandId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+          maxLength: 500
+
+    UpdateProductStockItemRequest:
+      type: object
+      properties:
+        quantity:
+          type: number
+          minimum: 0.001
+        preferredBrandId:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          maxLength: 500
+
+    ProductStockItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stockItemId:
+          type: string
+          format: uuid
+        stockItemName:
+          type: string
+        unitOfMeasure:
+          type: string
+        quantity:
+          type: number
+        preferredBrandId:
+          type: string
+          format: uuid
+          nullable: true
+        preferredBrandName:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        unitCost:
+          type: number
+          description: Cost per unit based on preferred brand or cheapest
+
+    ProductCostResponse:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        totalCost:
+          type: number
+        useTax:
+          type: boolean
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              stockItemId:
+                type: string
+                format: uuid
+              stockItemName:
+                type: string
+              quantity:
+                type: number
+              unitCost:
+                type: number
+              subtotal:
+                type: number
+              brandUsed:
+                type: string
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+    ConflictResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        code:
+          type: string
+          example: CONFLICT
+        message:
+          type: string
+          example: Stock item is linked to products
+        details:
+          type: object
+          properties:
+            linkedProducts:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
