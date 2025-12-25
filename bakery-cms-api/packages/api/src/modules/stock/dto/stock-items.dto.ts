@@ -70,6 +70,8 @@ export interface StockItemListQueryDto {
   status?: StockItemStatus;
   search?: string;
   lowStockOnly?: boolean;
+  sortBy?: 'name' | 'currentQuantity' | 'status' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 /**
@@ -122,4 +124,38 @@ export interface UpdateStockItemBrandDto {
   priceBeforeTax?: number;
   priceAfterTax?: number;
   isPreferred?: boolean;
+}
+
+/**
+ * Bulk import stock item row DTO
+ * Represents a single row in the CSV import file
+ */
+export interface BulkImportStockItemRowDto {
+  name: string;
+  description?: string;
+  unitOfMeasure: string;
+  currentQuantity?: number;
+  reorderThreshold?: number;
+}
+
+/**
+ * Bulk import result for a single row
+ */
+export interface BulkImportRowResultDto {
+  row: number;
+  name: string;
+  success: boolean;
+  id?: string;
+  error?: string;
+}
+
+/**
+ * Bulk import response DTO
+ * Returned after processing CSV import
+ */
+export interface BulkImportResponseDto {
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  results: BulkImportRowResultDto[];
 }

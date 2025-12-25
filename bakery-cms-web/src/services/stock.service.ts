@@ -32,6 +32,7 @@ import type {
   StockMovementAPIResponse,
   PaginatedStockMovementsAPIResponse,
   StockMovementFiltersRequest,
+  BulkImportAPIResponse,
 } from '@/types/api/stock.api';
 import type {
   StockItem,
@@ -44,6 +45,7 @@ import type {
   ProductCost,
   StockMovement,
   PaginatedStockMovements,
+  BulkImportResult,
 } from '@/types/models/stock.model';
 import {
   mapStockItemFromAPI,
@@ -56,6 +58,7 @@ import {
   mapProductCostFromAPI,
   mapStockMovementFromAPI,
   mapPaginatedStockMovementsFromAPI,
+  mapBulkImportResultFromAPI,
 } from '@/types/mappers/stock.mapper';
 import type { AxiosResponse } from 'axios';
 
@@ -83,6 +86,7 @@ export type StockService = {
     id: string,
     data: AdjustStockRequest
   ) => Promise<Result<StockItem, AppError>>;
+  readonly bulkImportStockItems: (file: File) => Promise<Result<BulkImportResult, AppError>>;
 
   // Brands
   readonly getAllBrands: (
@@ -278,6 +282,32 @@ const adjustStock = async (
 };
 
 /**
+ * Bulk import stock items from CSV file
+ */
+const bulkImportStockItems = async (
+  file: File
+): Promise<Result<BulkImportResult, AppError>> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.post<{ data: BulkImportAPIResponse }>(
+      '/stock/stock-items/bulk-import',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    const result = mapBulkImportResultFromAPI(response.data.data);
+    return ok(result);
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
  * Get all brands with optional filters
  */
 const getAllBrands = async (
@@ -318,8 +348,8 @@ const createBrand = async (
   data: CreateBrandRequest
 ): Promise<Result<Brand, AppError>> => {
   try {
-    const response = await apiClient.post<BrandAPIResponse>('/stock/brands', data);
-    const brand = mapBrandFromAPI(response.data);
+    const response = await apiClient.post<AxiosResponse<BrandAPIResponse>>('/stock/brands', data);
+    const brand = mapBrandFromAPI(response.data.data);
     return ok(brand);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -605,6 +635,7 @@ export const stockService: StockService = {
   restoreStockItem,
   receiveStock,
   adjustStock,
+  bulkImportStockItems,
 
   // Brands
   getAllBrands,
@@ -645,6 +676,7 @@ export {
   restoreStockItem,
   receiveStock,
   adjustStock,
+  bulkImportStockItems,
 
   // Brands
   getAllBrands,

@@ -13,6 +13,7 @@ import { PageHeader } from '../../components/shared';
 import { StatCard } from '../../components/features/dashboard/StatCard/StatCard';
 import { RecentActivity } from '../../components/features/dashboard/RecentActivity/RecentActivity';
 import { QuickActions } from '../../components/features/dashboard/QuickActions/QuickActions';
+import { LowStockDashboard } from '../../components/features/stock/LowStockDashboard/LowStockDashboard';
 import type { QuickAction } from '../../components/features/dashboard/QuickActions/QuickActions.types';
 import type { ActivityItem } from '../../components/features/dashboard/RecentActivity/RecentActivity.types';
 
@@ -169,10 +170,13 @@ export const DashboardPage: React.FC = () => {
         <QuickActions actions={quickActions} />
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity and Low Stock */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={24}>
+        <Col xs={24} lg={12}>
           <RecentActivity items={recentActivities} onItemClick={handleActivityClick} />
+        </Col>
+        <Col xs={24} lg={12}>
+          <LowStockDashboard />
         </Col>
       </Row>
     </div>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Card, Table, Button, Space, Popconfirm, Tag, Typography, Spin, Alert, Modal, Form, InputNumber, Input, Select } from 'antd';
+import { Card, Table, Button, Space, Popconfirm, Typography, Spin, Alert, Modal, Form, InputNumber, Input, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
 import { useProductRecipe } from '@/hooks/useProductRecipe';
 import { useStockItems } from '@/hooks/useStockItems';
@@ -13,7 +13,7 @@ import { useNotification } from '@/hooks/useNotification';
 import type { ProductRecipeProps, ProductStockItemFormValues } from './ProductRecipe.types';
 import type { ProductStockItem } from '@/types/models/stock.model';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 
 export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecipeChange }) => {

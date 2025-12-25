@@ -12,7 +12,9 @@ import {
   StockItemListQueryDto,
   ReceiveStockDto,
   AdjustStockDto,
+  BulkImportStockItemRowDto,
 } from '../dto/stock-items.dto';
+import { parse } from 'csv-parse/sync';
 import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
@@ -30,6 +32,7 @@ export interface StockItemHandlers {
   handleRestoreStockItem(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleReceiveStock(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleAdjustStock(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleBulkImport(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 /**
@@ -118,6 +121,8 @@ export const createStockItemHandlers = (
         status: req.query['status'] as any,
         search: req.query['search'] as string,
         lowStockOnly: req.query['lowStockOnly'] === 'true',
+        sortBy: req.query['sortBy'] as StockItemListQueryDto['sortBy'],
+        sortOrder: req.query['sortOrder'] as StockItemListQueryDto['sortOrder'],
       };
 
       const result = await service.getAllStockItems(query);
@@ -316,6 +321,99 @@ export const createStockItemHandlers = (
     }
   };
 
+  /**
+   * Handle bulk import stock items request
+   * POST /api/stock-items/bulk-import
+   * Expects multipart/form-data with a CSV file
+   */
+  const handleBulkImport = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const file = (req as any).file;
+
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'CSV file is required',
+          },
+        });
+        return;
+      }
+
+      // Parse CSV content
+      const csvContent = file.buffer.toString('utf-8');
+      let records: Record<string, string>[];
+
+      try {
+        records = parse(csvContent, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+        });
+      } catch (parseError) {
+        logger.error('Failed to parse CSV file', { parseError });
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Invalid CSV format. Please check the file structure.',
+          },
+        });
+        return;
+      }
+
+      if (records.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'CSV file is empty or has no data rows',
+          },
+        });
+        return;
+      }
+
+      // Transform CSV records to DTOs
+      const rows: BulkImportStockItemRowDto[] = records.map((record) => {
+        const quantityStr = record['currentQuantity'] || record['current_quantity'] || record['Quantity'];
+        const thresholdStr = record['reorderThreshold'] || record['reorder_threshold'] || record['Threshold'];
+
+        return {
+          name: record['name'] || record['Name'] || '',
+          description: record['description'] || record['Description'] || undefined,
+          unitOfMeasure: record['unitOfMeasure'] || record['unit_of_measure'] || record['Unit'] || '',
+          currentQuantity: quantityStr ? parseFloat(quantityStr) : undefined,
+          reorderThreshold: thresholdStr ? parseFloat(thresholdStr) : undefined,
+        };
+      });
+
+      const result = await service.bulkImportStockItems(rows);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Bulk import completed', {
+        totalRows: result.value.totalRows,
+        successCount: result.value.successCount,
+        errorCount: result.value.errorCount,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleBulkImport', { error });
+      next(error);
+    }
+  };
+
   return {
     handleCreateStockItem,
     handleGetStockItem,
@@ -325,5 +423,6 @@ export const createStockItemHandlers = (
     handleRestoreStockItem,
     handleReceiveStock,
     handleAdjustStock,
+    handleBulkImport,
   };
 };

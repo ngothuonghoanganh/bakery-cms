@@ -70,6 +70,16 @@ const StockItemsPage = lazy(() =>
     default: module.StockItemsPage,
   }))
 );
+const StockItemDetailPage = lazy(() =>
+  import('./pages/stock/StockItemDetailPage').then((module) => ({
+    default: module.StockItemDetailPage,
+  }))
+);
+const StockMovementsPage = lazy(() =>
+  import('./pages/stock/StockMovementsPage').then((module) => ({
+    default: module.StockMovementsPage,
+  }))
+);
 
 // Import global styles
 import './styles/global.css';
@@ -170,6 +180,26 @@ export const App = (): React.JSX.Element => {
                     <ProtectedRoute>
                       <DashboardLayout>
                         <StockItemsPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/stock/items/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <StockItemDetailPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/stock/movements"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <StockMovementsPage />
                       </DashboardLayout>
                     </ProtectedRoute>
                   }

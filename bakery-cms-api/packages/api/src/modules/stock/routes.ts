@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { getDatabaseModels } from '../../config/database';
 import { createStockItemRepository } from './repositories/stock-items.repositories';
 import { createStockItemService } from './services/stock-items.services';
@@ -90,6 +91,21 @@ export const createStockRouter = (): Router => {
   const stockMovementService = createStockMovementService(stockMovementRepository);
   const stockMovementHandlers = createStockMovementHandlers(stockMovementService);
 
+  // Configure multer for CSV file uploads (memory storage)
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB max file size
+    },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only CSV files are allowed'));
+      }
+    },
+  });
+
   /**
    * Stock Items Routes
    */
@@ -131,6 +147,21 @@ export const createStockRouter = (): Router => {
     requireManager as any,
     validateBody(createStockItemSchema),
     stockItemHandlers.handleCreateStockItem as any
+  );
+
+  /**
+   * POST /api/stock/stock-items/bulk-import
+   * Bulk import stock items from CSV file
+   * Requires: Manager role or higher
+   * Body: multipart/form-data with 'file' field containing CSV
+   * CSV columns: name, description, unitOfMeasure, currentQuantity, reorderThreshold
+   */
+  router.post(
+    '/stock-items/bulk-import',
+    authenticateJWT as any,
+    requireManager as any,
+    upload.single('file') as any,
+    stockItemHandlers.handleBulkImport as any
   );
 
   /**

@@ -16,6 +16,9 @@ import {
   StockItemListResponseDto,
   ReceiveStockDto,
   AdjustStockDto,
+  BulkImportStockItemRowDto,
+  BulkImportResponseDto,
+  BulkImportRowResultDto,
 } from '../dto/stock-items.dto';
 import {
   toStockItemResponseDto,
@@ -45,6 +48,7 @@ export interface StockItemService {
   restoreStockItem(id: string): Promise<Result<StockItemResponseDto, AppError>>;
   receiveStock(id: string, dto: ReceiveStockDto, userId: string): Promise<Result<StockItemResponseDto, AppError>>;
   adjustStock(id: string, dto: AdjustStockDto, userId: string): Promise<Result<StockItemResponseDto, AppError>>;
+  bulkImportStockItems(rows: BulkImportStockItemRowDto[]): Promise<Result<BulkImportResponseDto, AppError>>;
 }
 
 /**
@@ -354,6 +358,104 @@ export const createStockItemService = (
     }
   };
 
+  /**
+   * Bulk import stock items from CSV data
+   */
+  const bulkImportStockItems = async (
+    rows: BulkImportStockItemRowDto[]
+  ): Promise<Result<BulkImportResponseDto, AppError>> => {
+    logger.info('Starting bulk import of stock items', { totalRows: rows.length });
+
+    const results: BulkImportRowResultDto[] = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
+      // Skip if row is undefined (shouldn't happen but TypeScript safety)
+      if (!row) {
+        results.push({
+          row: rowNumber,
+          name: '(undefined)',
+          success: false,
+          error: 'Invalid row data',
+        });
+        errorCount++;
+        continue;
+      }
+
+      try {
+        // Validate row data
+        if (!row.name || row.name.trim() === '') {
+          results.push({
+            row: rowNumber,
+            name: row.name || '(empty)',
+            success: false,
+            error: 'Name is required',
+          });
+          errorCount++;
+          continue;
+        }
+
+        if (!row.unitOfMeasure || row.unitOfMeasure.trim() === '') {
+          results.push({
+            row: rowNumber,
+            name: row.name,
+            success: false,
+            error: 'Unit of measure is required',
+          });
+          errorCount++;
+          continue;
+        }
+
+        // Create stock item
+        const attributes = toStockItemCreationAttributes({
+          name: row.name.trim(),
+          description: row.description?.trim(),
+          unitOfMeasure: row.unitOfMeasure.trim(),
+          currentQuantity: row.currentQuantity ?? 0,
+          reorderThreshold: row.reorderThreshold,
+        });
+
+        const stockItem = await repository.create(attributes);
+
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          success: true,
+          id: stockItem.id,
+        });
+        successCount++;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isDuplicateError = errorMessage.includes('unique') || errorMessage.includes('Duplicate');
+
+        results.push({
+          row: rowNumber,
+          name: row.name || '(unknown)',
+          success: false,
+          error: isDuplicateError ? 'Stock item with this name already exists' : errorMessage,
+        });
+        errorCount++;
+      }
+    }
+
+    logger.info('Bulk import completed', {
+      totalRows: rows.length,
+      successCount,
+      errorCount,
+    });
+
+    return ok({
+      totalRows: rows.length,
+      successCount,
+      errorCount,
+      results,
+    });
+  };
+
   return {
     createStockItem,
     getStockItemById,
@@ -363,5 +465,6 @@ export const createStockItemService = (
     restoreStockItem,
     receiveStock,
     adjustStock,
+    bulkImportStockItems,
   };
 };

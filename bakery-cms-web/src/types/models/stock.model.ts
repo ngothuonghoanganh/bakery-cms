@@ -38,10 +38,15 @@ export type StockItemBrand = {
   readonly updatedAt: Date;
 };
 
+export type StockItemSortBy = 'name' | 'currentQuantity' | 'status' | 'createdAt' | 'updatedAt';
+export type SortOrder = 'ASC' | 'DESC';
+
 export type StockItemFilters = {
   readonly status?: StockItemStatus;
   readonly search?: string;
   readonly lowStockOnly?: boolean;
+  readonly sortBy?: StockItemSortBy;
+  readonly sortOrder?: SortOrder;
 };
 
 export type PaginationParams = {
@@ -150,4 +155,20 @@ export type ProductCostBreakdownItem = {
   readonly brandName: string | null;
   readonly unitPrice: number;
   readonly totalCost: number;
+};
+
+// Bulk Import
+export type BulkImportRowResult = {
+  readonly row: number;
+  readonly name: string;
+  readonly success: boolean;
+  readonly id?: string;
+  readonly error?: string;
+};
+
+export type BulkImportResult = {
+  readonly totalRows: number;
+  readonly successCount: number;
+  readonly errorCount: number;
+  readonly results: readonly BulkImportRowResult[];
 };

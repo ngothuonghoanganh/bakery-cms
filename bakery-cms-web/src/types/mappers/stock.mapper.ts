@@ -14,6 +14,7 @@ import type {
   ProductStockItemAPIResponse,
   ProductRecipeAPIResponse,
   ProductCostAPIResponse,
+  BulkImportAPIResponse,
 } from '@/types/api/stock.api';
 
 import type {
@@ -27,6 +28,7 @@ import type {
   ProductStockItem,
   ProductRecipe,
   ProductCost,
+  BulkImportResult,
 } from '@/types/models/stock.model';
 
 import { StockItemStatus, MovementType } from '@/types/models/stock.model';
@@ -190,5 +192,25 @@ export const mapProductCostFromAPI = (apiCost: ProductCostAPIResponse): ProductC
     brandName: item.brandName,
     unitPrice: item.unitPrice,
     totalCost: item.totalCost,
+  })),
+});
+
+// Bulk Import Mappers
+
+/**
+ * Map bulk import API response to domain model
+ */
+export const mapBulkImportResultFromAPI = (
+  apiResult: BulkImportAPIResponse
+): BulkImportResult => ({
+  totalRows: apiResult.totalRows,
+  successCount: apiResult.successCount,
+  errorCount: apiResult.errorCount,
+  results: apiResult.results.map((row) => ({
+    row: row.row,
+    name: row.name,
+    success: row.success,
+    id: row.id,
+    error: row.error,
   })),
 });

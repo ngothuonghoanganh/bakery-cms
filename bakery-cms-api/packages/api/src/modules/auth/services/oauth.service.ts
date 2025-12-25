@@ -94,37 +94,48 @@ export class OAuthService {
   /**
    * Setup passport OAuth strategies
    * Configures Google and Facebook authentication
+   * Only sets up strategies when credentials are properly configured
    */
   private setupStrategies(): void {
-    // Google OAuth Strategy
-    passport.use(new GoogleStrategy({
-      clientID: this.config.google.clientID,
-      clientSecret: this.config.google.clientSecret,
-      callbackURL: this.config.google.callbackURL,
-      scope: ['profile', 'email'],
-    }, async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
-      try {
-        const result = await this.handleOAuthCallback(profile, AuthProvider.GOOGLE);
-        return done(null, result.isOk() ? result.value : false);
-      } catch (error) {
-        return done(error, false);
-      }
-    }));
+    // Google OAuth Strategy - only setup if credentials are configured
+    if (this.config.google.clientID && this.config.google.clientSecret) {
+      passport.use(new GoogleStrategy({
+        clientID: this.config.google.clientID,
+        clientSecret: this.config.google.clientSecret,
+        callbackURL: this.config.google.callbackURL,
+        scope: ['profile', 'email'],
+      }, async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
+        try {
+          const result = await this.handleOAuthCallback(profile, AuthProvider.GOOGLE);
+          return done(null, result.isOk() ? result.value : false);
+        } catch (error) {
+          return done(error, false);
+        }
+      }));
+      logger.info('Google OAuth strategy configured');
+    } else {
+      logger.warn('Google OAuth not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+    }
 
-    // Facebook OAuth Strategy
-    passport.use(new FacebookStrategy({
-      clientID: this.config.facebook.clientID,
-      clientSecret: this.config.facebook.clientSecret,
-      callbackURL: this.config.facebook.callbackURL,
-      profileFields: ['id', 'emails', 'name', 'displayName', 'photos'],
-    }, async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
-      try {
-        const result = await this.handleOAuthCallback(profile, AuthProvider.FACEBOOK);
-        return done(null, result.isOk() ? result.value : false);
-      } catch (error) {
-        return done(error, false);
-      }
-    }));
+    // Facebook OAuth Strategy - only setup if credentials are configured
+    if (this.config.facebook.clientID && this.config.facebook.clientSecret) {
+      passport.use(new FacebookStrategy({
+        clientID: this.config.facebook.clientID,
+        clientSecret: this.config.facebook.clientSecret,
+        callbackURL: this.config.facebook.callbackURL,
+        profileFields: ['id', 'emails', 'name', 'displayName', 'photos'],
+      }, async (_accessToken: any, _refreshToken: any, profile: any, done: any) => {
+        try {
+          const result = await this.handleOAuthCallback(profile, AuthProvider.FACEBOOK);
+          return done(null, result.isOk() ? result.value : false);
+        } catch (error) {
+          return done(error, false);
+        }
+      }));
+      logger.info('Facebook OAuth strategy configured');
+    } else {
+      logger.warn('Facebook OAuth not configured - missing FACEBOOK_APP_ID or FACEBOOK_APP_SECRET');
+    }
 
     // Passport serialization
     passport.serializeUser((user: any, done) => {

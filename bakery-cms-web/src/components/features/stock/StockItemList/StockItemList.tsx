@@ -3,15 +3,22 @@
  * Coordinates stock item table, form, and filters
  */
 
-import React, { useState, useCallback } from 'react';
-import { Button, Table, Tag, Space, Popconfirm } from 'antd';
+import React, { useCallback } from 'react';
+import { Button, Table, Tag, Space, Popconfirm, Input, Select, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import type { TableProps } from 'antd';
 import { PageHeader } from '../../../shared';
 import { useNotification } from '../../../../hooks/useNotification';
-import { useModal } from '../../../../hooks/useModal';
 import { StockItemStatus } from '../../../../types/models/stock.model';
 import type { StockItem } from '../../../../types/models/stock.model';
-import type { StockItemListProps, StockItemFormValues } from './StockItemList.types';
+import type { StockItemListProps } from './StockItemList.types';
+
+const { Search } = Input;
+
+const getSortOrder = (sortBy: string | undefined, sortOrder: string | undefined, field: string): 'ascend' | 'descend' | undefined => {
+  if (sortBy !== field) return undefined;
+  return sortOrder === 'ASC' ? 'ascend' : 'descend';
+};
 
 const getStatusColor = (status: StockItemStatus): string => {
   switch (status) {
@@ -39,31 +46,31 @@ const getStatusLabel = (status: StockItemStatus): string => {
   }
 };
 
+const statusOptions = [
+  { value: '', label: 'All Status' },
+  { value: StockItemStatus.AVAILABLE, label: 'Available' },
+  { value: StockItemStatus.LOW_STOCK, label: 'Low Stock' },
+  { value: StockItemStatus.OUT_OF_STOCK, label: 'Out of Stock' },
+];
+
 export const StockItemList: React.FC<StockItemListProps> = ({
   stockItems,
   loading,
   pagination,
+  filters,
+  onFiltersChange,
   onTableChange,
-  onCreate,
-  onUpdate,
+  onCreateClick,
   onDelete,
   onView,
 }) => {
-  const { visible, open, close } = useModal();
-  const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(null);
   const { success, error } = useNotification();
-
-  const handleCreate = useCallback(() => {
-    setSelectedStockItem(null);
-    open();
-  }, [open]);
 
   const handleEdit = useCallback(
     (stockItem: StockItem) => {
-      setSelectedStockItem(stockItem);
-      open();
+      onView(stockItem.id);
     },
-    [open]
+    [onView]
   );
 
   const handleDelete = useCallback(
@@ -78,12 +85,56 @@ export const StockItemList: React.FC<StockItemListProps> = ({
     [onDelete, success, error]
   );
 
+  const handleSearch = useCallback(
+    (value: string) => {
+      onFiltersChange({ ...filters, search: value || undefined });
+    },
+    [filters, onFiltersChange]
+  );
+
+  const handleStatusChange = useCallback(
+    (value: string) => {
+      onFiltersChange({
+        ...filters,
+        status: value ? (value as StockItemStatus) : undefined,
+      });
+    },
+    [filters, onFiltersChange]
+  );
+
+  const handleTableChange = useCallback<NonNullable<TableProps<StockItem>['onChange']>>(
+    (pag, tableFilters, sorter) => {
+      // Handle sorting
+      if (sorter && !Array.isArray(sorter) && sorter.field) {
+        const sortByField = sorter.field as string;
+        const sortOrderValue = sorter.order === 'ascend' ? 'ASC' : sorter.order === 'descend' ? 'DESC' : undefined;
+
+        if (sortOrderValue) {
+          onFiltersChange({
+            ...filters,
+            sortBy: sortByField as 'name' | 'currentQuantity' | 'status' | 'createdAt' | 'updatedAt',
+            sortOrder: sortOrderValue,
+          });
+        } else {
+          // Clear sorting
+          const { sortBy: _sortBy, sortOrder: _sortOrder, ...restFilters } = filters;
+          onFiltersChange(restFilters);
+        }
+      }
+
+      // Handle pagination via onTableChange
+      onTableChange({ current: pag.current ?? 1, pageSize: pag.pageSize ?? 10 }, tableFilters, sorter);
+    },
+    [filters, onFiltersChange, onTableChange]
+  );
+
   const columns = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
+      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'name'),
     },
     {
       title: 'Unit',
@@ -94,6 +145,8 @@ export const StockItemList: React.FC<StockItemListProps> = ({
       title: 'Current Quantity',
       dataIndex: 'currentQuantity',
       key: 'currentQuantity',
+      sorter: true,
+      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'currentQuantity'),
       render: (quantity: number, record: StockItem) =>
         `${quantity} ${record.unitOfMeasure}`,
     },
@@ -108,6 +161,8 @@ export const StockItemList: React.FC<StockItemListProps> = ({
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      sorter: true,
+      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'status'),
       render: (status: StockItemStatus) => (
         <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
       ),
@@ -115,7 +170,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: StockItem) => (
+      render: (_: unknown, record: StockItem) => (
         <Space size="small">
           <Button
             type="link"
@@ -154,12 +209,33 @@ export const StockItemList: React.FC<StockItemListProps> = ({
       <PageHeader
         title="Stock Items"
         subtitle="Manage your stock items and inventory"
-        action={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={onCreateClick}>
             Add Stock Item
           </Button>
         }
       />
+
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} md={8}>
+          <Search
+            placeholder="Search by name or description..."
+            allowClear
+            onSearch={handleSearch}
+            defaultValue={filters.search}
+            style={{ width: '100%' }}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Select
+            placeholder="Filter by status"
+            style={{ width: '100%' }}
+            value={filters.status || ''}
+            onChange={handleStatusChange}
+            options={statusOptions}
+          />
+        </Col>
+      </Row>
 
       <Table
         columns={columns}
@@ -172,8 +248,9 @@ export const StockItemList: React.FC<StockItemListProps> = ({
           total: pagination.total,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} items`,
+          pageSizeOptions: ['10', '20', '50', '100'],
         }}
-        onChange={onTableChange}
+        onChange={handleTableChange}
       />
     </div>
   );

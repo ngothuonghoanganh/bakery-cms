@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Table, Tag, Space, DatePicker, Select, Button, Card } from 'antd';
+import { Table, Tag, Space, DatePicker, Select, Button, Card, Alert } from 'antd';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -63,7 +63,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
     stockItemId,
   });
 
-  const { stockMovements, pagination, loading, fetchStockMovements } = useStockMovements(filters);
+  const { stockMovements, pagination, loading, error, fetchStockMovements } = useStockMovements(filters);
 
   /**
    * Handle filter changes
@@ -192,6 +192,16 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
 
   return (
     <div>
+      {error && (
+        <Alert
+          message="Failed to load stock movements"
+          description={error.message || 'An error occurred while fetching stock movement history.'}
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       <Card
         title={
           <Space>

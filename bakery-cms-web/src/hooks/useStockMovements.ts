@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { stockService } from '@/services/stock.service';
-import type { StockMovement, PaginatedStockMovements } from '@/types/models/stock.model';
+import type { StockMovement } from '@/types/models/stock.model';
 import type { StockMovementFiltersRequest } from '@/types/api/stock.api';
 import { message } from 'antd';
 
@@ -49,14 +49,14 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
 
     const result = await stockService.getStockMovements(filters);
 
-    if (result.isOk()) {
-      const data: PaginatedStockMovements = result.value;
-      setStockMovements(data.stockMovements);
+    if (result.success) {
+      const data = result.data;
+      setStockMovements([...data.stockMovements]);
       setPagination({
-        current: data.pagination.page,
-        pageSize: data.pagination.limit,
-        total: data.pagination.total,
-        totalPages: data.pagination.totalPages,
+        current: data.page,
+        pageSize: data.limit,
+        total: data.total,
+        totalPages: data.totalPages,
       });
     } else {
       const errorMessage = result.error.message || 'Failed to fetch stock movements';
@@ -78,8 +78,8 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
 
     setLoading(false);
 
-    if (result.isOk()) {
-      return result.value;
+    if (result.success) {
+      return result.data;
     } else {
       const errorMessage = result.error.message || 'Failed to fetch stock movement';
       setError(errorMessage);

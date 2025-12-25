@@ -184,8 +184,8 @@
 - [X] T074 [US4] Add receive/adjust stock methods to stock service in bakery-cms-web/src/services/stock.service.ts
 - [X] T075 [US4] Create LowStockDashboard component in bakery-cms-web/src/components/features/stock/LowStockDashboard/LowStockDashboard.tsx
 - [X] T076 [US4] Add stock status badges (Available, Low Stock, Out of Stock) to StockItemList
-- [ ] T077 [US4] Add receive/adjust stock modal/form to StockItemDetail page
-- [ ] T078 [US4] Integrate LowStockDashboard widget into main dashboard (if exists)
+- [X] T077 [US4] Add receive/adjust stock modal/form to StockItemDetail page
+- [X] T078 [US4] Integrate LowStockDashboard widget into main dashboard (if exists)
 
 **Checkpoint**: User Story 4 complete - stock quantities tracked with low-stock alerts
 
@@ -213,8 +213,8 @@
 - [X] T087 [US5] Create useStockMovements custom hook in bakery-cms-web/src/hooks/useStockMovements.ts
 - [X] T088 [US5] Create StockMovementHistory component in bakery-cms-web/src/components/features/stock/StockMovementHistory/StockMovementHistory.tsx
 - [X] T089 [US5] Create StockMovementsPage in bakery-cms-web/src/pages/stock/StockMovementsPage.tsx
-- [ ] T090 [US5] Add StockMovementHistory tab to StockItemDetail page
-- [ ] T091 [US5] Add Stock Movements menu item to CMS navigation sidebar
+- [X] T090 [US5] Add StockMovementHistory tab to StockItemDetail page
+- [X] T091 [US5] Add Stock Movements menu item to CMS navigation sidebar
 
 **Checkpoint**: User Story 5 complete - full audit trail for all stock movements
 
@@ -224,15 +224,15 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T092 [P] Add search functionality to stock items list (by name, brand name)
-- [ ] T093 [P] Add pagination to all list views (stock items, brands, movements)
-- [ ] T094 [P] Add sorting options to stock items list
-- [ ] T095 Implement role-based access control (ADMIN/MANAGER only for stock management)
-- [ ] T096 Add bulk import for stock items via CSV (FR-015)
-- [ ] T097 [P] Add loading states and error handling to all frontend components
-- [ ] T098 [P] Add form validation with user-friendly error messages
-- [ ] T099 Code cleanup, refactoring, and documentation
-- [ ] T100 Run quickstart.md validation - test complete user flows
+- [X] T092 [P] Add search functionality to stock items list (by name, brand name)
+- [X] T093 [P] Add pagination to all list views (stock items, brands, movements)
+- [X] T094 [P] Add sorting options to stock items list
+- [X] T095 Implement role-based access control (ADMIN/MANAGER only for stock management)
+- [X] T096 Add bulk import for stock items via CSV (FR-015)
+- [X] T097 [P] Add loading states and error handling to all frontend components
+- [X] T098 [P] Add form validation with user-friendly error messages
+- [X] T099 Code cleanup, refactoring, and documentation
+- [X] T100 Run quickstart.md validation - test complete user flows
 
 ---
 

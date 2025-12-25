@@ -33,10 +33,23 @@ const getStatusIcon = (status: StockItemStatus) => {
 };
 
 export const LowStockDashboard: React.FC = () => {
-  const { stockItems, loading } = useStockItems({
+  const { stockItems, loading, error } = useStockItems({
     filters: { lowStockOnly: true },
     pagination: { limit: 50 },
   });
+
+  if (error) {
+    return (
+      <Card title="Low Stock Alert">
+        <Alert
+          message="Failed to load stock data"
+          description={error.message || 'An error occurred while fetching low stock items.'}
+          type="error"
+          showIcon
+        />
+      </Card>
+    );
+  }
 
   const columns = [
     {

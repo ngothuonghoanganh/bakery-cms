@@ -22,9 +22,8 @@ export interface StockItemListProps {
   };
   filters: StockItemFilters;
   onFiltersChange: (filters: StockItemFilters) => void;
-  onTableChange: (pagination: any, filters: any, sorter: any) => void;
-  onCreate: (values: StockItemFormValues) => Promise<void>;
-  onUpdate: (id: string, values: StockItemFormValues) => Promise<void>;
+  onTableChange: (pagination: { current: number; pageSize: number }, filters: unknown, sorter: unknown) => void;
+  onCreateClick: () => void;
   onDelete: (id: string) => Promise<void>;
   onView: (id: string) => void;
 }

@@ -60,6 +60,8 @@ export type StockItemFiltersRequest = {
   readonly lowStockOnly?: boolean;
   readonly page?: number;
   readonly limit?: number;
+  readonly sortBy?: 'name' | 'currentQuantity' | 'status' | 'createdAt' | 'updatedAt';
+  readonly sortOrder?: 'ASC' | 'DESC';
 };
 
 export type ReceiveStockRequest = {
@@ -211,4 +213,20 @@ export type UpdateProductStockItemRequest = {
   readonly quantity?: number;
   readonly preferredBrandId?: string;
   readonly notes?: string;
+};
+
+// Bulk Import
+export type BulkImportRowResultAPIResponse = {
+  readonly row: number;
+  readonly name: string;
+  readonly success: boolean;
+  readonly id?: string;
+  readonly error?: string;
+};
+
+export type BulkImportAPIResponse = {
+  readonly totalRows: number;
+  readonly successCount: number;
+  readonly errorCount: number;
+  readonly results: readonly BulkImportRowResultAPIResponse[];
 };

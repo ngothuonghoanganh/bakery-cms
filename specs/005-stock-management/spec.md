@@ -37,7 +37,7 @@ As a CMS administrator, I want to associate multiple brands with each stock item
 
 **Acceptance Scenarios**:
 
-1. **Given** I am creating or editing a stock item, **When** I add a brand with name and pricing (before/after tax), **Then** the brand should be associated with the stock item.
+1. **Given** I am on the Stock Item detail page and want to add a brand, **When** I select an existing brand or click "Create New Brand" to open an inline modal, **Then** I can create a new brand without leaving the page and immediately associate it with pricing (before/after tax).
 
 2. **Given** a stock item has multiple brands, **When** I view the stock item details, **Then** I should see all associated brands with their respective prices before and after tax.
 
@@ -160,3 +160,11 @@ As a CMS administrator, I want to see a history of all stock movements (addition
 - Currency is Vietnamese Dong (VND) based on existing product pricing in the system.
 - Stock quantities use a single unit per item (e.g., grams, pieces, liters) - no unit conversion is required.
 - The feature will integrate with the existing soft-delete pattern used throughout the system.
+
+## Clarifications
+
+### Session 2025-12-26
+
+- Q: When linking a stock item to a product recipe, how should the system determine which brand's price to use for cost calculations? → A: Each product-stock-item link specifies a preferred brand (stored in ProductStockItem.preferredBrandId)
+- Q: How should users add a brand that doesn't exist yet when managing stock item pricing? → A: Inline brand creation via modal within Stock Item detail page - users can create a new brand without leaving the page, then immediately associate it with pricing
+- Q: Where should brand and pricing CRUD operations be performed? → A: All brand and brand-pricing management is done within Stock Item detail page (no separate Brands page needed). Users can create, edit, delete brands and their prices directly from the stock item context.

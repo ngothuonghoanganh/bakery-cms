@@ -55,6 +55,17 @@ export const routesConfig: RouteConfig[] = [
     component: '@/pages/stock/StockItemsPage',
   },
   {
+    path: '/stock/items/:id',
+    hideInMenu: true,
+    component: '@/pages/stock/StockItemDetailPage',
+  },
+  {
+    path: '/stock/movements',
+    title: 'Stock Movements',
+    icon: 'HistoryOutlined',
+    component: '@/pages/stock/StockMovementsPage',
+  },
+  {
     path: '/auth/oauth/callback',
     hideInMenu: true,
     component: '@/pages/OAuthCallback/OAuthCallback',

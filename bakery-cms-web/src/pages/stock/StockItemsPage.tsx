@@ -36,11 +36,11 @@ export const StockItemsPage = (): React.JSX.Element => {
   const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Debounce search input - wait 2s after user stops typing
+  // Debounce search input - wait 500ms after user stops typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedFilters(filters);
-    }, 2000);
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [filters]);
@@ -48,7 +48,13 @@ export const StockItemsPage = (): React.JSX.Element => {
   // Memoize debounced filters to prevent unnecessary re-renders and API calls
   const memoizedFilters = useMemo(
     () => debouncedFilters,
-    [debouncedFilters.search, debouncedFilters.status, debouncedFilters.lowStockOnly]
+    [
+      debouncedFilters.search,
+      debouncedFilters.status,
+      debouncedFilters.lowStockOnly,
+      debouncedFilters.sortBy,
+      debouncedFilters.sortOrder,
+    ]
   );
 
   // Memoize pagination params
@@ -61,33 +67,38 @@ export const StockItemsPage = (): React.JSX.Element => {
   );
 
   // Use the useStockItems hook with filters and pagination
-  const { stockItems, loading, error, refetch } = useStockItems({
+  const { stockItems, loading, error, total, refetch } = useStockItems({
     filters: memoizedFilters,
     pagination: memoizedPagination,
     autoFetch: true,
   });
 
-  // Update pagination total when stock items change
+  // Update pagination total when the API total changes
   useEffect(() => {
-    if (stockItems) {
-      setPagination((prev) => ({
-        ...prev,
-        total: stockItems.length,
-      }));
-    }
-  }, [stockItems]);
+    setPagination((prev) => ({
+      ...prev,
+      total,
+    }));
+  }, [total]);
 
   const handleFiltersChange = useCallback((newFilters: StockItemFilters) => {
     setFilters(newFilters);
-    setPagination((prev) => ({ ...prev, current: 1 }));
-  }, []);
+    // Reset to first page when filters change (except for sorting)
+    if (
+      newFilters.search !== filters.search ||
+      newFilters.status !== filters.status ||
+      newFilters.lowStockOnly !== filters.lowStockOnly
+    ) {
+      setPagination((prev) => ({ ...prev, current: 1 }));
+    }
+  }, [filters]);
 
-  const handleTableChange = useCallback((pag: any, _filters: any, _sorter: any) => {
-    setPagination({
+  const handleTableChange = useCallback((pag: { current: number; pageSize: number }) => {
+    setPagination((prev) => ({
+      ...prev,
       current: pag.current,
       pageSize: pag.pageSize,
-      total: pag.total,
-    });
+    }));
   }, []);
 
   const handleCreate = useCallback(
@@ -191,8 +202,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         filters={filters}
         onFiltersChange={handleFiltersChange}
         onTableChange={handleTableChange}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
+        onCreateClick={open}
         onDelete={handleDelete}
         onView={handleView}
       />

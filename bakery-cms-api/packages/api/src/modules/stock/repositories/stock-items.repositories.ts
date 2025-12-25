@@ -40,7 +40,7 @@ export const createStockItemRepository = (
   };
 
   /**
-   * Find all stock items with filtering and pagination
+   * Find all stock items with filtering, sorting, and pagination
    */
   const findAll = async (
     query: StockItemListQueryDto
@@ -51,6 +51,8 @@ export const createStockItemRepository = (
       status,
       search,
       lowStockOnly,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
     } = query;
 
     // Build where clause
@@ -77,12 +79,17 @@ export const createStockItemRepository = (
     // Calculate offset
     const offset = (page - 1) * limit;
 
+    // Build order clause with validated sortBy field
+    const validSortFields = ['name', 'currentQuantity', 'status', 'createdAt', 'updatedAt'];
+    const orderField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const orderDirection = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
     // Execute query
     const result = await model.findAndCountAll({
       where,
       limit,
       offset,
-      order: [['createdAt', 'DESC']],
+      order: [[orderField, orderDirection]],
     });
 
     return result;
