@@ -24,9 +24,9 @@
 
 **Purpose**: Project initialization and enums/types shared across all user stories
 
-- [ ] T001 [P] Create stock enums (StockItemStatus, MovementType) in bakery-cms-api/packages/common/src/enums/stock.enums.ts
-- [ ] T002 [P] Export stock enums from bakery-cms-api/packages/common/src/enums/index.ts
-- [ ] T003 Create stock module directory structure in bakery-cms-api/packages/api/src/modules/stock/
+- [X] T001 [P] Create stock enums (StockItemStatus, MovementType) in bakery-cms-api/packages/common/src/enums/stock.enums.ts
+- [X] T002 [P] Export stock enums from bakery-cms-api/packages/common/src/enums/index.ts
+- [X] T003 Create stock module directory structure in bakery-cms-api/packages/api/src/modules/stock/
 
 ---
 
@@ -38,35 +38,35 @@
 
 ### Database Models
 
-- [ ] T004 [P] Create Brand model in bakery-cms-api/packages/database/src/models/brand.model.ts
-- [ ] T005 [P] Create StockItem model in bakery-cms-api/packages/database/src/models/stock-item.model.ts
-- [ ] T006 Create StockItemBrand junction model in bakery-cms-api/packages/database/src/models/stock-item-brand.model.ts
-- [ ] T007 Create ProductStockItem junction model in bakery-cms-api/packages/database/src/models/product-stock-item.model.ts
-- [ ] T008 Create StockMovement model in bakery-cms-api/packages/database/src/models/stock-movement.model.ts
-- [ ] T009 Export all new models from bakery-cms-api/packages/database/src/models/index.ts
-- [ ] T010 Define model associations in bakery-cms-api/packages/database/src/models/associations.ts
+- [X] T004 [P] Create Brand model in bakery-cms-api/packages/database/src/models/brand.model.ts
+- [X] T005 [P] Create StockItem model in bakery-cms-api/packages/database/src/models/stock-item.model.ts
+- [X] T006 Create StockItemBrand junction model in bakery-cms-api/packages/database/src/models/stock-item-brand.model.ts
+- [X] T007 Create ProductStockItem junction model in bakery-cms-api/packages/database/src/models/product-stock-item.model.ts
+- [X] T008 Create StockMovement model in bakery-cms-api/packages/database/src/models/stock-movement.model.ts
+- [X] T009 Export all new models from bakery-cms-api/packages/database/src/models/index.ts
+- [X] T010 Define model associations in bakery-cms-api/packages/database/src/models/associations.ts
 
 ### Database Migrations
 
-- [ ] T011 [P] Create migration for brands table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-brands.ts
-- [ ] T012 [P] Create migration for stock_items table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-items.ts
-- [ ] T013 Create migration for stock_item_brands table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-item-brands.ts
-- [ ] T014 Create migration for product_stock_items table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-product-stock-items.ts
-- [ ] T015 Create migration for stock_movements table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-movements.ts
-- [ ] T016 Run migrations to create all tables: `yarn migrate`
+- [X] T011 [P] Create migration for brands table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-brands.ts
+- [X] T012 [P] Create migration for stock_items table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-items.ts
+- [X] T013 Create migration for stock_item_brands table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-item-brands.ts
+- [X] T014 Create migration for product_stock_items table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-product-stock-items.ts
+- [X] T015 Create migration for stock_movements table in bakery-cms-api/packages/database/src/migrations/[timestamp]-create-stock-movements.ts
+- [X] T016 Run migrations to create all tables: `yarn migrate`
 
 ### Shared DTOs and Types
 
-- [ ] T017 [P] Create stock items DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/stock-items.dto.ts
-- [ ] T018 [P] Create brands DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/brands.dto.ts
-- [ ] T019 [P] Create stock movements DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/stock-movements.dto.ts
-- [ ] T020 [P] Create product-stock DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/product-stock.dto.ts
+- [X] T017 [P] Create stock items DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/stock-items.dto.ts
+- [X] T018 [P] Create brands DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/brands.dto.ts
+- [X] T019 [P] Create stock movements DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/stock-movements.dto.ts
+- [X] T020 [P] Create product-stock DTOs in bakery-cms-api/packages/api/src/modules/stock/dto/product-stock.dto.ts
 
 ### Frontend Types Foundation
 
-- [ ] T021 [P] Create stock API response types in bakery-cms-web/src/types/api/stock.api.ts
-- [ ] T022 [P] Create stock domain models in bakery-cms-web/src/types/models/stock.model.ts
-- [ ] T023 Create stock data mappers in bakery-cms-web/src/types/mappers/stock.mapper.ts
+- [X] T021 [P] Create stock API response types in bakery-cms-web/src/types/api/stock.api.ts
+- [X] T022 [P] Create stock domain models in bakery-cms-web/src/types/models/stock.model.ts
+- [X] T023 Create stock data mappers in bakery-cms-web/src/types/mappers/stock.mapper.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -80,23 +80,23 @@
 
 ### Backend Implementation for User Story 1
 
-- [ ] T024 [P] [US1] Create stock items validators in bakery-cms-api/packages/api/src/modules/stock/validators/stock-items.validators.ts
-- [ ] T025 [P] [US1] Create stock items mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/stock-items.mappers.ts
-- [ ] T026 [US1] Create stock items repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-items.repositories.ts
-- [ ] T027 [US1] Create stock items service with CRUD operations in bakery-cms-api/packages/api/src/modules/stock/services/stock-items.services.ts
-- [ ] T028 [US1] Create stock items handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/stock-items.handlers.ts
-- [ ] T029 [US1] Create stock items routes (GET, POST, PATCH, DELETE, restore) in bakery-cms-api/packages/api/src/modules/stock/routes.ts
-- [ ] T030 [US1] Register stock routes in main app router bakery-cms-api/packages/api/src/routes/index.ts
+- [X] T024 [P] [US1] Create stock items validators in bakery-cms-api/packages/api/src/modules/stock/validators/stock-items.validators.ts
+- [X] T025 [P] [US1] Create stock items mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/stock-items.mappers.ts
+- [X] T026 [US1] Create stock items repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-items.repositories.ts
+- [X] T027 [US1] Create stock items service with CRUD operations in bakery-cms-api/packages/api/src/modules/stock/services/stock-items.services.ts
+- [X] T028 [US1] Create stock items handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/stock-items.handlers.ts
+- [X] T029 [US1] Create stock items routes (GET, POST, PATCH, DELETE, restore) in bakery-cms-api/packages/api/src/modules/stock/routes.ts
+- [X] T030 [US1] Register stock routes in main app router bakery-cms-api/packages/api/src/app.ts
 
 ### Frontend Implementation for User Story 1
 
-- [ ] T031 [US1] Create stock service with stockItems CRUD methods in bakery-cms-web/src/services/stock.service.ts
-- [ ] T032 [US1] Create useStockItems custom hook in bakery-cms-web/src/hooks/useStockItems.ts
-- [ ] T033 [P] [US1] Create StockItemList component in bakery-cms-web/src/components/features/stock/StockItemList/StockItemList.tsx
-- [ ] T034 [P] [US1] Create StockItemForm component in bakery-cms-web/src/components/features/stock/StockItemForm/StockItemForm.tsx
-- [ ] T035 [US1] Create StockItemsPage in bakery-cms-web/src/pages/stock/StockItemsPage.tsx
-- [ ] T036 [US1] Add stock routes to React Router in bakery-cms-web/src/App.tsx or routes config
-- [ ] T037 [US1] Add Stock Items menu item to CMS navigation sidebar
+- [X] T031 [US1] Create stock service with stockItems CRUD methods in bakery-cms-web/src/services/stock.service.ts
+- [X] T032 [US1] Create useStockItems custom hook in bakery-cms-web/src/hooks/useStockItems.ts
+- [X] T033 [P] [US1] Create StockItemList component in bakery-cms-web/src/components/features/stock/StockItemList/StockItemList.tsx
+- [X] T034 [P] [US1] Create StockItemForm component in bakery-cms-web/src/components/features/stock/StockItemForm/StockItemForm.tsx
+- [X] T035 [US1] Create StockItemsPage in bakery-cms-web/src/pages/stock/StockItemsPage.tsx
+- [X] T036 [US1] Add stock routes to React Router in bakery-cms-web/src/App.tsx or routes config
+- [X] T037 [US1] Add Stock Items menu item to CMS navigation sidebar
 
 **Checkpoint**: User Story 1 complete - can create, list, edit, delete stock items
 
@@ -110,26 +110,26 @@
 
 ### Backend Implementation for User Story 2
 
-- [ ] T038 [P] [US2] Create brands validators in bakery-cms-api/packages/api/src/modules/stock/validators/brands.validators.ts
-- [ ] T039 [P] [US2] Create brands mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/brands.mappers.ts
-- [ ] T040 [US2] Create brands repository in bakery-cms-api/packages/api/src/modules/stock/repositories/brands.repositories.ts
-- [ ] T041 [US2] Create stock-item-brands repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-item-brands.repositories.ts
-- [ ] T042 [US2] Create brands service with CRUD operations in bakery-cms-api/packages/api/src/modules/stock/services/brands.services.ts
-- [ ] T043 [US2] Create brands handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/brands.handlers.ts
-- [ ] T044 [US2] Add brands routes to bakery-cms-api/packages/api/src/modules/stock/routes.ts
-- [ ] T045 [US2] Add stock item brands endpoints (/stock-items/:id/brands) to routes.ts
-- [ ] T046 [US2] Update stock items service to include brands when fetching details in stock-items.services.ts
+- [X] T038 [P] [US2] Create brands validators in bakery-cms-api/packages/api/src/modules/stock/validators/brands.validators.ts
+- [X] T039 [P] [US2] Create brands mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/brands.mappers.ts
+- [X] T040 [US2] Create brands repository in bakery-cms-api/packages/api/src/modules/stock/repositories/brands.repositories.ts
+- [X] T041 [US2] Create stock-item-brands repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-item-brands.repositories.ts
+- [X] T042 [US2] Create brands service with CRUD operations in bakery-cms-api/packages/api/src/modules/stock/services/brands.services.ts
+- [X] T043 [US2] Create brands handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/brands.handlers.ts
+- [X] T044 [US2] Add brands routes to bakery-cms-api/packages/api/src/modules/stock/routes.ts
+- [X] T045 [US2] Add stock item brands endpoints (/stock-items/:id/brands) to routes.ts
+- [X] T046 [US2] Update stock items service to include brands when fetching details in stock-items.services.ts
 
 ### Frontend Implementation for User Story 2
 
-- [ ] T047 [US2] Add brand methods to stock service in bakery-cms-web/src/services/stock.service.ts
-- [ ] T048 [US2] Create useBrands custom hook in bakery-cms-web/src/hooks/useBrands.ts
-- [ ] T049 [P] [US2] Create BrandManagement component in bakery-cms-web/src/components/features/stock/BrandManagement/BrandManagement.tsx
-- [ ] T050 [P] [US2] Create StockItemDetail component with brand list in bakery-cms-web/src/components/features/stock/StockItemDetail/StockItemDetail.tsx
-- [ ] T051 [US2] Create BrandsPage in bakery-cms-web/src/pages/stock/BrandsPage.tsx
-- [ ] T052 [US2] Create StockItemDetailPage in bakery-cms-web/src/pages/stock/StockItemDetailPage.tsx
-- [ ] T053 [US2] Add brand management to StockItemForm (add/remove brands with pricing)
-- [ ] T054 [US2] Add Brands menu item to CMS navigation sidebar
+- [X] T047 [US2] Add brand methods to stock service in bakery-cms-web/src/services/stock.service.ts
+- [X] T048 [US2] Create useBrands custom hook in bakery-cms-web/src/hooks/useBrands.ts
+- [X] T049 [P] [US2] Create BrandManagement component in bakery-cms-web/src/components/features/stock/BrandManagement/BrandManagement.tsx
+- [X] T050 [P] [US2] Create StockItemDetail component with brand list in bakery-cms-web/src/components/features/stock/StockItemDetail/StockItemDetail.tsx
+- [X] T051 [US2] Create BrandsPage in bakery-cms-web/src/pages/stock/BrandsPage.tsx
+- [X] T052 [US2] Create StockItemDetailPage in bakery-cms-web/src/pages/stock/StockItemDetailPage.tsx
+- [X] T053 [US2] Add brand management to StockItemForm (add/remove brands with pricing)
+- [X] T054 [US2] Add Brands menu item to CMS navigation sidebar
 
 **Checkpoint**: User Story 2 complete - can manage brands and assign with prices to stock items
 
@@ -143,22 +143,22 @@
 
 ### Backend Implementation for User Story 3
 
-- [ ] T055 [P] [US3] Create product-stock validators in bakery-cms-api/packages/api/src/modules/stock/validators/product-stock.validators.ts
-- [ ] T056 [P] [US3] Create product-stock mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/product-stock.mappers.ts
-- [ ] T057 [US3] Create product-stock-items repository in bakery-cms-api/packages/api/src/modules/stock/repositories/product-stock-items.repositories.ts
-- [ ] T058 [US3] Create product-stock service with recipe management in bakery-cms-api/packages/api/src/modules/stock/services/product-stock.services.ts
-- [ ] T059 [US3] Create product-stock handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/product-stock.handlers.ts
-- [ ] T060 [US3] Add product stock items routes (/products/:id/stock-items, /products/:id/cost) to routes.ts
-- [ ] T061 [US3] Implement product cost calculation endpoint in product-stock.services.ts
-- [ ] T062 [US3] Add deletion protection to stock items (warn if linked to products)
+- [X] T055 [P] [US3] Create product-stock validators in bakery-cms-api/packages/api/src/modules/stock/validators/product-stock.validators.ts
+- [X] T056 [P] [US3] Create product-stock mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/product-stock.mappers.ts
+- [X] T057 [US3] Create product-stock-items repository in bakery-cms-api/packages/api/src/modules/stock/repositories/product-stock-items.repositories.ts
+- [X] T058 [US3] Create product-stock service with recipe management in bakery-cms-api/packages/api/src/modules/stock/services/product-stock.services.ts
+- [X] T059 [US3] Create product-stock handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/product-stock.handlers.ts
+- [X] T060 [US3] Add product stock items routes (/products/:id/stock-items, /products/:id/cost) to routes.ts
+- [X] T061 [US3] Implement product cost calculation endpoint in product-stock.services.ts
+- [X] T062 [US3] Add deletion protection to stock items (warn if linked to products)
 
 ### Frontend Implementation for User Story 3
 
-- [ ] T063 [US3] Add product-stock methods to stock service in bakery-cms-web/src/services/stock.service.ts
-- [ ] T064 [US3] Create useProductRecipe custom hook in bakery-cms-web/src/hooks/useProductRecipe.ts
-- [ ] T065 [US3] Create ProductRecipe component in bakery-cms-web/src/components/features/stock/ProductRecipe/ProductRecipe.tsx
-- [ ] T066 [US3] Add ProductRecipe component to existing ProductDetail page integration
-- [ ] T067 [US3] Display product cost calculation based on linked stock items and brand prices
+- [X] T063 [US3] Add product-stock methods to stock service in bakery-cms-web/src/services/stock.service.ts
+- [X] T064 [US3] Create useProductRecipe custom hook in bakery-cms-web/src/hooks/useProductRecipe.ts
+- [X] T065 [US3] Create ProductRecipe component in bakery-cms-web/src/components/features/stock/ProductRecipe/ProductRecipe.tsx
+- [X] T066 [US3] Add ProductRecipe component to existing ProductDetail page integration
+- [X] T067 [US3] Display product cost calculation based on linked stock items and brand prices
 
 **Checkpoint**: User Story 3 complete - can define product recipes and calculate costs
 
@@ -172,18 +172,18 @@
 
 ### Backend Implementation for User Story 4
 
-- [ ] T068 [US4] Update stock items service to compute status based on quantity and threshold in stock-items.services.ts
-- [ ] T069 [US4] Add receive stock endpoint handler in stock-items.handlers.ts
-- [ ] T070 [US4] Add adjust stock endpoint handler in stock-items.handlers.ts
-- [ ] T071 [US4] Implement negative stock prevention in stock receive/adjust operations
-- [ ] T072 [US4] Add low-stock items filtering to stock items list endpoint
-- [ ] T073 [US4] Create stock movements records when receiving/adjusting stock
+- [X] T068 [US4] Update stock items service to compute status based on quantity and threshold in stock-items.services.ts
+- [X] T069 [US4] Add receive stock endpoint handler in stock-items.handlers.ts
+- [X] T070 [US4] Add adjust stock endpoint handler in stock-items.handlers.ts
+- [X] T071 [US4] Implement negative stock prevention in stock receive/adjust operations
+- [X] T072 [US4] Add low-stock items filtering to stock items list endpoint
+- [X] T073 [US4] Create stock movements records when receiving/adjusting stock
 
 ### Frontend Implementation for User Story 4
 
-- [ ] T074 [US4] Add receive/adjust stock methods to stock service in bakery-cms-web/src/services/stock.service.ts
-- [ ] T075 [US4] Create LowStockDashboard component in bakery-cms-web/src/components/features/stock/LowStockDashboard/LowStockDashboard.tsx
-- [ ] T076 [US4] Add stock status badges (Available, Low Stock, Out of Stock) to StockItemList
+- [X] T074 [US4] Add receive/adjust stock methods to stock service in bakery-cms-web/src/services/stock.service.ts
+- [X] T075 [US4] Create LowStockDashboard component in bakery-cms-web/src/components/features/stock/LowStockDashboard/LowStockDashboard.tsx
+- [X] T076 [US4] Add stock status badges (Available, Low Stock, Out of Stock) to StockItemList
 - [ ] T077 [US4] Add receive/adjust stock modal/form to StockItemDetail page
 - [ ] T078 [US4] Integrate LowStockDashboard widget into main dashboard (if exists)
 
@@ -199,20 +199,20 @@
 
 ### Backend Implementation for User Story 5
 
-- [ ] T079 [P] [US5] Create stock movements validators in bakery-cms-api/packages/api/src/modules/stock/validators/stock-movements.validators.ts
-- [ ] T080 [P] [US5] Create stock movements mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/stock-movements.mappers.ts
-- [ ] T081 [US5] Create stock movements repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-movements.repositories.ts
-- [ ] T082 [US5] Create stock movements service with list/filter operations in bakery-cms-api/packages/api/src/modules/stock/services/stock-movements.services.ts
-- [ ] T083 [US5] Create stock movements handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/stock-movements.handlers.ts
-- [ ] T084 [US5] Add stock movements routes (GET list, GET by id) to routes.ts
-- [ ] T085 [US5] Ensure all stock changes create movement records with user reference
+- [X] T079 [P] [US5] Create stock movements validators in bakery-cms-api/packages/api/src/modules/stock/validators/stock-movements.validators.ts
+- [X] T080 [P] [US5] Create stock movements mappers in bakery-cms-api/packages/api/src/modules/stock/mappers/stock-movements.mappers.ts
+- [X] T081 [US5] Create stock movements repository in bakery-cms-api/packages/api/src/modules/stock/repositories/stock-movements.repositories.ts
+- [X] T082 [US5] Create stock movements service with list/filter operations in bakery-cms-api/packages/api/src/modules/stock/services/stock-movements.services.ts
+- [X] T083 [US5] Create stock movements handlers in bakery-cms-api/packages/api/src/modules/stock/handlers/stock-movements.handlers.ts
+- [X] T084 [US5] Add stock movements routes (GET list, GET by id) to routes.ts
+- [X] T085 [US5] Ensure all stock changes create movement records with user reference
 
 ### Frontend Implementation for User Story 5
 
-- [ ] T086 [US5] Add stock movements methods to stock service in bakery-cms-web/src/services/stock.service.ts
-- [ ] T087 [US5] Create useStockMovements custom hook in bakery-cms-web/src/hooks/useStockMovements.ts
-- [ ] T088 [US5] Create StockMovementHistory component in bakery-cms-web/src/components/features/stock/StockMovementHistory/StockMovementHistory.tsx
-- [ ] T089 [US5] Create StockMovementsPage in bakery-cms-web/src/pages/stock/StockMovementsPage.tsx
+- [X] T086 [US5] Add stock movements methods to stock service in bakery-cms-web/src/services/stock.service.ts
+- [X] T087 [US5] Create useStockMovements custom hook in bakery-cms-web/src/hooks/useStockMovements.ts
+- [X] T088 [US5] Create StockMovementHistory component in bakery-cms-web/src/components/features/stock/StockMovementHistory/StockMovementHistory.tsx
+- [X] T089 [US5] Create StockMovementsPage in bakery-cms-web/src/pages/stock/StockMovementsPage.tsx
 - [ ] T090 [US5] Add StockMovementHistory tab to StockItemDetail page
 - [ ] T091 [US5] Add Stock Movements menu item to CMS navigation sidebar
 

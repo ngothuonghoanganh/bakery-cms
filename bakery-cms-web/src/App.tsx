@@ -65,6 +65,11 @@ const PaymentDetailPage = lazy(() =>
     default: module.PaymentDetailPage,
   }))
 );
+const StockItemsPage = lazy(() =>
+  import('./pages/stock/StockItemsPage').then((module) => ({
+    default: module.StockItemsPage,
+  }))
+);
 
 // Import global styles
 import './styles/global.css';
@@ -155,6 +160,16 @@ export const App = (): React.JSX.Element => {
                     <ProtectedRoute>
                       <DashboardLayout>
                         <PaymentDetailPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/stock/items"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <StockItemsPage />
                       </DashboardLayout>
                     </ProtectedRoute>
                   }

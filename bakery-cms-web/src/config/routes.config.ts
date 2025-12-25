@@ -49,6 +49,12 @@ export const routesConfig: RouteConfig[] = [
     component: '@/pages/Payments/PaymentDetailPage',
   },
   {
+    path: '/stock/items',
+    title: 'Stock Items',
+    icon: 'InboxOutlined',
+    component: '@/pages/stock/StockItemsPage',
+  },
+  {
     path: '/auth/oauth/callback',
     hideInMenu: true,
     component: '@/pages/OAuthCallback/OAuthCallback',

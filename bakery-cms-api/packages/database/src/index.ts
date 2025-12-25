@@ -19,5 +19,10 @@ export {
   PaymentModel,
   UserModel,
   AuthSessionModel,
+  BrandModel,
+  StockItemModel,
+  StockItemBrandModel,
+  ProductStockItemModel,
+  StockMovementModel,
   TokenType,
 } from './models';

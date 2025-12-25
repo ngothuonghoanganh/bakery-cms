@@ -10,6 +10,11 @@ import { OrderItemModel, initOrderItemModel } from './order-item.model';
 import { PaymentModel, initPaymentModel } from './payment.model';
 import { UserModel, initUserModel } from './user.model';
 import { AuthSessionModel, initAuthSessionModel } from './auth-session.model';
+import { BrandModel, initBrandModel } from './brand.model';
+import { StockItemModel, initStockItemModel } from './stock-item.model';
+import { StockItemBrandModel, initStockItemBrandModel } from './stock-item-brand.model';
+import { ProductStockItemModel, initProductStockItemModel } from './product-stock-item.model';
+import { StockMovementModel, initStockMovementModel } from './stock-movement.model';
 
 // Re-export TokenType for convenience
 export { TokenType } from './auth-session.model';
@@ -25,6 +30,11 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly Payment: typeof PaymentModel;
   readonly User: typeof UserModel;
   readonly AuthSession: typeof AuthSessionModel;
+  readonly Brand: typeof BrandModel;
+  readonly StockItem: typeof StockItemModel;
+  readonly StockItemBrand: typeof StockItemBrandModel;
+  readonly ProductStockItem: typeof ProductStockItemModel;
+  readonly StockMovement: typeof StockMovementModel;
 } => {
   // Initialize all models
   const Product = initProductModel(sequelize);
@@ -33,6 +43,11 @@ export const initializeModels = (sequelize: Sequelize): {
   const Payment = initPaymentModel(sequelize);
   const User = initUserModel(sequelize);
   const AuthSession = initAuthSessionModel(sequelize);
+  const Brand = initBrandModel(sequelize);
+  const StockItem = initStockItemModel(sequelize);
+  const StockItemBrand = initStockItemBrandModel(sequelize);
+  const ProductStockItem = initProductStockItemModel(sequelize);
+  const StockMovement = initStockMovementModel(sequelize);
 
   // Define associations
   
@@ -98,6 +113,113 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  // Stock management associations
+
+  // StockItem associations
+  StockItem.hasMany(StockItemBrand, {
+    foreignKey: 'stockItemId',
+    as: 'brands',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  StockItem.hasMany(ProductStockItem, {
+    foreignKey: 'stockItemId',
+    as: 'productStockItems',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockItem.hasMany(StockMovement, {
+    foreignKey: 'stockItemId',
+    as: 'movements',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  // Brand associations
+  Brand.hasMany(StockItemBrand, {
+    foreignKey: 'brandId',
+    as: 'stockItemBrands',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  Brand.hasMany(ProductStockItem, {
+    foreignKey: 'preferredBrandId',
+    as: 'preferredProductStockItems',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  // StockItemBrand associations
+  StockItemBrand.belongsTo(StockItem, {
+    foreignKey: 'stockItemId',
+    as: 'stockItem',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  StockItemBrand.belongsTo(Brand, {
+    foreignKey: 'brandId',
+    as: 'brand',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  // Product associations (stock-related)
+  Product.hasMany(ProductStockItem, {
+    foreignKey: 'productId',
+    as: 'stockItems',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  // ProductStockItem associations
+  ProductStockItem.belongsTo(Product, {
+    foreignKey: 'productId',
+    as: 'product',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductStockItem.belongsTo(StockItem, {
+    foreignKey: 'stockItemId',
+    as: 'stockItem',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductStockItem.belongsTo(Brand, {
+    foreignKey: 'preferredBrandId',
+    as: 'preferredBrand',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  // StockMovement associations
+  StockMovement.belongsTo(StockItem, {
+    foreignKey: 'stockItemId',
+    as: 'stockItem',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockMovement.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  // User associations (stock-related)
+  User.hasMany(StockMovement, {
+    foreignKey: 'userId',
+    as: 'stockMovements',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
   return {
     Product,
     Order,
@@ -105,8 +227,25 @@ export const initializeModels = (sequelize: Sequelize): {
     Payment,
     User,
     AuthSession,
+    Brand,
+    StockItem,
+    StockItemBrand,
+    ProductStockItem,
+    StockMovement,
   };
 };
 
 // Export model classes for type checking
-export { ProductModel, OrderModel, OrderItemModel, PaymentModel, UserModel, AuthSessionModel };
+export {
+  ProductModel,
+  OrderModel,
+  OrderItemModel,
+  PaymentModel,
+  UserModel,
+  AuthSessionModel,
+  BrandModel,
+  StockItemModel,
+  StockItemBrandModel,
+  ProductStockItemModel,
+  StockMovementModel,
+};

@@ -16,6 +16,7 @@ import { createProductsRouter } from './modules/products/routes';
 import { createOrdersRouter } from './modules/orders/routes';
 import { createPaymentsRouter } from './modules/payments/routes';
 import { createAuthRouter } from './modules/auth/routes';
+import { createStockRouter } from './modules/stock/routes';
 
 /**
  * Create and configure Express application
@@ -83,6 +84,7 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/products`, createProductsRouter());
   app.use(`${apiBasePath}/orders`, createOrdersRouter());
   app.use(`${apiBasePath}/payments`, createPaymentsRouter());
+  app.use(`${apiBasePath}/stock`, createStockRouter());
   
   // 404 handler
   app.use(notFoundHandler);

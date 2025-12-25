@@ -3,6 +3,7 @@ import { Card, Descriptions, Button, Space, Tag, Image } from 'antd';
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { BusinessType, ProductStatus } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
+import { ProductRecipe } from '../../stock/ProductRecipe';
 import type { ProductDetailProps } from './ProductDetail.types';
 
 const getStatusColor = (status: string) => {
@@ -102,6 +103,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      {/* Product Recipe Section */}
+      <div style={{ marginTop: 24 }}>
+        <ProductRecipe productId={product.id} />
+      </div>
     </div>
   );
 };
