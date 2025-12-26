@@ -3,9 +3,10 @@
  * Displays low stock items and out of stock items
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Table, Tag, Alert, Empty } from 'antd';
 import { WarningOutlined, StopOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useStockItems } from '@/hooks/useStockItems';
 import { StockItemStatus } from '@/types/models/stock.model';
 import type { StockItem } from '@/types/models/stock.model';
@@ -33,55 +34,58 @@ const getStatusIcon = (status: StockItemStatus) => {
 };
 
 export const LowStockDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { stockItems, loading, error } = useStockItems({
     filters: { lowStockOnly: true },
     pagination: { limit: 50 },
   });
 
-  if (error) {
-    return (
-      <Card title="Low Stock Alert">
-        <Alert
-          message="Failed to load stock data"
-          description={error.message || 'An error occurred while fetching low stock items.'}
-          type="error"
-          showIcon
-        />
-      </Card>
-    );
-  }
+  const getStatusLabel = useMemo(
+    () => (status: StockItemStatus): string => {
+      const labelMap: Record<StockItemStatus, string> = {
+        [StockItemStatus.AVAILABLE]: t('stock.status.inStock'),
+        [StockItemStatus.LOW_STOCK]: t('stock.status.lowStock'),
+        [StockItemStatus.OUT_OF_STOCK]: t('stock.status.outOfStock'),
+      };
+      return labelMap[status] || status;
+    },
+    [t]
+  );
 
-  const columns = [
-    {
-      title: 'Item',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Current Quantity',
-      key: 'currentQuantity',
-      render: (_: unknown, record: StockItem) =>
-        `${record.currentQuantity} ${record.unitOfMeasure}`,
-    },
-    {
-      title: 'Reorder Threshold',
-      key: 'reorderThreshold',
-      render: (_: unknown, record: StockItem) =>
-        record.reorderThreshold
-          ? `${record.reorderThreshold} ${record.unitOfMeasure}`
-          : '-',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: StockItemStatus) => (
-        <Tag color={getStatusColor(status)} icon={getStatusIcon(status)}>
-          {status.replace('_', ' ').toUpperCase()}
-        </Tag>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () => [
+      {
+        title: t('stock.lowStockDashboard.item'),
+        dataIndex: 'name',
+        key: 'name',
+      },
+      {
+        title: t('stock.lowStockDashboard.currentQuantity'),
+        key: 'currentQuantity',
+        render: (_: unknown, record: StockItem) =>
+          `${record.currentQuantity} ${record.unitOfMeasure}`,
+      },
+      {
+        title: t('stock.lowStockDashboard.reorderThreshold'),
+        key: 'reorderThreshold',
+        render: (_: unknown, record: StockItem) =>
+          record.reorderThreshold
+            ? `${record.reorderThreshold} ${record.unitOfMeasure}`
+            : '-',
+      },
+      {
+        title: t('common.status.label'),
+        dataIndex: 'status',
+        key: 'status',
+        render: (status: StockItemStatus) => (
+          <Tag color={getStatusColor(status)} icon={getStatusIcon(status)}>
+            {getStatusLabel(status)}
+          </Tag>
+        ),
+      },
+    ],
+    [t, getStatusLabel]
+  );
 
   const lowStockCount = stockItems?.filter(
     (item) => item.status === StockItemStatus.LOW_STOCK
@@ -91,19 +95,32 @@ export const LowStockDashboard: React.FC = () => {
     (item) => item.status === StockItemStatus.OUT_OF_STOCK
   ).length || 0;
 
+  if (error) {
+    return (
+      <Card title={t('stock.lowStockDashboard.title')}>
+        <Alert
+          message={t('stock.lowStockDashboard.loadFailed')}
+          description={error.message || t('stock.lowStockDashboard.loadError')}
+          type="error"
+          showIcon
+        />
+      </Card>
+    );
+  }
+
   return (
     <Card
-      title="Low Stock Alert"
+      title={t('stock.lowStockDashboard.title')}
       extra={
         <span>
           {lowStockCount > 0 && (
             <Tag color="orange" icon={<WarningOutlined />}>
-              {lowStockCount} Low Stock
+              {lowStockCount} {t('stock.status.lowStock')}
             </Tag>
           )}
           {outOfStockCount > 0 && (
             <Tag color="red" icon={<StopOutlined />}>
-              {outOfStockCount} Out of Stock
+              {outOfStockCount} {t('stock.status.outOfStock')}
             </Tag>
           )}
         </span>
@@ -111,8 +128,8 @@ export const LowStockDashboard: React.FC = () => {
     >
       {outOfStockCount > 0 && (
         <Alert
-          message="Critical: Items Out of Stock"
-          description={`${outOfStockCount} item(s) are completely out of stock and need immediate restocking.`}
+          message={t('stock.lowStockDashboard.criticalTitle')}
+          description={t('stock.lowStockDashboard.criticalDescription', { count: outOfStockCount })}
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
@@ -121,8 +138,8 @@ export const LowStockDashboard: React.FC = () => {
 
       {lowStockCount > 0 && outOfStockCount === 0 && (
         <Alert
-          message="Low Stock Warning"
-          description={`${lowStockCount} item(s) are running low and should be reordered soon.`}
+          message={t('stock.lowStockDashboard.warningTitle')}
+          description={t('stock.lowStockDashboard.warningDescription', { count: lowStockCount })}
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
@@ -130,7 +147,7 @@ export const LowStockDashboard: React.FC = () => {
       )}
 
       {!stockItems || stockItems.length === 0 ? (
-        <Empty description="All stock items are at healthy levels" />
+        <Empty description={t('stock.lowStockDashboard.allHealthy')} />
       ) : (
         <Table
           columns={columns}

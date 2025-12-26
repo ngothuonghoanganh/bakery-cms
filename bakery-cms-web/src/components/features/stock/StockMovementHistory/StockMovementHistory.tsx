@@ -3,11 +3,12 @@
  * Displays audit trail of stock movements with filtering
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Table, Tag, Space, DatePicker, Select, Button, Card, Alert } from 'antd';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { useStockMovements } from '../../../../hooks/useStockMovements';
 import type { StockMovement } from '../../../../types/models/stock.model';
 import type { StockMovementFiltersRequest } from '../../../../types/api/stock.api';
@@ -36,13 +37,6 @@ const getMovementTypeColor = (type: string): string => {
 };
 
 /**
- * Movement type label
- */
-const getMovementTypeLabel = (type: string): string => {
-  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-};
-
-/**
  * StockMovementHistory component props
  */
 export interface StockMovementHistoryProps {
@@ -57,6 +51,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
   stockItemId,
   showStockItemColumn = true,
 }) => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<StockMovementFiltersRequest>({
     page: 1,
     limit: 10,
@@ -64,6 +59,32 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
   });
 
   const { stockMovements, pagination, loading, error, fetchStockMovements } = useStockMovements(filters);
+
+  const getMovementTypeLabel = useMemo(
+    () => (type: string): string => {
+      const typeKey = type.toLowerCase();
+      const labelMap: Record<string, string> = {
+        received: t('stock.movementTypes.received'),
+        used: t('stock.movementTypes.used'),
+        adjusted: t('stock.movementTypes.adjusted'),
+        damaged: t('stock.movementTypes.damaged'),
+        expired: t('stock.movementTypes.expired'),
+      };
+      return labelMap[typeKey] || type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+    },
+    [t]
+  );
+
+  const movementTypeOptions = useMemo(
+    () => [
+      { value: 'received', label: t('stock.movementTypes.received') },
+      { value: 'used', label: t('stock.movementTypes.used') },
+      { value: 'adjusted', label: t('stock.movementTypes.adjusted') },
+      { value: 'damaged', label: t('stock.movementTypes.damaged') },
+      { value: 'expired', label: t('stock.movementTypes.expired') },
+    ],
+    [t]
+  );
 
   /**
    * Handle filter changes
@@ -121,81 +142,84 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
   /**
    * Table columns
    */
-  const columns: ColumnsType<StockMovement> = [
-    ...(showStockItemColumn
-      ? [
-          {
-            title: 'Stock Item',
-            dataIndex: 'stockItemName',
-            key: 'stockItemName',
-            width: 200,
-          },
-        ]
-      : []),
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 120,
-      render: (type: string) => (
-        <Tag color={getMovementTypeColor(type)}>{getMovementTypeLabel(type)}</Tag>
-      ),
-    },
-    {
-      title: 'Quantity',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 100,
-      render: (quantity: number) => {
-        const isPositive = quantity > 0;
-        return (
-          <span style={{ color: isPositive ? 'green' : 'red', fontWeight: 'bold' }}>
-            {isPositive ? '+' : ''}
-            {quantity}
-          </span>
-        );
+  const columns: ColumnsType<StockMovement> = useMemo(
+    () => [
+      ...(showStockItemColumn
+        ? [
+            {
+              title: t('stock.movementHistory.stockItem'),
+              dataIndex: 'stockItemName',
+              key: 'stockItemName',
+              width: 200,
+            },
+          ]
+        : []),
+      {
+        title: t('stock.movementHistory.type'),
+        dataIndex: 'type',
+        key: 'type',
+        width: 120,
+        render: (type: string) => (
+          <Tag color={getMovementTypeColor(type)}>{getMovementTypeLabel(type)}</Tag>
+        ),
       },
-    },
-    {
-      title: 'Previous',
-      dataIndex: 'previousQuantity',
-      key: 'previousQuantity',
-      width: 100,
-    },
-    {
-      title: 'New',
-      dataIndex: 'newQuantity',
-      key: 'newQuantity',
-      width: 100,
-    },
-    {
-      title: 'Reason',
-      dataIndex: 'reason',
-      key: 'reason',
-      ellipsis: true,
-      render: (reason: string | null) => reason || '-',
-    },
-    {
-      title: 'User',
-      dataIndex: 'userName',
-      key: 'userName',
-      width: 150,
-    },
-    {
-      title: 'Date',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 180,
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
-    },
-  ];
+      {
+        title: t('stock.movementHistory.quantity'),
+        dataIndex: 'quantity',
+        key: 'quantity',
+        width: 100,
+        render: (quantity: number) => {
+          const isPositive = quantity > 0;
+          return (
+            <span style={{ color: isPositive ? 'green' : 'red', fontWeight: 'bold' }}>
+              {isPositive ? '+' : ''}
+              {quantity}
+            </span>
+          );
+        },
+      },
+      {
+        title: t('stock.movementHistory.previous'),
+        dataIndex: 'previousQuantity',
+        key: 'previousQuantity',
+        width: 100,
+      },
+      {
+        title: t('stock.movementHistory.new'),
+        dataIndex: 'newQuantity',
+        key: 'newQuantity',
+        width: 100,
+      },
+      {
+        title: t('stock.movementHistory.reason'),
+        dataIndex: 'reason',
+        key: 'reason',
+        ellipsis: true,
+        render: (reason: string | null) => reason || '-',
+      },
+      {
+        title: t('stock.movementHistory.user'),
+        dataIndex: 'userName',
+        key: 'userName',
+        width: 150,
+      },
+      {
+        title: t('stock.movementHistory.date'),
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        width: 180,
+        render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
+      },
+    ],
+    [t, showStockItemColumn, getMovementTypeLabel]
+  );
 
   return (
     <div>
       {error && (
         <Alert
-          message="Failed to load stock movements"
-          description={error.message || 'An error occurred while fetching stock movement history.'}
+          message={t('stock.movementHistory.loadFailed')}
+          description={error.message || t('stock.movementHistory.loadError')}
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
@@ -206,7 +230,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
         title={
           <Space>
             <FilterOutlined />
-            Filters
+            {t('common.filters')}
           </Space>
         }
         size="small"
@@ -214,18 +238,13 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
       >
         <Space wrap>
           <Select
-            placeholder="Movement Type"
+            placeholder={t('stock.movementHistory.movementType')}
             allowClear
             style={{ width: 150 }}
             onChange={(value) => handleFilterChange('type', value)}
             value={filters.type}
-          >
-            <Option value="received">Received</Option>
-            <Option value="used">Used</Option>
-            <Option value="adjusted">Adjusted</Option>
-            <Option value="damaged">Damaged</Option>
-            <Option value="expired">Expired</Option>
-          </Select>
+            options={movementTypeOptions}
+          />
 
           <RangePicker
             onChange={handleDateRangeChange}
@@ -234,7 +253,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
           />
 
           <Button icon={<ReloadOutlined />} onClick={handleResetFilters}>
-            Reset
+            {t('common.actions.reset')}
           </Button>
         </Space>
       </Card>
@@ -249,7 +268,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
           pageSize: pagination.pageSize,
           total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} movements`,
+          showTotal: (total) => t('stock.movementHistory.totalMovements', { total }),
           onChange: handleTableChange,
         }}
       />

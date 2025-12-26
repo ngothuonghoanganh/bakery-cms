@@ -34,7 +34,11 @@ export const vi = {
       clear: 'Xóa',
       selectAll: 'Chọn tất cả',
       deselectAll: 'Bỏ chọn tất cả',
+      remove: 'Xóa',
     },
+    // Common labels
+    filters: 'Bộ lọc',
+    na: 'N/A',
     // Status
     status: {
       loading: 'Đang tải...',
@@ -50,10 +54,12 @@ export const vi = {
       pending: 'Chờ xử lý',
       completed: 'Hoàn thành',
       cancelled: 'Đã hủy',
+      failed: 'Thất bại',
+      label: 'Trạng thái',
     },
     // Pagination
     pagination: {
-      total: 'Tổng {{count}} mục',
+      total: 'Tổng {{total}} mục',
       page: 'Trang',
       of: 'của',
       items: 'mục',
@@ -586,6 +592,18 @@ export const vi = {
       edit: 'Sửa mặt hàng',
       delete: 'Xóa mặt hàng',
     },
+    // List page
+    list: {
+      name: 'Tên',
+      unit: 'Đơn vị',
+      currentQuantity: 'Số lượng hiện tại',
+      reorderThreshold: 'Ngưỡng đặt hàng lại',
+      allStatus: 'Tất cả trạng thái',
+      searchPlaceholder: 'Tìm theo tên hoặc mô tả...',
+      filterByStatus: 'Lọc theo trạng thái',
+      deleteTitle: 'Xóa mặt hàng kho',
+      deleteConfirm: 'Bạn có chắc chắn muốn xóa mặt hàng kho này?',
+    },
     movements: {
       title: 'Biến động kho',
       subtitle: 'Lịch sử nhập/xuất kho',
@@ -596,6 +614,29 @@ export const vi = {
         adjustment: 'Điều chỉnh',
       },
     },
+    // Movement types
+    movementTypes: {
+      received: 'Nhập kho',
+      used: 'Sử dụng',
+      adjusted: 'Điều chỉnh',
+      damaged: 'Hư hỏng',
+      expired: 'Hết hạn',
+    },
+    // Movement history
+    movementHistory: {
+      stockItem: 'Mặt hàng kho',
+      type: 'Loại',
+      quantity: 'Số lượng',
+      previous: 'Trước',
+      new: 'Sau',
+      reason: 'Lý do',
+      user: 'Người dùng',
+      date: 'Ngày',
+      movementType: 'Loại biến động',
+      loadFailed: 'Không thể tải biến động kho',
+      loadError: 'Đã xảy ra lỗi khi tải lịch sử biến động kho.',
+      totalMovements: 'Tổng {{total}} biến động',
+    },
     form: {
       product: 'Sản phẩm',
       quantity: 'Số lượng',
@@ -604,6 +645,34 @@ export const vi = {
       maxQuantity: 'Số lượng tối đa',
       location: 'Vị trí',
       reason: 'Lý do',
+      // Form fields
+      name: 'Tên mặt hàng kho',
+      description: 'Mô tả',
+      unitOfMeasure: 'Đơn vị tính',
+      initialQuantity: 'Số lượng ban đầu',
+      reorderThreshold: 'Ngưỡng đặt hàng lại',
+      reorderThresholdTooltip: 'Cảnh báo khi tồn kho giảm xuống dưới mức này',
+      // Placeholders
+      namePlaceholder: 'Nhập tên mặt hàng (VD: Bột mì, Đường)',
+      descriptionPlaceholder: 'Nhập mô tả mặt hàng',
+      unitPlaceholder: 'VD: kg, lít, cái',
+      initialQuantityPlaceholder: 'Nhập số lượng ban đầu',
+      reorderThresholdPlaceholder: 'Nhập ngưỡng đặt hàng lại',
+      // Modal titles
+      createTitle: 'Tạo mặt hàng kho',
+      editTitle: 'Sửa mặt hàng kho',
+      // Validation
+      validation: {
+        nameRequired: 'Tên mặt hàng là bắt buộc',
+        nameMin: 'Tên mặt hàng phải có ít nhất 1 ký tự',
+        nameMax: 'Tên mặt hàng không được quá 255 ký tự',
+        descriptionMax: 'Mô tả không được quá 1000 ký tự',
+        unitRequired: 'Đơn vị tính là bắt buộc',
+        unitMin: 'Đơn vị tính phải có ít nhất 1 ký tự',
+        unitMax: 'Đơn vị tính không được quá 50 ký tự',
+        quantityMin: 'Số lượng phải là 0 hoặc lớn hơn',
+        thresholdMin: 'Ngưỡng phải là 0 hoặc lớn hơn',
+      },
     },
     status: {
       inStock: 'Còn hàng',
@@ -613,6 +682,47 @@ export const vi = {
     alerts: {
       lowStockWarning: 'Cảnh báo: Một số sản phẩm sắp hết hàng',
       outOfStockWarning: 'Cảnh báo: Một số sản phẩm đã hết hàng',
+    },
+    // Low stock dashboard
+    lowStockDashboard: {
+      title: 'Cảnh báo tồn kho thấp',
+      item: 'Mặt hàng',
+      currentQuantity: 'Số lượng hiện tại',
+      reorderThreshold: 'Ngưỡng đặt hàng lại',
+      loadFailed: 'Không thể tải dữ liệu tồn kho',
+      loadError: 'Đã xảy ra lỗi khi tải các mặt hàng sắp hết.',
+      criticalTitle: 'Nghiêm trọng: Hết hàng',
+      criticalDescription: '{{count}} mặt hàng đã hoàn toàn hết hàng và cần nhập lại ngay.',
+      warningTitle: 'Cảnh báo tồn kho thấp',
+      warningDescription: '{{count}} mặt hàng sắp hết và nên đặt hàng lại sớm.',
+      allHealthy: 'Tất cả mặt hàng kho đều ở mức an toàn',
+    },
+    // Product recipe
+    recipe: {
+      title: 'Công thức sản phẩm',
+      addIngredient: 'Thêm nguyên liệu',
+      editIngredient: 'Sửa nguyên liệu',
+      stockItem: 'Mặt hàng kho',
+      quantity: 'Số lượng',
+      preferredBrand: 'Thương hiệu ưu tiên',
+      notes: 'Ghi chú',
+      noPreference: 'Không có ưu tiên',
+      removeConfirm: 'Xóa nguyên liệu này?',
+      selectStockItem: 'Chọn mặt hàng kho',
+      selectStockItemRequired: 'Vui lòng chọn mặt hàng kho',
+      quantityRequired: 'Vui lòng nhập số lượng',
+      selectPreferredBrand: 'Chọn thương hiệu ưu tiên (tùy chọn)',
+      notesPlaceholder: 'Thêm ghi chú về nguyên liệu này',
+      estimatedCost: 'Chi phí ước tính: {{cost}} VND',
+      // Notifications
+      added: 'Đã thêm',
+      addedMessage: 'Đã thêm mặt hàng kho vào sản phẩm thành công',
+      updated: 'Đã cập nhật',
+      updatedMessage: 'Đã cập nhật mặt hàng kho thành công',
+      removed: 'Đã xóa',
+      removedMessage: 'Đã xóa mặt hàng kho khỏi sản phẩm thành công',
+      saveError: 'Không thể lưu mặt hàng kho',
+      removeError: 'Không thể xóa mặt hàng kho khỏi sản phẩm',
     },
     notifications: {
       created: 'Đã tạo mặt hàng kho',

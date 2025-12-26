@@ -3,9 +3,10 @@
  * Displays and manages product recipe (list of stock items required to make a product)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Table, Button, Space, Popconfirm, Typography, Spin, Alert, Modal, Form, InputNumber, Input, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useProductRecipe } from '@/hooks/useProductRecipe';
 import { useStockItems } from '@/hooks/useStockItems';
 import { stockService } from '@/services/stock.service';
@@ -17,6 +18,7 @@ const { Text } = Typography;
 const { TextArea } = Input;
 
 export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecipeChange }) => {
+  const { t } = useTranslation();
   const { recipe, cost, loading, error, refetchAll } = useProductRecipe({ productId });
   const { stockItems } = useStockItems({ pagination: { limit: 100 } });
   const { success, error: showError } = useNotification();
@@ -46,16 +48,16 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
     try {
       const result = await stockService.removeStockItemFromProduct(productId, stockItemId);
       if (result.success) {
-        success('Removed', 'Stock item removed from product successfully');
+        success(t('stock.recipe.removed'), t('stock.recipe.removedMessage'));
         refetchAll();
         onRecipeChange?.();
       } else {
-        showError('Failed', result.error.message);
+        showError(t('common.status.failed'), result.error.message);
       }
     } catch (err) {
-      showError('Error', 'Failed to remove stock item from product');
+      showError(t('common.status.error'), t('stock.recipe.removeError'));
     }
-  }, [productId, refetchAll, onRecipeChange, success, showError]);
+  }, [productId, refetchAll, onRecipeChange, success, showError, t]);
 
   const handleSubmit = useCallback(async (values: ProductStockItemFormValues) => {
     setSubmitting(true);
@@ -68,84 +70,87 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
           notes: values.notes,
         });
         if (result.success) {
-          success('Updated', 'Stock item updated successfully');
+          success(t('stock.recipe.updated'), t('stock.recipe.updatedMessage'));
           setModalVisible(false);
           refetchAll();
           onRecipeChange?.();
         } else {
-          showError('Failed', result.error.message);
+          showError(t('common.status.failed'), result.error.message);
         }
       } else {
         // Add new
         const result = await stockService.addStockItemToProduct(productId, values);
         if (result.success) {
-          success('Added', 'Stock item added to product successfully');
+          success(t('stock.recipe.added'), t('stock.recipe.addedMessage'));
           setModalVisible(false);
           refetchAll();
           onRecipeChange?.();
         } else {
-          showError('Failed', result.error.message);
+          showError(t('common.status.failed'), result.error.message);
         }
       }
     } catch (err) {
-      showError('Error', 'Failed to save stock item');
+      showError(t('common.status.error'), t('stock.recipe.saveError'));
     } finally {
       setSubmitting(false);
     }
-  }, [editingItem, productId, refetchAll, onRecipeChange, success, showError]);
+  }, [editingItem, productId, refetchAll, onRecipeChange, success, showError, t]);
 
-  const columns = [
-    {
-      title: 'Stock Item',
-      dataIndex: 'stockItemName',
-      key: 'stockItemName',
-    },
-    {
-      title: 'Quantity',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      render: (quantity: number, record: ProductStockItem) =>
-        `${quantity} ${record.unitOfMeasure}`,
-    },
-    {
-      title: 'Preferred Brand',
-      dataIndex: 'preferredBrandName',
-      key: 'preferredBrandName',
-      render: (name: string | null) => name || <Text type="secondary">No preference</Text>,
-    },
-    {
-      title: 'Notes',
-      dataIndex: 'notes',
-      key: 'notes',
-      render: (notes: string | null) => notes || <Text type="secondary">-</Text>,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: unknown, record: ProductStockItem) => (
-        <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            Edit
-          </Button>
-          <Popconfirm
-            title="Remove this ingredient?"
-            onConfirm={() => handleDelete(record.stockItemId)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              Remove
+  const columns = useMemo(
+    () => [
+      {
+        title: t('stock.recipe.stockItem'),
+        dataIndex: 'stockItemName',
+        key: 'stockItemName',
+      },
+      {
+        title: t('stock.recipe.quantity'),
+        dataIndex: 'quantity',
+        key: 'quantity',
+        render: (quantity: number, record: ProductStockItem) =>
+          `${quantity} ${record.unitOfMeasure}`,
+      },
+      {
+        title: t('stock.recipe.preferredBrand'),
+        dataIndex: 'preferredBrandName',
+        key: 'preferredBrandName',
+        render: (name: string | null) => name || <Text type="secondary">{t('stock.recipe.noPreference')}</Text>,
+      },
+      {
+        title: t('stock.recipe.notes'),
+        dataIndex: 'notes',
+        key: 'notes',
+        render: (notes: string | null) => notes || <Text type="secondary">-</Text>,
+      },
+      {
+        title: t('common.table.actions'),
+        key: 'action',
+        render: (_: unknown, record: ProductStockItem) => (
+          <Space size="small">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            >
+              {t('common.actions.edit')}
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+            <Popconfirm
+              title={t('stock.recipe.removeConfirm')}
+              onConfirm={() => handleDelete(record.stockItemId)}
+              okText={t('common.confirm.yes')}
+              cancelText={t('common.confirm.no')}
+            >
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                {t('common.actions.remove')}
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [t, handleEdit, handleDelete]
+  );
 
   if (loading) {
     return (
@@ -158,7 +163,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
   if (error) {
     return (
       <Card>
-        <Alert message="Error" description={error.message} type="error" showIcon />
+        <Alert message={t('common.status.error')} description={error.message} type="error" showIcon />
       </Card>
     );
   }
@@ -166,10 +171,10 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
   return (
     <>
       <Card
-        title="Product Recipe"
+        title={t('stock.recipe.title')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Add Ingredient
+            {t('stock.recipe.addIngredient')}
           </Button>
         }
       >
@@ -178,7 +183,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
             message={
               <Space>
                 <DollarOutlined />
-                <Text strong>Estimated Cost: {cost.totalCost.toLocaleString()} VND</Text>
+                <Text strong>{t('stock.recipe.estimatedCost', { cost: cost.totalCost.toLocaleString() })}</Text>
               </Space>
             }
             type="info"
@@ -196,7 +201,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
       </Card>
 
       <Modal
-        title={editingItem ? 'Edit Ingredient' : 'Add Ingredient'}
+        title={editingItem ? t('stock.recipe.editIngredient') : t('stock.recipe.addIngredient')}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
@@ -205,11 +210,11 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="stockItemId"
-            label="Stock Item"
-            rules={[{ required: true, message: 'Please select a stock item' }]}
+            label={t('stock.recipe.stockItem')}
+            rules={[{ required: true, message: t('stock.recipe.selectStockItemRequired') }]}
           >
             <Select
-              placeholder="Select stock item"
+              placeholder={t('stock.recipe.selectStockItem')}
               showSearch
               optionFilterProp="children"
               disabled={!!editingItem}
@@ -224,20 +229,20 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
 
           <Form.Item
             name="quantity"
-            label="Quantity"
-            rules={[{ required: true, message: 'Please enter quantity' }]}
+            label={t('stock.recipe.quantity')}
+            rules={[{ required: true, message: t('stock.recipe.quantityRequired') }]}
           >
             <InputNumber min={0.001} step={0.001} precision={3} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item name="preferredBrandId" label="Preferred Brand">
-            <Select placeholder="Select preferred brand (optional)" allowClear>
+          <Form.Item name="preferredBrandId" label={t('stock.recipe.preferredBrand')}>
+            <Select placeholder={t('stock.recipe.selectPreferredBrand')} allowClear>
               {/* Brands would be loaded based on selected stock item */}
             </Select>
           </Form.Item>
 
-          <Form.Item name="notes" label="Notes">
-            <TextArea rows={3} placeholder="Add any notes about this ingredient" />
+          <Form.Item name="notes" label={t('stock.recipe.notes')}>
+            <TextArea rows={3} placeholder={t('stock.recipe.notesPlaceholder')} />
           </Form.Item>
         </Form>
       </Modal>

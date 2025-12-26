@@ -33,7 +33,11 @@ export const en = {
       clear: 'Clear',
       selectAll: 'Select All',
       deselectAll: 'Deselect All',
+      remove: 'Remove',
     },
+    // Common labels
+    filters: 'Filters',
+    na: 'N/A',
     // Status
     status: {
       loading: 'Loading...',
@@ -49,10 +53,12 @@ export const en = {
       pending: 'Pending',
       completed: 'Completed',
       cancelled: 'Cancelled',
+      failed: 'Failed',
+      label: 'Status',
     },
     // Pagination
     pagination: {
-      total: 'Total {{count}} items',
+      total: 'Total {{total}} items',
       page: 'Page',
       of: 'of',
       items: 'items',
@@ -585,6 +591,18 @@ export const en = {
       edit: 'Edit Item',
       delete: 'Delete Item',
     },
+    // List page
+    list: {
+      name: 'Name',
+      unit: 'Unit',
+      currentQuantity: 'Current Quantity',
+      reorderThreshold: 'Reorder Threshold',
+      allStatus: 'All Status',
+      searchPlaceholder: 'Search by name or description...',
+      filterByStatus: 'Filter by status',
+      deleteTitle: 'Delete Stock Item',
+      deleteConfirm: 'Are you sure you want to delete this stock item?',
+    },
     movements: {
       title: 'Stock Movements',
       subtitle: 'Stock in/out history',
@@ -595,6 +613,29 @@ export const en = {
         adjustment: 'Adjustment',
       },
     },
+    // Movement types
+    movementTypes: {
+      received: 'Received',
+      used: 'Used',
+      adjusted: 'Adjusted',
+      damaged: 'Damaged',
+      expired: 'Expired',
+    },
+    // Movement history
+    movementHistory: {
+      stockItem: 'Stock Item',
+      type: 'Type',
+      quantity: 'Quantity',
+      previous: 'Previous',
+      new: 'New',
+      reason: 'Reason',
+      user: 'User',
+      date: 'Date',
+      movementType: 'Movement Type',
+      loadFailed: 'Failed to load stock movements',
+      loadError: 'An error occurred while fetching stock movement history.',
+      totalMovements: 'Total {{total}} movements',
+    },
     form: {
       product: 'Product',
       quantity: 'Quantity',
@@ -603,6 +644,34 @@ export const en = {
       maxQuantity: 'Maximum Quantity',
       location: 'Location',
       reason: 'Reason',
+      // Form fields
+      name: 'Stock Item Name',
+      description: 'Description',
+      unitOfMeasure: 'Unit of Measure',
+      initialQuantity: 'Initial Quantity',
+      reorderThreshold: 'Reorder Threshold',
+      reorderThresholdTooltip: 'Alert when stock falls below this level',
+      // Placeholders
+      namePlaceholder: 'Enter stock item name (e.g., Flour, Sugar)',
+      descriptionPlaceholder: 'Enter stock item description',
+      unitPlaceholder: 'e.g., kg, liters, pieces',
+      initialQuantityPlaceholder: 'Enter initial quantity',
+      reorderThresholdPlaceholder: 'Enter reorder threshold',
+      // Modal titles
+      createTitle: 'Create Stock Item',
+      editTitle: 'Edit Stock Item',
+      // Validation
+      validation: {
+        nameRequired: 'Stock item name is required',
+        nameMin: 'Stock item name must be at least 1 character',
+        nameMax: 'Stock item name must not exceed 255 characters',
+        descriptionMax: 'Description must not exceed 1000 characters',
+        unitRequired: 'Unit of measure is required',
+        unitMin: 'Unit of measure must be at least 1 character',
+        unitMax: 'Unit of measure must not exceed 50 characters',
+        quantityMin: 'Quantity must be 0 or greater',
+        thresholdMin: 'Threshold must be 0 or greater',
+      },
     },
     status: {
       inStock: 'Available',
@@ -612,6 +681,47 @@ export const en = {
     alerts: {
       lowStockWarning: 'Warning: Some products are running low on stock',
       outOfStockWarning: 'Warning: Some products are out of stock',
+    },
+    // Low stock dashboard
+    lowStockDashboard: {
+      title: 'Low Stock Alert',
+      item: 'Item',
+      currentQuantity: 'Current Quantity',
+      reorderThreshold: 'Reorder Threshold',
+      loadFailed: 'Failed to load stock data',
+      loadError: 'An error occurred while fetching low stock items.',
+      criticalTitle: 'Critical: Items Out of Stock',
+      criticalDescription: '{{count}} item(s) are completely out of stock and need immediate restocking.',
+      warningTitle: 'Low Stock Warning',
+      warningDescription: '{{count}} item(s) are running low and should be reordered soon.',
+      allHealthy: 'All stock items are at healthy levels',
+    },
+    // Product recipe
+    recipe: {
+      title: 'Product Recipe',
+      addIngredient: 'Add Ingredient',
+      editIngredient: 'Edit Ingredient',
+      stockItem: 'Stock Item',
+      quantity: 'Quantity',
+      preferredBrand: 'Preferred Brand',
+      notes: 'Notes',
+      noPreference: 'No preference',
+      removeConfirm: 'Remove this ingredient?',
+      selectStockItem: 'Select stock item',
+      selectStockItemRequired: 'Please select a stock item',
+      quantityRequired: 'Please enter quantity',
+      selectPreferredBrand: 'Select preferred brand (optional)',
+      notesPlaceholder: 'Add any notes about this ingredient',
+      estimatedCost: 'Estimated Cost: {{cost}} VND',
+      // Notifications
+      added: 'Added',
+      addedMessage: 'Stock item added to product successfully',
+      updated: 'Updated',
+      updatedMessage: 'Stock item updated successfully',
+      removed: 'Removed',
+      removedMessage: 'Stock item removed from product successfully',
+      saveError: 'Failed to save stock item',
+      removeError: 'Failed to remove stock item from product',
     },
     notifications: {
       created: 'Stock Item Created',

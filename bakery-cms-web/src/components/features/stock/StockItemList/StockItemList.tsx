@@ -3,7 +3,7 @@
  * Coordinates stock item table, form, and filters
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Button, Table, Tag, Space, Popconfirm, Input, Select, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
@@ -34,25 +34,6 @@ const getStatusColor = (status: StockItemStatus): string => {
   }
 };
 
-const getStatusLabel = (status: StockItemStatus): string => {
-  switch (status) {
-    case StockItemStatus.AVAILABLE:
-      return 'Available';
-    case StockItemStatus.LOW_STOCK:
-      return 'Low Stock';
-    case StockItemStatus.OUT_OF_STOCK:
-      return 'Out of Stock';
-    default:
-      return status;
-  }
-};
-
-const statusOptions = [
-  { value: '', label: 'All Status' },
-  { value: StockItemStatus.AVAILABLE, label: 'Available' },
-  { value: StockItemStatus.LOW_STOCK, label: 'Low Stock' },
-  { value: StockItemStatus.OUT_OF_STOCK, label: 'Out of Stock' },
-];
 
 export const StockItemList: React.FC<StockItemListProps> = ({
   stockItems,
@@ -67,6 +48,28 @@ export const StockItemList: React.FC<StockItemListProps> = ({
 }) => {
   const { t } = useTranslation();
   const { success, error } = useNotification();
+
+  const getStatusLabel = useMemo(
+    () => (status: StockItemStatus): string => {
+      const labelMap: Record<StockItemStatus, string> = {
+        [StockItemStatus.AVAILABLE]: t('stock.status.inStock'),
+        [StockItemStatus.LOW_STOCK]: t('stock.status.lowStock'),
+        [StockItemStatus.OUT_OF_STOCK]: t('stock.status.outOfStock'),
+      };
+      return labelMap[status] || status;
+    },
+    [t]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: '', label: t('stock.list.allStatus') },
+      { value: StockItemStatus.AVAILABLE, label: t('stock.status.inStock') },
+      { value: StockItemStatus.LOW_STOCK, label: t('stock.status.lowStock') },
+      { value: StockItemStatus.OUT_OF_STOCK, label: t('stock.status.outOfStock') },
+    ],
+    [t]
+  );
 
   const handleEdit = useCallback(
     (stockItem: StockItem) => {
@@ -130,81 +133,84 @@ export const StockItemList: React.FC<StockItemListProps> = ({
     [filters, onFiltersChange, onTableChange]
   );
 
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      sorter: true,
-      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'name'),
-    },
-    {
-      title: 'Unit',
-      dataIndex: 'unitOfMeasure',
-      key: 'unitOfMeasure',
-    },
-    {
-      title: 'Current Quantity',
-      dataIndex: 'currentQuantity',
-      key: 'currentQuantity',
-      sorter: true,
-      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'currentQuantity'),
-      render: (quantity: number, record: StockItem) =>
-        `${quantity} ${record.unitOfMeasure}`,
-    },
-    {
-      title: 'Reorder Threshold',
-      dataIndex: 'reorderThreshold',
-      key: 'reorderThreshold',
-      render: (threshold: number | null, record: StockItem) =>
-        threshold !== null ? `${threshold} ${record.unitOfMeasure}` : 'N/A',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      sorter: true,
-      sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'status'),
-      render: (status: StockItemStatus) => (
-        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, record: StockItem) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => onView(record.id)}
-            size="small"
-          >
-            View
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-          >
-            Edit
-          </Button>
-          <Popconfirm
-            title="Delete Stock Item"
-            description="Are you sure you want to delete this stock item?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />} size="small">
-              Delete
+  const columns = useMemo(
+    () => [
+      {
+        title: t('stock.list.name'),
+        dataIndex: 'name',
+        key: 'name',
+        sorter: true,
+        sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'name'),
+      },
+      {
+        title: t('stock.list.unit'),
+        dataIndex: 'unitOfMeasure',
+        key: 'unitOfMeasure',
+      },
+      {
+        title: t('stock.list.currentQuantity'),
+        dataIndex: 'currentQuantity',
+        key: 'currentQuantity',
+        sorter: true,
+        sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'currentQuantity'),
+        render: (quantity: number, record: StockItem) =>
+          `${quantity} ${record.unitOfMeasure}`,
+      },
+      {
+        title: t('stock.list.reorderThreshold'),
+        dataIndex: 'reorderThreshold',
+        key: 'reorderThreshold',
+        render: (threshold: number | null, record: StockItem) =>
+          threshold !== null ? `${threshold} ${record.unitOfMeasure}` : t('common.na'),
+      },
+      {
+        title: t('common.status.label'),
+        dataIndex: 'status',
+        key: 'status',
+        sorter: true,
+        sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'status'),
+        render: (status: StockItemStatus) => (
+          <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+        ),
+      },
+      {
+        title: t('common.table.actions'),
+        key: 'actions',
+        render: (_: unknown, record: StockItem) => (
+          <Space size="small">
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              onClick={() => onView(record.id)}
+              size="small"
+            >
+              {t('common.actions.view')}
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              size="small"
+            >
+              {t('common.actions.edit')}
+            </Button>
+            <Popconfirm
+              title={t('stock.list.deleteTitle')}
+              description={t('stock.list.deleteConfirm')}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t('common.confirm.yes')}
+              cancelText={t('common.confirm.no')}
+            >
+              <Button type="link" danger icon={<DeleteOutlined />} size="small">
+                {t('common.actions.delete')}
+              </Button>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [t, filters.sortBy, filters.sortOrder, getStatusLabel, onView, handleEdit, handleDelete]
+  );
 
   return (
     <div>
@@ -221,7 +227,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={8}>
           <Search
-            placeholder="Search by name or description..."
+            placeholder={t('stock.list.searchPlaceholder')}
             allowClear
             onSearch={handleSearch}
             defaultValue={filters.search}
@@ -230,7 +236,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Select
-            placeholder="Filter by status"
+            placeholder={t('stock.list.filterByStatus')}
             style={{ width: '100%' }}
             value={filters.status || ''}
             onChange={handleStatusChange}
@@ -249,7 +255,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
           pageSize: pagination.pageSize,
           total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} items`,
+          showTotal: (total) => t('common.pagination.total', { total }),
           pageSizeOptions: ['10', '20', '50', '100'],
         }}
         onChange={handleTableChange}
