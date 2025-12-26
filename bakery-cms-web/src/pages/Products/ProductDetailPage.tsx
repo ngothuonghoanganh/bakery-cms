@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Popconfirm } from 'antd';
 import { ProductDetail } from '../../components/features/products/ProductDetail/ProductDetail';
@@ -11,6 +12,7 @@ import type { Product } from '../../types/models/product.model';
 import type { ProductFormValues } from '../../components/features/products/ProductForm/ProductForm.types';
 
 export const ProductDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { success, error } = useNotification();
@@ -29,10 +31,10 @@ export const ProductDetailPage: React.FC = () => {
     if (result.success) {
       setProduct(result.data);
     } else {
-      error('Failed to Load', result.error.message);
+      error(t('products.notifications.operationFailed', 'Operation Failed'), result.error.message);
     }
     setLoading(false);
-  }, [id, error]);
+  }, [id, error, t]);
 
   useEffect(() => {
     fetchProduct();
@@ -51,19 +53,19 @@ export const ProductDetailPage: React.FC = () => {
         const result = await updateProduct(id, values);
 
         if (result.success) {
-          success('Product Updated', 'Product has been updated successfully');
+          success(t('products.notifications.updated', 'Product Updated'), t('products.notifications.updatedMessage', 'Product has been updated successfully'));
           setProduct(result.data);
           close();
         } else {
           throw new Error(result.error.message);
         }
       } catch (err) {
-        error('Update Failed', err instanceof Error ? err.message : 'An error occurred');
+        error(t('products.notifications.operationFailed', 'Update Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
       } finally {
         setFormLoading(false);
       }
     },
-    [id, success, error, close]
+    [id, success, error, close, t]
   );
 
   const handleDelete = useCallback(async () => {
@@ -72,28 +74,28 @@ export const ProductDetailPage: React.FC = () => {
     const result = await deleteProduct(id);
 
     if (result.success) {
-      success('Product Deleted', 'Product has been deleted successfully');
+      success(t('products.notifications.deleted', 'Product Deleted'), t('products.notifications.deletedMessage', 'Product has been deleted successfully'));
       navigate('/products');
     } else {
-      error('Delete Failed', result.error.message);
+      error(t('products.notifications.deleteFailed', 'Delete Failed'), result.error.message);
     }
-  }, [id, success, error, navigate]);
+  }, [id, success, error, navigate, t]);
 
   const handleBack = useCallback(() => {
     navigate('/products');
   }, [navigate]);
 
   if (loading) {
-    return <LoadingSpinner tip="Loading product..." />;
+    return <LoadingSpinner tip={t('common.status.loading', 'Loading...')} />;
   }
 
   if (!product) {
     return (
       <EmptyState
-        description="Product not found"
+        description={t('products.list.noProducts', 'Product not found')}
         action={
           <button onClick={handleBack} className="ant-btn ant-btn-primary">
-            Back to Products
+            {t('products.detail.backToList', 'Back to Products')}
           </button>
         }
       />
@@ -103,11 +105,11 @@ export const ProductDetailPage: React.FC = () => {
   return (
     <>
       <Popconfirm
-        title="Delete Product"
-        description="Are you sure you want to delete this product?"
+        title={t('products.delete', 'Delete Product')}
+        description={t('products.deleteConfirm', 'Are you sure you want to delete this product?')}
         onConfirm={handleDelete}
-        okText="Yes"
-        cancelText="No"
+        okText={t('common.confirm.yes', 'Yes')}
+        cancelText={t('common.confirm.no', 'No')}
         okButtonProps={{ danger: true }}
       >
         <div style={{ display: 'none' }} id="delete-trigger" />

@@ -1,15 +1,29 @@
 /**
  * Main App Component
- * Configures Ant Design theme, routing, authentication, and error boundaries
+ * Configures Ant Design theme, routing, authentication, i18n, and error boundaries
  */
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
+import enUS from 'antd/es/locale/en_US';
+import viVN from 'antd/es/locale/vi_VN';
 import { useThemeStore } from './stores/themeStore';
+import { useLanguage, useInitializeLanguage } from './stores/languageStore';
 import { lightTheme, darkTheme } from './config/theme.config';
 import { DashboardLayout, ErrorBoundary, LoadingSpinner } from './components/shared';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { setDayjsLocale } from './i18n/utils/locale.utils';
+import type { SupportedLanguage } from './i18n/types';
+
+// Import i18n configuration (initializes i18next)
+import './i18n';
+
+// Ant Design locale map
+const antdLocales: Record<SupportedLanguage, typeof enUS> = {
+  en: enUS,
+  vi: viVN,
+};
 
 // TEMPORARY TEST: Verify @bakery-cms/common import resolution
 import { UserRole, PaymentMethod } from '@bakery-cms/common';
@@ -87,12 +101,25 @@ import './styles/antd-overrides.less';
 
 export const App = (): React.JSX.Element => {
   const { mode } = useThemeStore();
+  const language = useLanguage();
+  const initializeLanguage = useInitializeLanguage();
 
   const theme = mode === 'light' ? lightTheme : darkTheme;
+  const antdLocale = antdLocales[language];
+
+  // Initialize language on mount
+  useEffect(() => {
+    initializeLanguage();
+  }, [initializeLanguage]);
+
+  // Sync dayjs locale when language changes
+  useEffect(() => {
+    setDayjsLocale(language);
+  }, [language]);
 
   return (
     <ErrorBoundary>
-      <ConfigProvider theme={theme}>
+      <ConfigProvider theme={theme} locale={antdLocale}>
         <AntApp>
           <Router>
             <Suspense fallback={<LoadingSpinner fullScreen />}>

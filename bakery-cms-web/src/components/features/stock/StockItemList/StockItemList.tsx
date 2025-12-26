@@ -7,6 +7,7 @@ import React, { useCallback } from 'react';
 import { Button, Table, Tag, Space, Popconfirm, Input, Select, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
 import { useNotification } from '../../../../hooks/useNotification';
 import { StockItemStatus } from '../../../../types/models/stock.model';
@@ -64,6 +65,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
   onDelete,
   onView,
 }) => {
+  const { t } = useTranslation();
   const { success, error } = useNotification();
 
   const handleEdit = useCallback(
@@ -77,12 +79,12 @@ export const StockItemList: React.FC<StockItemListProps> = ({
     async (id: string) => {
       try {
         await onDelete(id);
-        success('Stock Item Deleted', 'Stock item has been deleted successfully');
+        success(t('stock.notifications.deleted', 'Stock Item Deleted'), t('stock.notifications.deletedMessage', 'Stock item has been deleted successfully'));
       } catch (err) {
-        error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete stock item');
+        error(t('stock.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('stock.notifications.deleteError', 'Failed to delete stock item'));
       }
     },
-    [onDelete, success, error]
+    [onDelete, success, error, t]
   );
 
   const handleSearch = useCallback(
@@ -207,11 +209,11 @@ export const StockItemList: React.FC<StockItemListProps> = ({
   return (
     <div>
       <PageHeader
-        title="Stock Items"
-        subtitle="Manage your stock items and inventory"
+        title={t('stock.items.title')}
+        subtitle={t('stock.items.subtitle')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={onCreateClick}>
-            Add Stock Item
+            {t('stock.items.add')}
           </Button>
         }
       />

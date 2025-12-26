@@ -2,6 +2,7 @@
 export type RouteConfig = {
   path: string;
   title?: string;
+  titleKey?: string; // i18n translation key
   icon?: string; // Icon component name
   hideInMenu?: boolean;
   component: string; // Component import path
@@ -12,12 +13,14 @@ export const routesConfig: RouteConfig[] = [
   {
     path: '/',
     title: 'Dashboard',
+    titleKey: 'dashboard.title',
     icon: 'DashboardOutlined',
     component: '@/pages/Dashboard/DashboardPage',
   },
   {
     path: '/products',
     title: 'Products',
+    titleKey: 'products.title',
     icon: 'ShoppingOutlined',
     component: '@/pages/ProductsPage',
   },
@@ -29,6 +32,7 @@ export const routesConfig: RouteConfig[] = [
   {
     path: '/orders',
     title: 'Orders',
+    titleKey: 'orders.title',
     icon: 'FileTextOutlined',
     component: '@/pages/OrdersPage',
   },
@@ -40,6 +44,7 @@ export const routesConfig: RouteConfig[] = [
   {
     path: '/payments',
     title: 'Payments',
+    titleKey: 'payments.title',
     icon: 'CreditCardOutlined',
     component: '@/pages/Payments/PaymentsPage',
   },
@@ -51,6 +56,7 @@ export const routesConfig: RouteConfig[] = [
   {
     path: '/stock/items',
     title: 'Stock Items',
+    titleKey: 'stock.items.title',
     icon: 'InboxOutlined',
     component: '@/pages/stock/StockItemsPage',
   },
@@ -62,6 +68,7 @@ export const routesConfig: RouteConfig[] = [
   {
     path: '/stock/movements',
     title: 'Stock Movements',
+    titleKey: 'stock.movements.title',
     icon: 'HistoryOutlined',
     component: '@/pages/stock/StockMovementsPage',
   },
@@ -76,6 +83,7 @@ export const routesConfig: RouteConfig[] = [
 export const getMenuItems = (): Array<{
   path: string;
   name: string;
+  titleKey: string;
   icon: string;
 }> => {
   return routesConfig
@@ -83,6 +91,7 @@ export const getMenuItems = (): Array<{
     .map((route) => ({
       path: route.path,
       name: route.title!,
+      titleKey: route.titleKey!,
       icon: route.icon!,
     }));
 };

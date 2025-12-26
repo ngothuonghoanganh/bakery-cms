@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -81,23 +82,24 @@ const getStatusColor = (status: StockItemStatus): string => {
   }
 };
 
-const getStatusLabel = (status: StockItemStatus): string => {
-  switch (status) {
-    case StockItemStatus.AVAILABLE:
-      return 'Available';
-    case StockItemStatus.LOW_STOCK:
-      return 'Low Stock';
-    case StockItemStatus.OUT_OF_STOCK:
-      return 'Out of Stock';
-    default:
-      return status;
-  }
-};
-
 export const StockItemDetailPage = (): React.JSX.Element => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { success, error: notifyError } = useNotification();
+
+  const getStatusLabel = (status: StockItemStatus): string => {
+    switch (status) {
+      case StockItemStatus.AVAILABLE:
+        return t('stock.status.inStock', 'Available');
+      case StockItemStatus.LOW_STOCK:
+        return t('stock.status.lowStock', 'Low Stock');
+      case StockItemStatus.OUT_OF_STOCK:
+        return t('stock.status.outOfStock', 'Out of Stock');
+      default:
+        return status;
+    }
+  };
 
   const [stockItem, setStockItem] = useState<StockItem | null>(null);
   const [stockItemBrands, setStockItemBrands] = useState<StockItemBrand[]>([]);
@@ -126,14 +128,14 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       if (result.success && result.data) {
         setStockItem(result.data);
       } else {
-        notifyError('Error', 'Failed to load stock item');
+        notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
       }
     } catch (err) {
-      notifyError('Error', 'Failed to load stock item');
+      notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
     } finally {
       setLoading(false);
     }
-  }, [id, notifyError]);
+  }, [id, notifyError, t]);
 
   const fetchStockItemBrands = useCallback(async () => {
     if (!id) return;
@@ -164,7 +166,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       });
 
       if (result.success) {
-        success('Stock Received', `Successfully received ${values.quantity} units`);
+        success(t('stock.detail.stockReceived', 'Stock Received'), t('stock.detail.stockReceivedMessage', 'Successfully received {{quantity}} units', { quantity: values.quantity }));
         setReceiveModalVisible(false);
         receiveForm.resetFields();
         fetchStockItem();
@@ -173,11 +175,11 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         throw new Error(result.error.message);
       }
     } catch (err) {
-      notifyError('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+      notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
     } finally {
       setOperationLoading(false);
     }
-  }, [id, success, notifyError, receiveForm, fetchStockItem]);
+  }, [id, success, notifyError, receiveForm, fetchStockItem, t]);
 
   const handleAdjustStock = useCallback(
     async (values: { quantity: number; reason: string }) => {
@@ -191,7 +193,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success('Stock Adjusted', `Successfully adjusted stock by ${values.quantity} units`);
+          success(t('stock.detail.stockAdjusted', 'Stock Adjusted'), t('stock.detail.stockAdjustedMessage', 'Successfully adjusted stock by {{quantity}} units', { quantity: values.quantity }));
           setAdjustModalVisible(false);
           adjustForm.resetFields();
           fetchStockItem();
@@ -200,12 +202,12 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           throw new Error(result.error.message);
         }
       } catch (err) {
-        notifyError('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
       } finally {
         setOperationLoading(false);
       }
     },
-    [id, success, notifyError, adjustForm, fetchStockItem]
+    [id, success, notifyError, adjustForm, fetchStockItem, t]
   );
 
   // Brand CRUD handlers
@@ -250,7 +252,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       if (isCreatingNewBrand && values.newBrandName) {
         const createResult = await createBrand({ name: values.newBrandName });
         if (!createResult.success) {
-          notifyError('Failed to Create Brand', createResult.error.message);
+          notifyError(t('stock.detail.brandCreateFailed', 'Failed to Create Brand'), createResult.error.message);
           return;
         }
         console.log('Created brand:', createResult.data);
@@ -259,7 +261,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       }
 
       if (!brandId) {
-        notifyError('Error', 'Please select or create a brand');
+        notifyError(t('common.status.error', 'Error'), t('stock.detail.selectOrCreateBrand', 'Please select or create a brand'));
         return;
       }
 
@@ -271,11 +273,11 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success('Brand Price Updated', 'Brand pricing has been updated successfully.');
+          success(t('stock.detail.brandPriceUpdated', 'Brand Price Updated'), t('stock.detail.brandPriceUpdatedMessage', 'Brand pricing has been updated successfully.'));
           handleBrandModalCancel();
           fetchStockItemBrands();
         } else {
-          notifyError('Update Failed', result.error.message);
+          notifyError(t('stock.notifications.operationFailed', 'Update Failed'), result.error.message);
         }
       } else {
         // Add new brand to stock item
@@ -286,11 +288,11 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success('Brand Added', 'Brand has been added to this stock item.');
+          success(t('stock.detail.brandAdded', 'Brand Added'), t('stock.detail.brandAddedMessage', 'Brand has been added to this stock item.'));
           handleBrandModalCancel();
           fetchStockItemBrands();
         } else {
-          notifyError('Add Failed', result.error.message);
+          notifyError(t('stock.notifications.operationFailed', 'Add Failed'), result.error.message);
         }
       }
     } catch (err) {
@@ -308,6 +310,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     handleBrandModalCancel,
     fetchStockItemBrands,
     refetchAllBrands,
+    t,
   ]);
 
   const handleRemoveBrand = useCallback(
@@ -316,13 +319,13 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       const result = await removeBrandFromStockItem(id, brandPrice.brandId);
       if (result.success) {
-        success('Brand Removed', `Brand "${brandPrice.brandName}" has been removed from this stock item.`);
+        success(t('stock.detail.brandRemoved', 'Brand Removed'), t('stock.detail.brandRemovedMessage', 'Brand "{{brandName}}" has been removed from this stock item.', { brandName: brandPrice.brandName }));
         fetchStockItemBrands();
       } else {
-        notifyError('Remove Failed', result.error.message);
+        notifyError(t('stock.notifications.operationFailed', 'Remove Failed'), result.error.message);
       }
     },
-    [id, success, notifyError, fetchStockItemBrands]
+    [id, success, notifyError, fetchStockItemBrands, t]
   );
 
   const handleSetPreferred = useCallback(
@@ -331,13 +334,13 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       const result = await setPreferredBrand(id, brandPrice.brandId);
       if (result.success) {
-        success('Preferred Brand Set', `"${brandPrice.brandName}" is now the preferred brand.`);
+        success(t('stock.detail.preferredBrandSet', 'Preferred Brand Set'), t('stock.detail.preferredBrandSetMessage', '"{{brandName}}" is now the preferred brand.', { brandName: brandPrice.brandName }));
         fetchStockItemBrands();
       } else {
-        notifyError('Operation Failed', result.error.message);
+        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), result.error.message);
       }
     },
-    [id, success, notifyError, fetchStockItemBrands]
+    [id, success, notifyError, fetchStockItemBrands, t]
   );
 
   // Filter out already associated brands from the dropdown
@@ -348,30 +351,30 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   // Brand table columns
   const brandColumns: ColumnsType<StockItemBrand> = [
     {
-      title: 'Brand',
+      title: t('stock.detail.brand', 'Brand'),
       dataIndex: 'brandName',
       key: 'brandName',
       render: (name: string, record: StockItemBrand) => (
         <Space>
           {name}
-          {record.isPreferred && <Tag color="gold">Preferred</Tag>}
+          {record.isPreferred && <Tag color="gold">{t('stock.detail.preferred', 'Preferred')}</Tag>}
         </Space>
       ),
     },
     {
-      title: 'Price Before Tax',
+      title: t('stock.detail.priceBeforeTax', 'Price Before Tax'),
       dataIndex: 'priceBeforeTax',
       key: 'priceBeforeTax',
       render: (price: number) => `${price.toLocaleString()} VND`,
     },
     {
-      title: 'Price After Tax',
+      title: t('stock.detail.priceAfterTax', 'Price After Tax'),
       dataIndex: 'priceAfterTax',
       key: 'priceAfterTax',
       render: (price: number) => `${price.toLocaleString()} VND`,
     },
     {
-      title: 'Actions',
+      title: t('common.table.actions', 'Actions'),
       key: 'actions',
       width: 180,
       render: (_: unknown, record: StockItemBrand) => (
@@ -381,21 +384,21 @@ export const StockItemDetailPage = (): React.JSX.Element => {
               type="text"
               icon={<StarOutlined />}
               onClick={() => handleSetPreferred(record)}
-              title="Set as Preferred"
+              title={t('stock.detail.setAsPreferred', 'Set as Preferred')}
             />
           )}
           {record.isPreferred && (
-            <Button type="text" icon={<StarFilled style={{ color: '#faad14' }} />} disabled title="Preferred" />
+            <Button type="text" icon={<StarFilled style={{ color: '#faad14' }} />} disabled title={t('stock.detail.preferred', 'Preferred')} />
           )}
-          <Button type="text" icon={<EditOutlined />} onClick={() => openEditBrandModal(record)} title="Edit Price" />
+          <Button type="text" icon={<EditOutlined />} onClick={() => openEditBrandModal(record)} title={t('stock.detail.editPrice', 'Edit Price')} />
           <Popconfirm
-            title="Remove Brand"
-            description="Remove this brand from the stock item?"
+            title={t('stock.detail.removeBrand', 'Remove Brand')}
+            description={t('stock.detail.removeBrandConfirm', 'Remove this brand from the stock item?')}
             onConfirm={() => handleRemoveBrand(record)}
-            okText="Yes"
-            cancelText="No"
+            okText={t('common.confirm.yes', 'Yes')}
+            cancelText={t('common.confirm.no', 'No')}
           >
-            <Button type="text" danger icon={<DeleteOutlined />} title="Remove" />
+            <Button type="text" danger icon={<DeleteOutlined />} title={t('common.actions.delete', 'Remove')} />
           </Popconfirm>
         </Space>
       ),
@@ -413,9 +416,9 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   if (!stockItem) {
     return (
       <div style={{ textAlign: 'center', padding: 48 }}>
-        <Title level={4}>Stock item not found</Title>
+        <Title level={4}>{t('stock.detail.notFound', 'Stock item not found')}</Title>
         <Button type="primary" onClick={() => navigate('/stock/items')}>
-          Back to Stock Items
+          {t('stock.detail.backToList', 'Back to Stock Items')}
         </Button>
       </div>
     );
@@ -427,7 +430,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       label: (
         <span>
           <EditOutlined />
-          Overview
+          {t('stock.detail.overview', 'Overview')}
         </span>
       ),
       children: (
@@ -436,7 +439,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="Current Quantity"
+                  title={t('stock.detail.currentQuantity', 'Current Quantity')}
                   value={stockItem.currentQuantity}
                   suffix={stockItem.unitOfMeasure}
                   valueStyle={{
@@ -453,21 +456,21 @@ export const StockItemDetailPage = (): React.JSX.Element => {
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <Statistic
-                  title="Reorder Threshold"
-                  value={stockItem.reorderThreshold ?? 'N/A'}
+                  title={t('stock.detail.reorderThreshold', 'Reorder Threshold')}
+                  value={stockItem.reorderThreshold ?? t('common.na', 'N/A')}
                   suffix={stockItem.reorderThreshold !== null ? stockItem.unitOfMeasure : ''}
                 />
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card>
-                <Statistic title="Unit of Measure" value={stockItem.unitOfMeasure} />
+                <Statistic title={t('stock.detail.unitOfMeasure', 'Unit of Measure')} value={stockItem.unitOfMeasure} />
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card>
                 <div style={{ marginBottom: 8 }}>
-                  <Text type="secondary">Status</Text>
+                  <Text type="secondary">{t('common.status.active', 'Status')}</Text>
                 </div>
                 <Tag color={getStatusColor(stockItem.status)} style={{ fontSize: 16, padding: '4px 12px' }}>
                   {getStatusLabel(stockItem.status)}
@@ -478,16 +481,16 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
           <Divider />
 
-          <Descriptions title="Details" bordered column={{ xs: 1, sm: 2, md: 2 }}>
-            <Descriptions.Item label="Name">{stockItem.name}</Descriptions.Item>
-            <Descriptions.Item label="Unit">{stockItem.unitOfMeasure}</Descriptions.Item>
-            <Descriptions.Item label="Description" span={2}>
-              {stockItem.description || 'No description'}
+          <Descriptions title={t('common.actions.details', 'Details')} bordered column={{ xs: 1, sm: 2, md: 2 }}>
+            <Descriptions.Item label={t('stock.detail.name', 'Name')}>{stockItem.name}</Descriptions.Item>
+            <Descriptions.Item label={t('stock.form.unit', 'Unit')}>{stockItem.unitOfMeasure}</Descriptions.Item>
+            <Descriptions.Item label={t('stock.detail.description', 'Description')} span={2}>
+              {stockItem.description || t('stock.detail.noDescription', 'No description')}
             </Descriptions.Item>
-            <Descriptions.Item label="Created">
+            <Descriptions.Item label={t('stock.detail.created', 'Created')}>
               {new Date(stockItem.createdAt).toLocaleDateString()}
             </Descriptions.Item>
-            <Descriptions.Item label="Last Updated">
+            <Descriptions.Item label={t('stock.detail.lastUpdated', 'Last Updated')}>
               {new Date(stockItem.updatedAt).toLocaleDateString()}
             </Descriptions.Item>
           </Descriptions>
@@ -499,19 +502,19 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       label: (
         <span>
           <TagsOutlined />
-          Brands & Pricing ({stockItemBrands.length})
+          {t('stock.detail.brandsPricing', 'Brands & Pricing')} ({stockItemBrands.length})
         </span>
       ),
       children: (
         <div>
           <div style={{ marginBottom: 16 }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={openAddBrandModal}>
-              Add Brand
+              {t('stock.detail.addBrand', 'Add Brand')}
             </Button>
           </div>
 
           {stockItemBrands.length === 0 ? (
-            <Empty description="No brands associated with this stock item. Add a brand to set pricing." />
+            <Empty description={t('stock.detail.noBrands', 'No brands associated with this stock item. Add a brand to set pricing.')} />
           ) : (
             <Table<StockItemBrand>
               columns={brandColumns}
@@ -528,7 +531,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       label: (
         <span>
           <HistoryOutlined />
-          Movement History
+          {t('stock.detail.movementHistory', 'Movement History')}
         </span>
       ),
       children: <StockMovementHistory stockItemId={id} key={refreshKey} showStockItemColumn={false} />,
@@ -539,17 +542,17 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     <>
       <PageHeader
         title={stockItem.name}
-        subtitle={`Stock Item Details - ${stockItem.unitOfMeasure}`}
+        subtitle={t('stock.detail.subtitle', 'Stock Item Details - {{unit}}', { unit: stockItem.unitOfMeasure })}
         extra={
           <Space>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/stock/items')}>
-              Back
+              {t('common.actions.back', 'Back')}
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setReceiveModalVisible(true)}>
-              Receive Stock
+              {t('stock.detail.receiveStock', 'Receive Stock')}
             </Button>
             <Button icon={<MinusOutlined />} onClick={() => setAdjustModalVisible(true)}>
-              Adjust Stock
+              {t('stock.detail.adjustStock', 'Adjust Stock')}
             </Button>
           </Space>
         }
@@ -561,7 +564,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       {/* Receive Stock Modal */}
       <Modal
-        title="Receive Stock"
+        title={t('stock.detail.receiveStock', 'Receive Stock')}
         open={receiveModalVisible}
         onCancel={() => {
           setReceiveModalVisible(false);
@@ -572,16 +575,16 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         <Form form={receiveForm} layout="vertical" onFinish={handleReceiveStock}>
           <Form.Item
             name="quantity"
-            label={`Quantity (${stockItem.unitOfMeasure})`}
+            label={t('stock.detail.quantityWithUnit', 'Quantity ({{unit}})', { unit: stockItem.unitOfMeasure })}
             rules={[
-              { required: true, message: 'Please enter quantity' },
-              { type: 'number', min: 0.001, message: 'Quantity must be greater than 0' },
+              { required: true, message: t('validation.required', 'Please enter quantity', { field: t('stock.form.quantity', 'Quantity') }) },
+              { type: 'number', min: 0.001, message: t('stock.detail.quantityMustBeGreater', 'Quantity must be greater than 0') },
             ]}
           >
             <InputNumber style={{ width: '100%' }} min={0.001} step={0.001} precision={3} />
           </Form.Item>
-          <Form.Item name="reason" label="Reason (optional)">
-            <TextArea rows={3} placeholder="e.g., Supplier delivery, Purchase order #123" />
+          <Form.Item name="reason" label={t('stock.detail.reasonOptional', 'Reason (optional)')}>
+            <TextArea rows={3} placeholder={t('stock.detail.receiveReasonPlaceholder', 'e.g., Supplier delivery, Purchase order #123')} />
           </Form.Item>
           <Form.Item>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
@@ -591,10 +594,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                   receiveForm.resetFields();
                 }}
               >
-                Cancel
+                {t('common.actions.cancel', 'Cancel')}
               </Button>
               <Button type="primary" htmlType="submit" loading={operationLoading}>
-                Receive Stock
+                {t('stock.detail.receiveStock', 'Receive Stock')}
               </Button>
             </Space>
           </Form.Item>
@@ -603,7 +606,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       {/* Adjust Stock Modal */}
       <Modal
-        title="Adjust Stock"
+        title={t('stock.detail.adjustStock', 'Adjust Stock')}
         open={adjustModalVisible}
         onCancel={() => {
           setAdjustModalVisible(false);
@@ -614,21 +617,21 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         <Form form={adjustForm} layout="vertical" onFinish={handleAdjustStock}>
           <Form.Item
             name="quantity"
-            label={`Quantity Change (${stockItem.unitOfMeasure})`}
+            label={t('stock.detail.quantityChangeWithUnit', 'Quantity Change ({{unit}})', { unit: stockItem.unitOfMeasure })}
             rules={[
-              { required: true, message: 'Please enter quantity' },
-              { type: 'number', message: 'Please enter a valid number' },
+              { required: true, message: t('validation.required', 'Please enter quantity', { field: t('stock.form.quantity', 'Quantity') }) },
+              { type: 'number', message: t('validation.number', 'Please enter a valid number') },
             ]}
-            extra="Use positive number to add, negative to deduct"
+            extra={t('stock.detail.adjustmentHint', 'Use positive number to add, negative to deduct')}
           >
             <InputNumber style={{ width: '100%' }} step={0.001} precision={3} />
           </Form.Item>
           <Form.Item
             name="reason"
-            label="Reason"
-            rules={[{ required: true, message: 'Please provide a reason for this adjustment' }]}
+            label={t('stock.form.reason', 'Reason')}
+            rules={[{ required: true, message: t('stock.detail.reasonRequired', 'Please provide a reason for this adjustment') }]}
           >
-            <TextArea rows={3} placeholder="e.g., Inventory count correction, Damaged during storage" />
+            <TextArea rows={3} placeholder={t('stock.detail.adjustReasonPlaceholder', 'e.g., Inventory count correction, Damaged during storage')} />
           </Form.Item>
           <Form.Item>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
@@ -638,10 +641,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                   adjustForm.resetFields();
                 }}
               >
-                Cancel
+                {t('common.actions.cancel', 'Cancel')}
               </Button>
               <Button type="primary" htmlType="submit" loading={operationLoading}>
-                Adjust Stock
+                {t('stock.detail.adjustStock', 'Adjust Stock')}
               </Button>
             </Space>
           </Form.Item>
@@ -650,27 +653,27 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       {/* Add/Edit Brand Price Modal */}
       <Modal
-        title={editingBrandPrice ? 'Edit Brand Price' : 'Add Brand to Stock Item'}
+        title={editingBrandPrice ? t('stock.detail.editBrandPrice', 'Edit Brand Price') : t('stock.detail.addBrandToItem', 'Add Brand to Stock Item')}
         open={brandModalVisible}
         onCancel={handleBrandModalCancel}
         onOk={handleBrandPriceSubmit}
         confirmLoading={operationLoading}
-        okText={editingBrandPrice ? 'Update' : 'Add'}
+        okText={editingBrandPrice ? t('common.actions.update', 'Update') : t('common.actions.add', 'Add')}
       >
         <Form form={brandPriceForm} layout="vertical" requiredMark="optional">
           {!editingBrandPrice && (
             <>
-              <Form.Item label="Brand Selection">
+              <Form.Item label={t('stock.detail.brandSelection', 'Brand Selection')}>
                 <Space direction="vertical" style={{ width: '100%' }}>
                   {!isCreatingNewBrand ? (
                     <>
                       <Form.Item
                         name="brandId"
                         noStyle
-                        rules={[{ required: !isCreatingNewBrand, message: 'Please select a brand' }]}
+                        rules={[{ required: !isCreatingNewBrand, message: t('stock.detail.pleaseSelectBrand', 'Please select a brand') }]}
                       >
                         <Select
-                          placeholder="Select an existing brand"
+                          placeholder={t('stock.detail.selectExistingBrand', 'Select an existing brand')}
                           style={{ width: '100%' }}
                           showSearch
                           optionFilterProp="children"
@@ -684,7 +687,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                         </Select>
                       </Form.Item>
                       <Button type="link" onClick={() => setIsCreatingNewBrand(true)} style={{ padding: 0 }}>
-                        + Create New Brand
+                        + {t('stock.detail.createNewBrand', 'Create New Brand')}
                       </Button>
                     </>
                   ) : (
@@ -693,14 +696,14 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                         name="newBrandName"
                         noStyle
                         rules={[
-                          { required: isCreatingNewBrand, message: 'Please enter brand name' },
-                          { min: 1, message: 'Brand name is required' },
+                          { required: isCreatingNewBrand, message: t('stock.detail.pleaseEnterBrandName', 'Please enter brand name') },
+                          { min: 1, message: t('stock.detail.brandNameRequired', 'Brand name is required') },
                         ]}
                       >
-                        <Input placeholder="Enter new brand name" />
+                        <Input placeholder={t('stock.detail.enterBrandName', 'Enter new brand name')} />
                       </Form.Item>
                       <Button type="link" onClick={() => setIsCreatingNewBrand(false)} style={{ padding: 0 }}>
-                        Select Existing Brand
+                        {t('stock.detail.selectExistingBrand', 'Select Existing Brand')}
                       </Button>
                     </>
                   )}
@@ -710,17 +713,17 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           )}
 
           {editingBrandPrice && (
-            <Form.Item label="Brand">
+            <Form.Item label={t('stock.detail.brand', 'Brand')}>
               <Input value={editingBrandPrice.brandName} disabled />
             </Form.Item>
           )}
 
           <Form.Item
             name="priceBeforeTax"
-            label="Price Before Tax (VND)"
+            label={t('stock.detail.priceBeforeTaxVND', 'Price Before Tax (VND)')}
             rules={[
-              { required: true, message: 'Please enter price before tax' },
-              { type: 'number', min: 0, message: 'Price must be 0 or greater' },
+              { required: true, message: t('stock.detail.enterPriceBeforeTax', 'Please enter price before tax') },
+              { type: 'number', min: 0, message: t('stock.detail.priceMustBeZeroOrGreater', 'Price must be 0 or greater') },
             ]}
           >
             <InputNumber
@@ -734,10 +737,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
           <Form.Item
             name="priceAfterTax"
-            label="Price After Tax (VND)"
+            label={t('stock.detail.priceAfterTaxVND', 'Price After Tax (VND)')}
             rules={[
-              { required: true, message: 'Please enter price after tax' },
-              { type: 'number', min: 0, message: 'Price must be 0 or greater' },
+              { required: true, message: t('stock.detail.enterPriceAfterTax', 'Please enter price after tax') },
+              { type: 'number', min: 0, message: t('stock.detail.priceMustBeZeroOrGreater', 'Price must be 0 or greater') },
             ]}
           >
             <InputNumber

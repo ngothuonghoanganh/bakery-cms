@@ -6,6 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
 import { ProductTable } from '../ProductTable/ProductTable';
 import { ProductForm } from '../ProductForm/ProductForm';
@@ -47,6 +48,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   onDelete,
   onView,
 }) => {
+  const { t } = useTranslation();
   const { visible, open, close } = useModal();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -71,32 +73,32 @@ export const ProductList: React.FC<ProductListProps> = ({
       try {
         if (selectedProduct) {
           await onUpdate(selectedProduct.id, values);
-          success('Product Updated', 'Product has been updated successfully');
+          success(t('products.notifications.updated', 'Product Updated'), t('products.notifications.updatedMessage', 'Product has been updated successfully'));
         } else {
           await onCreate(values);
-          success('Product Created', 'Product has been created successfully');
+          success(t('products.notifications.created', 'Product Created'), t('products.notifications.createdMessage', 'Product has been created successfully'));
         }
         close();
         setSelectedProduct(null);
       } catch (err) {
-        error('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+        error(t('products.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
       } finally {
         setFormLoading(false);
       }
     },
-    [selectedProduct, onCreate, onUpdate, close, success, error]
+    [selectedProduct, onCreate, onUpdate, close, success, error, t]
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
       try {
         await onDelete(id);
-        success('Product Deleted', 'Product has been deleted successfully');
+        success(t('products.notifications.deleted', 'Product Deleted'), t('products.notifications.deletedMessage', 'Product has been deleted successfully'));
       } catch (err) {
-        error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete product');
+        error(t('products.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('products.notifications.deleteError', 'Failed to delete product'));
       }
     },
-    [onDelete, success, error]
+    [onDelete, success, error, t]
   );
 
   const handleFiltersReset = useCallback(() => {
@@ -106,11 +108,11 @@ export const ProductList: React.FC<ProductListProps> = ({
   return (
     <div>
       <PageHeader
-        title="Products"
-        subtitle="Manage your product catalog"
+        title={t('products.title')}
+        subtitle={t('products.subtitle')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            New Product
+            {t('products.add')}
           </Button>
         }
       />

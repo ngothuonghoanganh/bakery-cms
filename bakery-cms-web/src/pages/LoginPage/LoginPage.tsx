@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Form, Input, Button, Divider, Typography, Alert, Card } from 'antd';
 import { MailOutlined, LockOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/authStore';
 import { useOAuth } from '@/hooks/useOAuth';
 import { OAuthProvider } from '@/types/api/oauth.api';
@@ -23,6 +24,7 @@ interface LocationState {
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { login, isLoading } = useAuthStore();
   const { loginWithOAuth, isLoading: oauthLoading } = useOAuth();
   const [error, setError] = useState<string | null>(null);
@@ -86,15 +88,15 @@ export const LoginPage: React.FC = () => {
         }}
       >
         <Title level={2} style={{ textAlign: 'center', marginBottom: 8 }}>
-          Welcome Back
+          {t('auth.login.title')}
         </Title>
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>
-          Sign in to your Bakery CMS account
+          {t('auth.login.subtitle')}
         </Text>
 
         {error && (
           <Alert
-            message="Login Failed"
+            message={t('auth.login.error')}
             description={error}
             type="error"
             closable
@@ -113,7 +115,7 @@ export const LoginPage: React.FC = () => {
             onClick={() => handleOAuthLogin(OAuthProvider.GOOGLE)}
             style={{ marginBottom: 12 }}
           >
-            Continue with Google
+            {t('auth.login.continueWithGoogle', 'Continue with Google')}
           </Button>
           <Button
             icon={<FacebookOutlined />}
@@ -122,12 +124,12 @@ export const LoginPage: React.FC = () => {
             loading={oauthLoading}
             onClick={() => handleOAuthLogin(OAuthProvider.FACEBOOK)}
           >
-            Continue with Facebook
+            {t('auth.login.continueWithFacebook', 'Continue with Facebook')}
           </Button>
         </div>
 
         <Divider>
-          <Text type="secondary">or sign in with email</Text>
+          <Text type="secondary">{t('auth.login.orSignInWithEmail', 'or sign in with email')}</Text>
         </Divider>
 
         {/* Email/Password Login Form */}
@@ -135,13 +137,13 @@ export const LoginPage: React.FC = () => {
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
+              { required: true, message: t('validation.required', { field: t('auth.login.email') }) },
+              { type: 'email', message: t('validation.email') },
             ]}
           >
             <Input
               prefix={<MailOutlined />}
-              placeholder="Email"
+              placeholder={t('auth.login.email')}
               autoComplete="email"
               disabled={isLoading}
             />
@@ -149,11 +151,11 @@ export const LoginPage: React.FC = () => {
 
           <Form.Item
             name="password"
-            rules={[{ required: true, message: 'Please enter your password' }]}
+            rules={[{ required: true, message: t('validation.required', { field: t('auth.login.password') }) }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password"
+              placeholder={t('auth.login.password')}
               autoComplete="current-password"
               disabled={isLoading}
             />
@@ -161,20 +163,20 @@ export const LoginPage: React.FC = () => {
 
           <Form.Item style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Link href="/forgot-password">Forgot password?</Link>
+              <Link href="/forgot-password">{t('auth.login.forgotPassword')}</Link>
             </div>
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 16 }}>
             <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
-              Sign In
+              {t('auth.login.submit')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center' }}>
           <Text type="secondary">
-            Don't have an account? <Link href="/register">Sign up</Link>
+            {t('auth.login.noAccount')} <Link href="/register">{t('auth.login.register')}</Link>
           </Text>
         </div>
       </Card>

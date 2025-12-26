@@ -13,6 +13,7 @@ import {
   GoogleOutlined,
   FacebookOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword } from '@/services/auth.service';
 import { useOAuth } from '@/hooks/useOAuth';
@@ -25,6 +26,7 @@ const { Title, Text, Link } = Typography;
  */
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { register, isLoading } = useAuthStore();
   const { loginWithOAuth, isLoading: oauthLoading } = useOAuth();
   const [error, setError] = useState<string | null>(null);
@@ -98,10 +100,10 @@ export const RegisterPage: React.FC = () => {
    * Get password strength text
    */
   const getPasswordStrengthText = (): string => {
-    if (passwordStrength < 40) return 'Weak';
-    if (passwordStrength < 60) return 'Medium';
-    if (passwordStrength < 80) return 'Strong';
-    return 'Very Strong';
+    if (passwordStrength < 40) return t('auth.register.passwordStrength.weak', 'Weak');
+    if (passwordStrength < 60) return t('auth.register.passwordStrength.medium', 'Medium');
+    if (passwordStrength < 80) return t('auth.register.passwordStrength.strong', 'Strong');
+    return t('auth.register.passwordStrength.veryStrong', 'Very Strong');
   };
 
   return (
@@ -123,15 +125,15 @@ export const RegisterPage: React.FC = () => {
         }}
       >
         <Title level={2} style={{ textAlign: 'center', marginBottom: 8 }}>
-          Create Account
+          {t('auth.register.title')}
         </Title>
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}>
-          Sign up for Bakery CMS
+          {t('auth.register.subtitle')}
         </Text>
 
         {error && (
           <Alert
-            message="Registration Failed"
+            message={t('auth.register.error', 'Registration Failed')}
             description={error}
             type="error"
             closable
@@ -150,7 +152,7 @@ export const RegisterPage: React.FC = () => {
             onClick={() => handleOAuthRegister(OAuthProvider.GOOGLE)}
             style={{ marginBottom: 12 }}
           >
-            Sign up with Google
+            {t('auth.register.signUpWithGoogle', 'Sign up with Google')}
           </Button>
           <Button
             icon={<FacebookOutlined />}
@@ -159,12 +161,12 @@ export const RegisterPage: React.FC = () => {
             loading={oauthLoading}
             onClick={() => handleOAuthRegister(OAuthProvider.FACEBOOK)}
           >
-            Sign up with Facebook
+            {t('auth.register.signUpWithFacebook', 'Sign up with Facebook')}
           </Button>
         </div>
 
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
-          or sign up with email
+          {t('auth.register.orSignUpWithEmail', 'or sign up with email')}
         </Text>
 
         {/* Registration Form */}
@@ -172,31 +174,31 @@ export const RegisterPage: React.FC = () => {
           <Space direction="horizontal" style={{ width: '100%' }}>
             <Form.Item
               name="firstName"
-              rules={[{ required: true, message: 'Required' }]}
+              rules={[{ required: true, message: t('common.form.required') }]}
               style={{ flex: 1, marginBottom: 16 }}
             >
-              <Input prefix={<UserOutlined />} placeholder="First Name" disabled={isLoading} />
+              <Input prefix={<UserOutlined />} placeholder={t('auth.register.firstName')} disabled={isLoading} />
             </Form.Item>
 
             <Form.Item
               name="lastName"
-              rules={[{ required: true, message: 'Required' }]}
+              rules={[{ required: true, message: t('common.form.required') }]}
               style={{ flex: 1, marginBottom: 16 }}
             >
-              <Input prefix={<UserOutlined />} placeholder="Last Name" disabled={isLoading} />
+              <Input prefix={<UserOutlined />} placeholder={t('auth.register.lastName')} disabled={isLoading} />
             </Form.Item>
           </Space>
 
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
+              { required: true, message: t('validation.required', { field: t('auth.register.email') }) },
+              { type: 'email', message: t('validation.email') },
             ]}
           >
             <Input
               prefix={<MailOutlined />}
-              placeholder="Email"
+              placeholder={t('auth.register.email')}
               autoComplete="email"
               disabled={isLoading}
             />
@@ -205,13 +207,13 @@ export const RegisterPage: React.FC = () => {
           <Form.Item
             name="password"
             rules={[
-              { required: true, message: 'Please enter your password' },
-              { min: 8, message: 'Password must be at least 8 characters' },
+              { required: true, message: t('validation.required', { field: t('auth.register.password') }) },
+              { min: 8, message: t('validation.minLength', { field: t('auth.register.password'), min: 8 }) },
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password"
+              placeholder={t('auth.register.password')}
               autoComplete="new-password"
               onChange={handlePasswordChange}
               disabled={isLoading}
@@ -229,11 +231,11 @@ export const RegisterPage: React.FC = () => {
               />
               <Space direction="vertical" size={0}>
                 <Text style={{ fontSize: 12, color: getPasswordStrengthColor() }}>
-                  Password Strength: {getPasswordStrengthText()}
+                  {t('auth.register.passwordStrengthLabel', 'Password Strength')}: {getPasswordStrengthText()}
                 </Text>
                 {passwordErrors.length > 0 && (
                   <Text type="secondary" style={{ fontSize: 11 }}>
-                    Missing: {passwordErrors.join(', ')}
+                    {t('auth.register.passwordMissing', 'Missing')}: {passwordErrors.join(', ')}
                   </Text>
                 )}
               </Space>
@@ -244,20 +246,20 @@ export const RegisterPage: React.FC = () => {
             name="confirmPassword"
             dependencies={['password']}
             rules={[
-              { required: true, message: 'Please confirm your password' },
+              { required: true, message: t('validation.required', { field: t('auth.register.confirmPassword') }) },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Passwords do not match'));
+                  return Promise.reject(new Error(t('validation.passwordMatch')));
                 },
               }),
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Confirm Password"
+              placeholder={t('auth.register.confirmPassword')}
               autoComplete="new-password"
               disabled={isLoading}
             />
@@ -265,14 +267,14 @@ export const RegisterPage: React.FC = () => {
 
           <Form.Item style={{ marginBottom: 16 }}>
             <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
-              Create Account
+              {t('auth.register.submit')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center' }}>
           <Text type="secondary">
-            Already have an account? <Link href="/login">Sign in</Link>
+            {t('auth.register.hasAccount')} <Link href="/login">{t('auth.register.login')}</Link>
           </Text>
         </div>
       </Card>

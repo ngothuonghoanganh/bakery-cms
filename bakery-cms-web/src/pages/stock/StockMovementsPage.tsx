@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from 'antd';
 import { PageHeader } from '../../components/shared';
 import { StockMovementHistory } from '../../components/features/stock/StockMovementHistory/StockMovementHistory';
@@ -12,11 +13,13 @@ import { StockMovementHistory } from '../../components/features/stock/StockMovem
  * StockMovementsPage component
  */
 export const StockMovementsPage: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div>
       <PageHeader
-        title="Stock Movements"
-        subtitle="View complete audit trail of all stock changes"
+        title={t('stock.movements.title', 'Stock Movements')}
+        subtitle={t('stock.movements.subtitle', 'Stock in/out history')}
       />
       <Card>
         <StockMovementHistory showStockItemColumn={true} />

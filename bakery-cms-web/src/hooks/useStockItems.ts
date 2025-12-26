@@ -3,7 +3,7 @@
  * Manages stock items data fetching and state with filters, sorting, and pagination
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { stockService } from '@/services/stock.service';
 import type {
   StockItem,
@@ -34,13 +34,26 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
   const [loading, setLoading] = useState(autoFetch);
   const [error, setError] = useState<AppError | null>(null);
 
+  // Use refs to store the latest filters and pagination without causing re-renders
+  const filtersRef = useRef(filters);
+  const paginationRef = useRef(pagination);
+
+  // Update refs when props change
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
   const fetchStockItems = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
     const result = await stockService.getAllStockItems({
-      ...filters,
-      ...pagination,
+      ...filtersRef.current,
+      ...paginationRef.current,
     });
 
     if (result.success) {
@@ -54,13 +67,17 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
     }
 
     setLoading(false);
-  }, [filters, pagination]);
+  }, []);
+
+  // Create a stable key from filters and pagination for dependency tracking
+  const filtersKey = JSON.stringify(filters);
+  const paginationKey = JSON.stringify(pagination);
 
   useEffect(() => {
     if (autoFetch) {
       fetchStockItems();
     }
-  }, [autoFetch, fetchStockItems]);
+  }, [autoFetch, fetchStockItems, filtersKey, paginationKey]);
 
   return {
     stockItems,

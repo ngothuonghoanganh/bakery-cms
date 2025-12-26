@@ -2,7 +2,7 @@
  * useOrders custom hook
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { orderService } from '@/services';
 import type { Order, OrderFilters } from '@/types/models/order.model';
 import type { OrderFiltersRequest } from '@/types/api/order.api';
@@ -37,11 +37,19 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   const [error, setError] = useState<AppError | null>(null);
   const [total, setTotal] = useState(0);
 
+  // Use ref to store the latest filters without causing re-renders
+  const filtersRef = useRef(filters);
+
+  // Update ref when props change
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
   const fetchOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
-    const result = await orderService.getAll(mapFiltersToRequest(filters));
+    const result = await orderService.getAll(mapFiltersToRequest(filtersRef.current));
 
     if (result.success) {
       setOrders([...result.data.orders]);
@@ -53,13 +61,16 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
     }
 
     setLoading(false);
-  }, [filters]);
+  }, []);
+
+  // Create a stable key from filters for dependency tracking
+  const filtersKey = JSON.stringify(filters);
 
   useEffect(() => {
     if (autoFetch) {
       fetchOrders();
     }
-  }, [autoFetch, fetchOrders]);
+  }, [autoFetch, fetchOrders, filtersKey]);
 
   return {
     orders,

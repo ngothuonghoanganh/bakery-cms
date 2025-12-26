@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { OrderDetail } from '../../components/features/orders/OrderDetail/OrderDetail';
 import { OrderForm } from '../../components/features/orders/OrderForm/OrderForm';
@@ -22,6 +23,7 @@ import type { Order } from '../../types/models/order.model';
 import type { OrderFormValues } from '../../components/features/orders/OrderForm/OrderForm.types';
 
 export const OrderDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { visible, open, close } = useModal();
@@ -49,7 +51,7 @@ export const OrderDetailPage: React.FC = () => {
           showError(result.error.message);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to fetch order';
+        const message = err instanceof Error ? err.message : t('orders.notifications.operationFailed', 'Failed to fetch order');
         showError(message);
       } finally {
         setLoading(false);
@@ -57,7 +59,7 @@ export const OrderDetailPage: React.FC = () => {
     };
 
     fetchOrder();
-  }, [id, showError]);
+  }, [id, showError, t]);
 
   // Handle edit order
   const handleEdit = () => {
@@ -90,13 +92,13 @@ export const OrderDetailPage: React.FC = () => {
 
       if (result.success) {
         setOrder(result.data);
-        success('Order updated successfully');
+        success(t('orders.notifications.updated', 'Order updated successfully'));
         close();
       } else {
         showError(result.error.message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update order';
+      const message = err instanceof Error ? err.message : t('orders.notifications.operationFailed', 'Failed to update order');
       showError(message);
     } finally {
       setSubmitting(false);
@@ -111,13 +113,13 @@ export const OrderDetailPage: React.FC = () => {
       const result = await deleteOrder(order.id);
 
       if (result.success) {
-        success('Order deleted successfully');
+        success(t('orders.notifications.deleted', 'Order deleted successfully'));
         navigate('/orders');
       } else {
         showError(result.error.message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete order';
+      const message = err instanceof Error ? err.message : t('orders.notifications.deleteFailed', 'Failed to delete order');
       showError(message);
     }
   };
@@ -131,12 +133,12 @@ export const OrderDetailPage: React.FC = () => {
 
       if (result.success) {
         setOrder(result.data);
-        success('Order confirmed successfully');
+        success(t('orders.notifications.confirmed', 'Order confirmed successfully'));
       } else {
         showError(result.error.message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to confirm order';
+      const message = err instanceof Error ? err.message : t('orders.notifications.confirmFailed', 'Failed to confirm order');
       showError(message);
     }
   };
@@ -150,12 +152,12 @@ export const OrderDetailPage: React.FC = () => {
 
       if (result.success) {
         setOrder(result.data);
-        success('Order cancelled successfully');
+        success(t('orders.notifications.cancelled', 'Order cancelled successfully'));
       } else {
         showError(result.error.message);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to cancel order';
+      const message = err instanceof Error ? err.message : t('orders.notifications.cancelFailed', 'Failed to cancel order');
       showError(message);
     }
   };
@@ -192,7 +194,7 @@ export const OrderDetailPage: React.FC = () => {
 
   // Order not found
   if (!order) {
-    return <EmptyState description="The order you're looking for doesn't exist." />;
+    return <EmptyState description={t('orders.list.noOrders', "The order you're looking for doesn't exist.")} />;
   }
 
   return (

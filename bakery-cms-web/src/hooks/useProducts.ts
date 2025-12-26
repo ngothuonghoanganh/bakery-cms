@@ -3,7 +3,7 @@
  * Manages product data fetching and state with filters, sorting, and pagination
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { productService } from '@/services';
 import type { Product, ProductFilters, PaginationParams } from '@/types/models/product.model';
 import type { AppError } from '@/types/common/error.types';
@@ -30,13 +30,26 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   const [loading, setLoading] = useState(autoFetch);
   const [error, setError] = useState<AppError | null>(null);
 
+  // Use refs to store the latest filters and pagination without causing re-renders
+  const filtersRef = useRef(filters);
+  const paginationRef = useRef(pagination);
+
+  // Update refs when props change
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
   const fetchProducts = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
     const result = await productService.getAll({
-      ...filters,
-      ...pagination,
+      ...filtersRef.current,
+      ...paginationRef.current,
     });
 
     if (result.success) {
@@ -50,13 +63,17 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
     }
 
     setLoading(false);
-  }, [filters, pagination]);
+  }, []);
+
+  // Create a stable key from filters and pagination for dependency tracking
+  const filtersKey = JSON.stringify(filters);
+  const paginationKey = JSON.stringify(pagination);
 
   useEffect(() => {
     if (autoFetch) {
       fetchProducts();
     }
-  }, [autoFetch, fetchProducts]);
+  }, [autoFetch, fetchProducts, filtersKey, paginationKey]);
 
   return {
     products,

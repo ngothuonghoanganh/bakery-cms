@@ -10,14 +10,17 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { useThemeStore } from '../../../stores/themeStore';
 import { useAuthStore } from '../../../stores/authStore';
+import { LanguageSelector } from '../LanguageSelector';
 import type { HeaderProps } from './Header.types';
 
 const { Header: AntHeader } = Layout;
 
 export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { mode, toggleTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
 
@@ -30,13 +33,13 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) =>
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: 'Profile',
+      label: t('common.navigation.profile'),
       onClick: () => navigate('/profile'),
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: 'Settings',
+      label: t('common.navigation.settings'),
       onClick: () => navigate('/settings'),
     },
     {
@@ -45,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) =>
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: t('common.navigation.logout'),
       onClick: handleLogout,
     },
   ];
@@ -74,8 +77,10 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleSidebar }) =>
       />
 
       <Space size="middle">
+        <LanguageSelector size="small" showFlag showFullName />
+
         <Button type="text" icon={<BulbOutlined />} onClick={toggleTheme} style={{ fontSize: 16 }}>
-          {mode === 'light' ? 'Dark' : 'Light'}
+          {mode === 'light' ? t('common.theme.dark', 'Dark') : t('common.theme.light', 'Light')}
         </Button>
 
         {user && (

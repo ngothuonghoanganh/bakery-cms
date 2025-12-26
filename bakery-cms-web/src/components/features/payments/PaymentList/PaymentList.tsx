@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
 import { PaymentTable } from '../PaymentTable/PaymentTable';
 import { PaymentForm } from '../PaymentForm/PaymentForm';
@@ -39,6 +40,7 @@ export const PaymentList: React.FC<PaymentListProps> = ({
   onMarkAsPaid,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { visible, open, close } = useModal();
   const { success, error } = useNotification();
 
@@ -64,15 +66,15 @@ export const PaymentList: React.FC<PaymentListProps> = ({
     try {
       if (selectedPayment && onUpdate) {
         await onUpdate(selectedPayment.id, values);
-        success('Payment Updated', 'Payment has been updated successfully');
+        success(t('payments.notifications.updated', 'Payment Updated'), t('payments.notifications.updatedMessage', 'Payment has been updated successfully'));
       } else if (onCreate) {
         await onCreate(values);
-        success('Payment Created', 'Payment has been created successfully');
+        success(t('payments.notifications.created', 'Payment Created'), t('payments.notifications.createdMessage', 'Payment has been created successfully'));
       }
       close();
       setSelectedPayment(null);
     } catch (err) {
-      error('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+      error(t('payments.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
     } finally {
       setSubmitting(false);
     }
@@ -83,9 +85,9 @@ export const PaymentList: React.FC<PaymentListProps> = ({
 
     try {
       await onDelete(id);
-      success('Payment Deleted', 'Payment has been deleted successfully');
+      success(t('payments.notifications.deleted', 'Payment Deleted'), t('payments.notifications.deletedMessage', 'Payment has been deleted successfully'));
     } catch (err) {
-      error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete payment');
+      error(t('payments.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('payments.notifications.deleteError', 'Failed to delete payment'));
     }
   };
 
@@ -94,9 +96,9 @@ export const PaymentList: React.FC<PaymentListProps> = ({
 
     try {
       await onMarkAsPaid(id);
-      success('Payment Marked as Paid', 'Payment status has been updated to paid');
+      success(t('payments.notifications.markedAsPaid', 'Payment Marked as Paid'), t('payments.notifications.markedAsPaidMessage', 'Payment status has been updated to paid'));
     } catch (err) {
-      error('Update Failed', err instanceof Error ? err.message : 'Failed to mark payment as paid');
+      error(t('payments.notifications.updateFailed', 'Update Failed'), err instanceof Error ? err.message : t('payments.notifications.markAsPaidError', 'Failed to mark payment as paid'));
     }
   };
 
@@ -112,11 +114,11 @@ export const PaymentList: React.FC<PaymentListProps> = ({
   return (
     <div>
       <PageHeader
-        title="Payments"
-        subtitle="Manage payment records"
+        title={t('payments.title')}
+        subtitle={t('payments.subtitle')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create Payment
+            {t('payments.add')}
           </Button>
         }
       />

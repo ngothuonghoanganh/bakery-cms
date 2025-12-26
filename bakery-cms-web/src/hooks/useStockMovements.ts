@@ -3,7 +3,7 @@
  * Custom hook for managing stock movements with caching and loading states
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { stockService } from '@/services/stock.service';
 import type { StockMovement } from '@/types/models/stock.model';
 import type { StockMovementFiltersRequest } from '@/types/api/stock.api';
@@ -40,6 +40,14 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ref to store the latest filters without causing re-renders
+  const filtersRef = useRef(initialFilters);
+
+  // Update ref when props change
+  useEffect(() => {
+    filtersRef.current = initialFilters;
+  }, [initialFilters]);
+
   /**
    * Fetch stock movements with filters
    */
@@ -47,7 +55,9 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
     setLoading(true);
     setError(null);
 
-    const result = await stockService.getStockMovements(filters);
+    // Use provided filters or fall back to ref
+    const filtersToUse = filters ?? filtersRef.current;
+    const result = await stockService.getStockMovements(filtersToUse);
 
     if (result.success) {
       const data = result.data;
@@ -88,10 +98,13 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
     }
   }, []);
 
+  // Create a stable key from initialFilters for dependency tracking
+  const filtersKey = JSON.stringify(initialFilters);
+
   // Fetch on mount with initial filters
   useEffect(() => {
-    fetchStockMovements(initialFilters);
-  }, [fetchStockMovements, initialFilters]);
+    fetchStockMovements();
+  }, [fetchStockMovements, filtersKey]);
 
   return {
     stockMovements,

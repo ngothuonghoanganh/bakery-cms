@@ -9,6 +9,7 @@ import {
   PlusOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/shared';
 import { StatCard } from '../../components/features/dashboard/StatCard/StatCard';
 import { RecentActivity } from '../../components/features/dashboard/RecentActivity/RecentActivity';
@@ -19,32 +20,33 @@ import type { ActivityItem } from '../../components/features/dashboard/RecentAct
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Mock statistics data
   const stats = [
     {
-      title: 'Total Orders',
+      title: t('dashboard.stats.totalOrders', 'Total Orders'),
       value: 1234,
       icon: <ShoppingCartOutlined />,
       trend: { value: 12.5, isPositive: true },
       color: '#1890ff',
     },
     {
-      title: 'Total Revenue',
+      title: t('dashboard.stats.totalRevenue', 'Total Revenue'),
       value: '$45,678',
       icon: <DollarOutlined />,
       trend: { value: 8.3, isPositive: true },
       color: '#52c41a',
     },
     {
-      title: 'Total Products',
+      title: t('dashboard.stats.totalProducts', 'Total Products'),
       value: 156,
       icon: <AppstoreOutlined />,
       trend: { value: 3.2, isPositive: false },
       color: '#fa8c16',
     },
     {
-      title: 'Active Customers',
+      title: t('dashboard.stats.activeCustomers', 'Active Customers'),
       value: 892,
       icon: <TeamOutlined />,
       trend: { value: 15.7, isPositive: true },
@@ -104,38 +106,38 @@ export const DashboardPage: React.FC = () => {
     () => [
       {
         key: 'new-order',
-        title: 'New Order',
-        description: 'Create a new order',
+        title: t('dashboard.quickActions.newOrder', 'New Order'),
+        description: t('dashboard.quickActions.newOrderDescription', 'Create a new order'),
         icon: <PlusOutlined />,
         color: '#1890ff',
         onClick: () => navigate('/orders'),
       },
       {
         key: 'new-product',
-        title: 'New Product',
-        description: 'Add a new product',
+        title: t('dashboard.quickActions.newProduct', 'New Product'),
+        description: t('dashboard.quickActions.newProductDescription', 'Add a new product'),
         icon: <AppstoreOutlined />,
         color: '#52c41a',
         onClick: () => navigate('/products'),
       },
       {
         key: 'view-orders',
-        title: 'View Orders',
-        description: 'Manage all orders',
+        title: t('dashboard.quickActions.viewOrders', 'View Orders'),
+        description: t('dashboard.quickActions.viewOrdersDescription', 'Manage all orders'),
         icon: <FileTextOutlined />,
         color: '#fa8c16',
         onClick: () => navigate('/orders'),
       },
       {
         key: 'view-payments',
-        title: 'View Payments',
-        description: 'Check payment status',
+        title: t('dashboard.quickActions.viewPayments', 'View Payments'),
+        description: t('dashboard.quickActions.viewPaymentsDescription', 'Check payment status'),
         icon: <DollarOutlined />,
         color: '#722ed1',
         onClick: () => navigate('/payments'),
       },
     ],
-    [navigate]
+    [navigate, t]
   );
 
   const handleActivityClick = (item: ActivityItem) => {
@@ -152,8 +154,8 @@ export const DashboardPage: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        subtitle="Welcome back! Here's what's happening with your bakery."
+        title={t('dashboard.title', 'Dashboard')}
+        subtitle={t('dashboard.welcome', "Welcome back! Here's what's happening with your bakery.")}
       />
 
       {/* Statistics Cards */}

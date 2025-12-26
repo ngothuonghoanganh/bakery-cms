@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ProductList } from '@/components/features/products/ProductList/ProductList';
 import { useProducts } from '@/hooks/useProducts';
@@ -12,6 +13,7 @@ import type { ProductFilters } from '@/types/models/product.model';
 import type { ProductFormValues } from '@/components/features/products/ProductForm/ProductForm.types';
 
 export const ProductsPage = (): React.JSX.Element => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   // Filters state (immediate updates for UI)
   const [filters, setFilters] = useState<ProductFilters>({});
@@ -145,7 +147,7 @@ export const ProductsPage = (): React.JSX.Element => {
   );
 
   if (error) {
-    return <div className="p-4 text-red-500">Error: {error.message}</div>;
+    return <div className="p-4 text-red-500">{t('common.status.error', 'Error')}: {error.message}</div>;
   }
 
   return (

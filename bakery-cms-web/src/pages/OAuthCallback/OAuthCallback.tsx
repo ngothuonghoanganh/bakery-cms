@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { useOAuth } from '../../hooks/useOAuth';
@@ -14,6 +15,7 @@ import './OAuthCallback.css';
  * Displays loading state while processing OAuth callback
  */
 export const OAuthCallback: React.FC = () => {
+  const { t } = useTranslation();
   const { isLoading, error } = useOAuth();
 
   useEffect(() => {
@@ -27,17 +29,17 @@ export const OAuthCallback: React.FC = () => {
         {isLoading && (
           <>
             <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} size="large" />
-            <h2>Completing authentication...</h2>
-            <p>Please wait while we log you in.</p>
+            <h2>{t('auth.oauth.completing', 'Completing authentication...')}</h2>
+            <p>{t('auth.oauth.pleaseWait', 'Please wait while we log you in.')}</p>
           </>
         )}
 
         {error && (
           <>
             <div className="oauth-callback-error">
-              <h2>Authentication Failed</h2>
+              <h2>{t('auth.oauth.failed', 'Authentication Failed')}</h2>
               <p>{error}</p>
-              <p>Redirecting to login page...</p>
+              <p>{t('auth.oauth.redirecting', 'Redirecting to login page...')}</p>
             </div>
           </>
         )}

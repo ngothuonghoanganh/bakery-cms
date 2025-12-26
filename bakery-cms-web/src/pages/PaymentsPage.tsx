@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PaymentList } from '../components/features/payments/PaymentList/PaymentList';
 import { usePayments } from '../hooks/usePayments';
 import {
@@ -17,6 +18,7 @@ import type { PaymentFormValues } from '../components/features/payments/PaymentF
 import type { PaymentFiltersValue } from '../components/features/payments/PaymentFilters/PaymentFilters.types';
 
 export const PaymentsPage: React.FC = () => {
+  const { t } = useTranslation();
   const { error } = useNotification();
   // Filters state (immediate updates for UI)
   const [filters, setFilters] = useState<PaymentFiltersValue>({});
@@ -64,7 +66,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error('Create Failed', result.error.message);
+      error(t('payments.notifications.operationFailed', 'Create Failed'), result.error.message);
       throw new Error(result.error.message);
     }
   };
@@ -81,7 +83,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error('Update Failed', result.error.message);
+      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
       throw new Error(result.error.message);
     }
   };
@@ -92,7 +94,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error('Delete Failed', result.error.message);
+      error(t('payments.notifications.deleteFailed', 'Delete Failed'), result.error.message);
       throw new Error(result.error.message);
     }
   };
@@ -103,7 +105,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error('Update Failed', result.error.message);
+      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
       throw new Error(result.error.message);
     }
   };

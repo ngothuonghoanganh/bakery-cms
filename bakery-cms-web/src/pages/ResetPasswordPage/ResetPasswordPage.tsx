@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Form, Input, Button, Typography, Alert, Card, Progress, Result } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { validatePassword } from '@/services/auth.service';
 import * as authService from '@/services/auth.service';
 
@@ -17,6 +18,7 @@ const { Title, Text } = Typography;
  */
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
@@ -99,11 +101,11 @@ export const ResetPasswordPage: React.FC = () => {
         >
           <Result
             status="error"
-            title="Invalid Reset Link"
-            subTitle="This password reset link is invalid or has expired. Please request a new one."
+            title={t('auth.resetPassword.invalidLinkTitle', 'Invalid Reset Link')}
+            subTitle={t('auth.resetPassword.invalidLinkMessage', 'This password reset link is invalid or has expired. Please request a new one.')}
             extra={
               <Button type="primary" onClick={() => navigate('/forgot-password')}>
-                Request New Link
+                {t('auth.resetPassword.requestNewLink', 'Request New Link')}
               </Button>
             }
           />
@@ -133,18 +135,18 @@ export const ResetPasswordPage: React.FC = () => {
         {!success ? (
           <>
             <Title level={2} style={{ textAlign: 'center', marginBottom: 8 }}>
-              Reset Password
+              {t('auth.resetPassword.title')}
             </Title>
             <Text
               type="secondary"
               style={{ display: 'block', textAlign: 'center', marginBottom: 32 }}
             >
-              Enter your new password below
+              {t('auth.resetPassword.subtitle')}
             </Text>
 
             {error && (
               <Alert
-                message="Error"
+                message={t('common.status.error')}
                 description={error}
                 type="error"
                 closable
@@ -157,13 +159,13 @@ export const ResetPasswordPage: React.FC = () => {
               <Form.Item
                 name="password"
                 rules={[
-                  { required: true, message: 'Please enter your new password' },
-                  { min: 8, message: 'Password must be at least 8 characters' },
+                  { required: true, message: t('validation.required', { field: t('auth.resetPassword.password') }) },
+                  { min: 8, message: t('validation.minLength', { field: t('auth.resetPassword.password'), min: 8 }) },
                 ]}
               >
                 <Input.Password
                   prefix={<LockOutlined />}
-                  placeholder="New Password"
+                  placeholder={t('auth.resetPassword.password')}
                   onChange={handlePasswordChange}
                   disabled={isLoading}
                 />
@@ -180,7 +182,7 @@ export const ResetPasswordPage: React.FC = () => {
                   {passwordErrors.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        Password must include:
+                        {t('auth.resetPassword.passwordMustInclude', 'Password must include:')}
                       </Text>
                       <ul style={{ margin: '4px 0', paddingLeft: 20, fontSize: 12 }}>
                         {passwordErrors.map((err, idx) => (
@@ -198,27 +200,27 @@ export const ResetPasswordPage: React.FC = () => {
                 name="confirmPassword"
                 dependencies={['password']}
                 rules={[
-                  { required: true, message: 'Please confirm your password' },
+                  { required: true, message: t('validation.required', { field: t('auth.resetPassword.confirmPassword') }) },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue('password') === value) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(new Error('Passwords do not match'));
+                      return Promise.reject(new Error(t('validation.passwordMatch')));
                     },
                   }),
                 ]}
               >
                 <Input.Password
                   prefix={<LockOutlined />}
-                  placeholder="Confirm New Password"
+                  placeholder={t('auth.resetPassword.confirmPassword')}
                   disabled={isLoading}
                 />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0 }}>
                 <Button type="primary" htmlType="submit" block loading={isLoading} size="large">
-                  Reset Password
+                  {t('auth.resetPassword.submit')}
                 </Button>
               </Form.Item>
             </Form>
@@ -226,11 +228,11 @@ export const ResetPasswordPage: React.FC = () => {
         ) : (
           <Result
             status="success"
-            title="Password Reset Successful!"
-            subTitle="Your password has been successfully reset. You can now login with your new password."
+            title={t('auth.resetPassword.successTitle', 'Password Reset Successful!')}
+            subTitle={t('auth.resetPassword.successMessage', 'Your password has been successfully reset. You can now login with your new password.')}
             extra={
               <Button type="primary" onClick={() => navigate('/login')}>
-                Go to Login
+                {t('auth.resetPassword.goToLogin', 'Go to Login')}
               </Button>
             }
           />

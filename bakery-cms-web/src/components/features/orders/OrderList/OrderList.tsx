@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Button, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { OrderTable } from '../OrderTable/OrderTable';
 import { OrderForm } from '../OrderForm/OrderForm';
 import { OrderFilters } from '../OrderFilters/OrderFilters';
@@ -43,6 +44,7 @@ export const OrderList: React.FC<OrderListProps> = ({
   onCancel,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { visible, open, close } = useModal();
   const { success, error: showError } = useNotification();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -72,16 +74,16 @@ export const OrderList: React.FC<OrderListProps> = ({
 
       if (selectedOrder) {
         await onUpdate(selectedOrder.id, values);
-        success('Order updated successfully');
+        success(t('orders.notifications.updated', 'Order updated successfully'));
       } else {
         await onCreate(values);
-        success('Order created successfully');
+        success(t('orders.notifications.created', 'Order created successfully'));
       }
 
       close();
       setSelectedOrder(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Operation failed';
+      const message = error instanceof Error ? error.message : t('orders.notifications.operationFailed', 'Operation failed');
       showError(message);
     } finally {
       setSubmitting(false);
@@ -92,9 +94,9 @@ export const OrderList: React.FC<OrderListProps> = ({
   const handleDelete = async (orderId: string) => {
     try {
       await onDelete(orderId);
-      success('Order deleted successfully');
+      success(t('orders.notifications.deleted', 'Order deleted successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete order';
+      const message = error instanceof Error ? error.message : t('orders.notifications.deleteFailed', 'Failed to delete order');
       showError(message);
     }
   };
@@ -103,9 +105,9 @@ export const OrderList: React.FC<OrderListProps> = ({
   const handleConfirm = async (orderId: string) => {
     try {
       await onConfirm(orderId);
-      success('Order confirmed successfully');
+      success(t('orders.notifications.confirmed', 'Order confirmed successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to confirm order';
+      const message = error instanceof Error ? error.message : t('orders.notifications.confirmFailed', 'Failed to confirm order');
       showError(message);
     }
   };
@@ -114,9 +116,9 @@ export const OrderList: React.FC<OrderListProps> = ({
   const handleCancel = async (orderId: string) => {
     try {
       await onCancel(orderId);
-      success('Order cancelled successfully');
+      success(t('orders.notifications.cancelled', 'Order cancelled successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to cancel order';
+      const message = error instanceof Error ? error.message : t('orders.notifications.cancelFailed', 'Failed to cancel order');
       showError(message);
     }
   };
@@ -144,12 +146,12 @@ export const OrderList: React.FC<OrderListProps> = ({
   return (
     <>
       <PageHeader
-        title="Orders"
-        subtitle="Manage customer orders and tracking"
+        title={t('orders.title')}
+        subtitle={t('orders.subtitle')}
         extra={
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Create Order
+              {t('orders.add')}
             </Button>
           </Space>
         }

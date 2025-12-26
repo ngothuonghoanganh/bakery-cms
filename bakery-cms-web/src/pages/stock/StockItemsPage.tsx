@@ -5,6 +5,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { StockItemList } from '@/components/features/stock/StockItemList/StockItemList';
 import { StockItemForm } from '@/components/features/stock/StockItemForm/StockItemForm';
 import { useStockItems } from '@/hooks/useStockItems';
@@ -21,6 +22,7 @@ import type { StockItem } from '@/types/models/stock.model';
 
 export const StockItemsPage = (): React.JSX.Element => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { visible, open, close } = useModal();
   const { success, error: notifyError } = useNotification();
 
@@ -114,7 +116,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success('Stock Item Created', 'Stock item has been created successfully');
+          success(t('stock.notifications.created', 'Stock Item Created'), t('stock.notifications.createdMessage', 'Stock item has been created successfully'));
           refetch();
           close();
           setSelectedStockItem(null);
@@ -122,7 +124,7 @@ export const StockItemsPage = (): React.JSX.Element => {
           throw new Error(result.error.message);
         }
       } catch (err) {
-        notifyError('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
       } finally {
         setFormLoading(false);
       }
@@ -142,7 +144,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success('Stock Item Updated', 'Stock item has been updated successfully');
+          success(t('stock.notifications.updated', 'Stock Item Updated'), t('stock.notifications.updatedMessage', 'Stock item has been updated successfully'));
           refetch();
           close();
           setSelectedStockItem(null);
@@ -150,7 +152,7 @@ export const StockItemsPage = (): React.JSX.Element => {
           throw new Error(result.error.message);
         }
       } catch (err) {
-        notifyError('Operation Failed', err instanceof Error ? err.message : 'An error occurred');
+        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
       } finally {
         setFormLoading(false);
       }

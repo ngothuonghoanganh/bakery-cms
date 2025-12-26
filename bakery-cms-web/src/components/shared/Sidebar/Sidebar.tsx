@@ -1,6 +1,7 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import * as Icons from '@ant-design/icons';
 import { getMenuItems } from '../../../config/routes.config';
 import type { SidebarProps } from './Sidebar.types';
@@ -10,6 +11,7 @@ const { Sider } = Layout;
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, isMobile = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const menuItems = getMenuItems().map((item) => {
     // Dynamically get icon component
@@ -18,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, isMobile = false })
     return {
       key: item.path,
       icon: IconComponent ? <IconComponent /> : null,
-      label: item.name,
+      label: t(item.titleKey, item.name),
       onClick: () => navigate(item.path),
     };
   });

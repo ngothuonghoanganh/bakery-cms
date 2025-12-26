@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Popconfirm } from 'antd';
 import { PaymentDetail } from '../../components/features/payments/PaymentDetail/PaymentDetail';
@@ -21,6 +22,7 @@ import type { Payment } from '../../types/models/payment.model';
 import type { PaymentFormValues } from '../../components/features/payments/PaymentForm/PaymentForm.types';
 
 export const PaymentDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { success, error } = useNotification();
@@ -39,10 +41,10 @@ export const PaymentDetailPage: React.FC = () => {
     if (result.success) {
       setPayment(result.data);
     } else {
-      error('Failed to Load', result.error.message);
+      error(t('payments.notifications.operationFailed', 'Failed to Load'), result.error.message);
     }
     setLoading(false);
-  }, [id, error]);
+  }, [id, error, t]);
 
   useEffect(() => {
     fetchPayment();
@@ -67,14 +69,14 @@ export const PaymentDetailPage: React.FC = () => {
 
       if (result.success) {
         setPayment(result.data);
-        success('Payment Updated', 'Payment has been updated successfully');
+        success(t('payments.notifications.updated', 'Payment Updated'), t('payments.notifications.updatedMessage', 'Payment has been updated successfully'));
         close();
       } else {
-        error('Update Failed', result.error.message);
+        error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
       }
       setSubmitting(false);
     },
-    [id, success, error, close]
+    [id, success, error, close, t]
   );
 
   const handleDelete = useCallback(async () => {
@@ -83,12 +85,12 @@ export const PaymentDetailPage: React.FC = () => {
     const result = await deletePayment(id);
 
     if (result.success) {
-      success('Payment Deleted', 'Payment has been deleted successfully');
+      success(t('payments.notifications.deleted', 'Payment Deleted'), t('payments.notifications.deletedMessage', 'Payment has been deleted successfully'));
       navigate('/payments');
     } else {
-      error('Delete Failed', result.error.message);
+      error(t('payments.notifications.deleteFailed', 'Delete Failed'), result.error.message);
     }
-  }, [id, success, error, navigate]);
+  }, [id, success, error, navigate, t]);
 
   const handleMarkAsPaid = useCallback(async () => {
     if (!id) return;
@@ -97,11 +99,11 @@ export const PaymentDetailPage: React.FC = () => {
 
     if (result.success) {
       setPayment(result.data);
-      success('Payment Marked as Paid', 'Payment status has been updated to paid');
+      success(t('payments.notifications.markedAsPaid', 'Payment Marked as Paid'), t('payments.notifications.markedAsPaidMessage', 'Payment status has been updated to paid'));
     } else {
-      error('Update Failed', result.error.message);
+      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
     }
-  }, [id, success, error]);
+  }, [id, success, error, t]);
 
   const handleBack = useCallback(() => {
     navigate('/payments');
@@ -112,7 +114,7 @@ export const PaymentDetailPage: React.FC = () => {
   }
 
   if (!payment) {
-    return <EmptyState description="Payment not found" />;
+    return <EmptyState description={t('payments.list.noPayments', 'Payment not found')} />;
   }
 
   const getFormInitialValues = (): PaymentFormValues => ({
@@ -127,11 +129,11 @@ export const PaymentDetailPage: React.FC = () => {
   return (
     <>
       <Popconfirm
-        title="Delete Payment"
-        description="Are you sure you want to delete this payment?"
+        title={t('payments.delete', 'Delete Payment')}
+        description={t('common.confirm.delete', 'Are you sure you want to delete this payment?')}
         onConfirm={handleDelete}
-        okText="Yes"
-        cancelText="No"
+        okText={t('common.confirm.yes', 'Yes')}
+        cancelText={t('common.confirm.no', 'No')}
       >
         <PaymentDetail
           payment={payment}
