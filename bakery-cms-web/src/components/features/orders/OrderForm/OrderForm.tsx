@@ -17,6 +17,7 @@ import {
   Col,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
 import { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
 import { useProducts } from '../../../../hooks/useProducts';
@@ -34,6 +35,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   initialValues,
   loading = false,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm<OrderFormValues>();
   const isEditMode = !!initialValues;
 
@@ -93,7 +95,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
   return (
     <AntModal
-      title={isEditMode ? 'Edit Order' : 'Create New Order'}
+      title={isEditMode ? t('orders.form.editTitle') : t('orders.form.createTitle')}
       open={open}
       onCancel={handleCancel}
       width={900}
@@ -118,12 +120,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="orderType"
-              label="Order Type"
-              rules={[{ required: true, message: 'Please select order type' }]}
+              label={t('orders.form.orderType')}
+              rules={[{ required: true, message: t('orders.form.validation.orderTypeRequired') }]}
             >
-              <Select placeholder="Select order type">
-                <Option value={OrderType.TEMPORARY}>Temporary</Option>
-                <Option value={OrderType.OFFICIAL}>Official</Option>
+              <Select placeholder={t('orders.form.orderTypePlaceholder')}>
+                <Option value={OrderType.TEMPORARY}>{t('orders.orderType.temporary')}</Option>
+                <Option value={OrderType.OFFICIAL}>{t('orders.orderType.official')}</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -132,12 +134,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="businessModel"
-              label="Business Model"
-              rules={[{ required: true, message: 'Please select business model' }]}
+              label={t('orders.form.businessModel')}
+              rules={[{ required: true, message: t('orders.form.validation.businessModelRequired') }]}
             >
-              <Select placeholder="Select business model">
-                <Option value={BusinessModel.MADE_TO_ORDER}>Made to Order</Option>
-                <Option value={BusinessModel.READY_TO_SELL}>Ready to Sell</Option>
+              <Select placeholder={t('orders.form.businessModelPlaceholder')}>
+                <Option value={BusinessModel.MADE_TO_ORDER}>{t('orders.businessModel.madeToOrder')}</Option>
+                <Option value={BusinessModel.READY_TO_SELL}>{t('orders.businessModel.readyToSell')}</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -148,10 +150,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="customerName"
-              label="Customer Name"
-              rules={[{ max: 100, message: 'Customer name cannot exceed 100 characters' }]}
+              label={t('orders.form.customerName')}
+              rules={[{ max: 100, message: t('orders.form.validation.customerNameMax') }]}
             >
-              <Input placeholder="Enter customer name (optional)" />
+              <Input placeholder={t('orders.form.customerNamePlaceholder')} />
             </Form.Item>
           </Col>
 
@@ -159,13 +161,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="customerPhone"
-              label="Customer Phone"
+              label={t('orders.form.customerPhone')}
               rules={[
-                { pattern: /^[0-9+\-() ]*$/, message: 'Invalid phone number format' },
-                { max: 20, message: 'Phone number cannot exceed 20 characters' },
+                { pattern: /^[0-9+\-() ]*$/, message: t('orders.form.validation.phoneInvalid') },
+                { max: 20, message: t('orders.form.validation.phoneMax') },
               ]}
             >
-              <Input placeholder="Enter customer phone (optional)" />
+              <Input placeholder={t('orders.form.customerPhonePlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
@@ -173,18 +175,18 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {/* Notes */}
         <Form.Item
           name="notes"
-          label="Notes"
-          rules={[{ max: 500, message: 'Notes cannot exceed 500 characters' }]}
+          label={t('orders.form.notes')}
+          rules={[{ max: 500, message: t('orders.form.validation.notesMax') }]}
         >
-          <TextArea rows={3} placeholder="Enter any additional notes (optional)" />
+          <TextArea rows={3} placeholder={t('orders.form.notesPlaceholder')} />
         </Form.Item>
 
         <Divider />
 
         {/* Order Items */}
         <div style={{ marginBottom: 16 }}>
-          <Title level={5}>Order Items</Title>
-          <Text type="secondary">Add products to this order</Text>
+          <Title level={5}>{t('orders.form.orderItems')}</Title>
+          <Text type="secondary">{t('orders.form.addItemsHint')}</Text>
         </div>
 
         <Form.List
@@ -193,7 +195,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             {
               validator: async (_, items) => {
                 if (!items || items.length === 0) {
-                  return Promise.reject(new Error('At least one item is required'));
+                  return Promise.reject(new Error(t('orders.form.validation.itemsRequired')));
                 }
               },
             },
@@ -211,11 +213,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   <Form.Item
                     {...field}
                     name={[field.name, 'productId']}
-                    rules={[{ required: true, message: 'Select product' }]}
+                    rules={[{ required: true, message: t('orders.form.validation.productRequired') }]}
                     style={{ marginBottom: 0, width: 250 }}
                   >
                     <Select
-                      placeholder="Select product"
+                      placeholder={t('orders.form.selectProduct')}
                       loading={productsLoading}
                       onChange={(value) => handleProductSelect(value, index)}
                       showSearch
@@ -234,13 +236,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     {...field}
                     name={[field.name, 'quantity']}
                     rules={[
-                      { required: true, message: 'Required' },
-                      { type: 'number', min: 1, message: 'Min 1' },
-                      { type: 'number', max: 9999, message: 'Max 9999' },
+                      { required: true, message: t('orders.form.validation.quantityRequired') },
+                      { type: 'number', min: 1, message: t('orders.form.validation.quantityMin') },
+                      { type: 'number', max: 9999, message: t('orders.form.validation.quantityMax') },
                     ]}
                     style={{ marginBottom: 0, width: 100 }}
                   >
-                    <InputNumber placeholder="Qty" min={1} max={9999} style={{ width: '100%' }} />
+                    <InputNumber placeholder={t('orders.form.quantityShort')} min={1} max={9999} style={{ width: '100%' }} />
                   </Form.Item>
 
                   {/* Unit Price */}
@@ -248,13 +250,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     {...field}
                     name={[field.name, 'unitPrice']}
                     rules={[
-                      { required: true, message: 'Required' },
-                      { type: 'number', min: 0, message: 'Min 0' },
+                      { required: true, message: t('orders.form.validation.priceRequired') },
+                      { type: 'number', min: 0, message: t('orders.form.validation.priceMin') },
                     ]}
                     style={{ marginBottom: 0, width: 150 }}
                   >
                     <InputNumber
-                      placeholder="Unit Price"
+                      placeholder={t('orders.form.price')}
                       min={0}
                       formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                       parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
@@ -287,7 +289,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   block
                   icon={<PlusOutlined />}
                 >
-                  Add Item
+                  {t('orders.form.addItem')}
                 </Button>
               </Form.Item>
 
@@ -302,7 +304,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {/* Total Amount */}
         <div style={{ marginBottom: 24, textAlign: 'right' }}>
           <Title level={4}>
-            Total: <Text type="success">{formatCurrency(totalAmount)}</Text>
+            {t('orders.form.total')}: <Text type="success">{formatCurrency(totalAmount)}</Text>
           </Title>
         </div>
 
@@ -310,14 +312,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {isEditMode && (
           <Form.Item
             name="status"
-            label="Status"
-            rules={[{ required: true, message: 'Please select status' }]}
+            label={t('orders.form.status')}
+            rules={[{ required: true, message: t('orders.form.validation.statusRequired') }]}
           >
-            <Select placeholder="Select status">
-              <Option value={OrderStatus.DRAFT}>Draft</Option>
-              <Option value={OrderStatus.CONFIRMED}>Confirmed</Option>
-              <Option value={OrderStatus.PAID}>Paid</Option>
-              <Option value={OrderStatus.CANCELLED}>Cancelled</Option>
+            <Select placeholder={t('orders.form.statusPlaceholder')}>
+              <Option value={OrderStatus.DRAFT}>{t('orders.status.draft')}</Option>
+              <Option value={OrderStatus.CONFIRMED}>{t('orders.status.confirmed')}</Option>
+              <Option value={OrderStatus.PAID}>{t('orders.status.paid')}</Option>
+              <Option value={OrderStatus.CANCELLED}>{t('orders.status.cancelled')}</Option>
             </Select>
           </Form.Item>
         )}
@@ -325,9 +327,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {/* Form Actions */}
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <Button onClick={handleCancel}>Cancel</Button>
+            <Button onClick={handleCancel}>{t('common.actions.cancel')}</Button>
             <Button type="primary" htmlType="submit" loading={loading}>
-              {isEditMode ? 'Update Order' : 'Create Order'}
+              {isEditMode ? t('orders.form.updateButton') : t('orders.form.createButton')}
             </Button>
           </Space>
         </Form.Item>

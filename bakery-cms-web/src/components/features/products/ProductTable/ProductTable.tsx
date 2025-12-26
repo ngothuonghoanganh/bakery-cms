@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared';
 import { ProductStatus, BusinessType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
@@ -15,13 +16,21 @@ const getStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
-const getBusinessTypeLabel = (type: string) => {
-  const labelMap: Record<string, string> = {
-    [BusinessType.MADE_TO_ORDER]: 'Made to Order',
-    [BusinessType.READY_TO_SELL]: 'Ready to Sell',
-    [BusinessType.BOTH]: 'Both',
+const getBusinessTypeKey = (type: string): 'madeToOrder' | 'readyToSell' | 'both' => {
+  const keyMap: Record<string, 'madeToOrder' | 'readyToSell' | 'both'> = {
+    [BusinessType.MADE_TO_ORDER]: 'madeToOrder',
+    [BusinessType.READY_TO_SELL]: 'readyToSell',
+    [BusinessType.BOTH]: 'both',
   };
-  return labelMap[type] || type;
+  return keyMap[type] || type;
+};
+
+const getStatusKey = (status: string): 'available' | 'outOfStock' => {
+  const keyMap: Record<string, 'available' | 'outOfStock'> = {
+    [ProductStatus.AVAILABLE]: 'available',
+    [ProductStatus.OUT_OF_STOCK]: 'outOfStock',
+  };
+  return keyMap[status] || status;
 };
 
 const ProductTableComponent: React.FC<ProductTableProps> = ({
@@ -33,11 +42,13 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
   onView,
   onTableChange,
 }) => {
+  const { t } = useTranslation();
+
   // Memoize columns to prevent recreation on every render
   const columns: ProductColumn = useMemo(
     () => [
       {
-        title: 'Name',
+        title: t('products.table.name'),
         dataIndex: 'name',
         key: 'name',
         sorter: true,
@@ -46,14 +57,14 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         render: (text: string) => <strong>{text}</strong>,
       },
       {
-        title: 'Category',
+        title: t('products.table.category'),
         dataIndex: 'category',
         key: 'category',
         width: 120,
         render: (text: string | null) => text || '-',
       },
       {
-        title: 'Price',
+        title: t('products.table.price'),
         dataIndex: 'price',
         key: 'price',
         width: 120,
@@ -61,23 +72,25 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         render: (price: number) => formatCurrency(price),
       },
       {
-        title: 'Business Type',
+        title: t('products.table.businessType'),
         dataIndex: 'businessType',
         key: 'businessType',
         width: 150,
-        render: (type: string) => <Tag color="blue">{getBusinessTypeLabel(type)}</Tag>,
+        render: (type: string) => (
+          <Tag color="blue">{t(`products.businessType.${getBusinessTypeKey(type)}`)}</Tag>
+        ),
       },
       {
-        title: 'Status',
+        title: t('products.table.status'),
         dataIndex: 'status',
         key: 'status',
         width: 120,
         render: (status: string) => (
-          <Tag color={getStatusColor(status)}>{status.replace('_', ' ').toUpperCase()}</Tag>
+          <Tag color={getStatusColor(status)}>{t(`products.status.${getStatusKey(status)}`)}</Tag>
         ),
       },
       {
-        title: 'Created At',
+        title: t('products.table.createdAt'),
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 180,
@@ -85,7 +98,7 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         render: (date: Date) => formatDateTime(date),
       },
       {
-        title: 'Actions',
+        title: t('products.table.actions'),
         key: 'actions',
         width: 150,
         fixed: 'right',
@@ -104,11 +117,11 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
               onClick={() => onEdit(record)}
             />
             <Popconfirm
-              title="Delete Product"
-              description="Are you sure you want to delete this product?"
+              title={t('products.delete')}
+              description={t('products.deleteConfirm')}
               onConfirm={() => onDelete(record.id)}
-              okText="Yes"
-              cancelText="No"
+              okText={t('common.confirm.yes')}
+              cancelText={t('common.confirm.no')}
               okButtonProps={{ danger: true }}
             >
               <Button type="text" size="small" danger icon={<DeleteOutlined />} />
@@ -117,8 +130,8 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         ),
       },
     ],
-    [onView, onEdit, onDelete]
-  ); // Dependencies: callback props
+    [t, onView, onEdit, onDelete]
+  ); // Dependencies: t function and callback props
 
   return (
     <DataTable

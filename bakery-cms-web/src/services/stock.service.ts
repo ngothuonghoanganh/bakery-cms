@@ -1,4 +1,3 @@
-
 /**
  * Stock service
  * Handles all stock-related API calls with Result type pattern
@@ -94,10 +93,7 @@ export type StockService = {
   ) => Promise<Result<PaginatedBrands, AppError>>;
   readonly getBrandById: (id: string) => Promise<Result<Brand | null, AppError>>;
   readonly createBrand: (data: CreateBrandRequest) => Promise<Result<Brand, AppError>>;
-  readonly updateBrand: (
-    id: string,
-    data: UpdateBrandRequest
-  ) => Promise<Result<Brand, AppError>>;
+  readonly updateBrand: (id: string, data: UpdateBrandRequest) => Promise<Result<Brand, AppError>>;
   readonly deleteBrand: (id: string) => Promise<Result<boolean, AppError>>;
   readonly restoreBrand: (id: string) => Promise<Result<Brand, AppError>>;
 
@@ -205,10 +201,7 @@ const updateStockItem = async (
   data: UpdateStockItemRequest
 ): Promise<Result<StockItem, AppError>> => {
   try {
-    const response = await apiClient.patch<StockItemAPIResponse>(
-      `/stock/stock-items/${id}`,
-      data
-    );
+    const response = await apiClient.patch<StockItemAPIResponse>(`/stock/stock-items/${id}`, data);
     const stockItem = mapStockItemFromAPI(response.data);
     return ok(stockItem);
   } catch (error) {
@@ -233,9 +226,7 @@ const deleteStockItem = async (id: string): Promise<Result<boolean, AppError>> =
  */
 const restoreStockItem = async (id: string): Promise<Result<StockItem, AppError>> => {
   try {
-    const response = await apiClient.post<StockItemAPIResponse>(
-      `/stock/stock-items/${id}/restore`
-    );
+    const response = await apiClient.post<StockItemAPIResponse>(`/stock/stock-items/${id}/restore`);
     const stockItem = mapStockItemFromAPI(response.data);
     return ok(stockItem);
   } catch (error) {
@@ -284,9 +275,7 @@ const adjustStock = async (
 /**
  * Bulk import stock items from CSV file
  */
-const bulkImportStockItems = async (
-  file: File
-): Promise<Result<BulkImportResult, AppError>> => {
+const bulkImportStockItems = async (file: File): Promise<Result<BulkImportResult, AppError>> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -329,9 +318,7 @@ const getAllBrands = async (
  */
 const getBrandById = async (id: string): Promise<Result<Brand | null, AppError>> => {
   try {
-    const response = await apiClient.get<AxiosResponse<BrandAPIResponse>>(
-      `/stock/brands/${id}`
-    );
+    const response = await apiClient.get<AxiosResponse<BrandAPIResponse>>(`/stock/brands/${id}`);
     if (!response?.data?.data) return ok(null);
 
     const brand = mapBrandFromAPI(response?.data?.data);
@@ -344,9 +331,7 @@ const getBrandById = async (id: string): Promise<Result<Brand | null, AppError>>
 /**
  * Create a new brand
  */
-const createBrand = async (
-  data: CreateBrandRequest
-): Promise<Result<Brand, AppError>> => {
+const createBrand = async (data: CreateBrandRequest): Promise<Result<Brand, AppError>> => {
   try {
     const response = await apiClient.post<AxiosResponse<BrandAPIResponse>>('/stock/brands', data);
     const brand = mapBrandFromAPI(response.data.data);
@@ -364,10 +349,7 @@ const updateBrand = async (
   data: UpdateBrandRequest
 ): Promise<Result<Brand, AppError>> => {
   try {
-    const response = await apiClient.patch<BrandAPIResponse>(
-      `/stock/brands/${id}`,
-      data
-    );
+    const response = await apiClient.patch<BrandAPIResponse>(`/stock/brands/${id}`, data);
     const brand = mapBrandFromAPI(response.data);
     return ok(brand);
   } catch (error) {
@@ -392,9 +374,7 @@ const deleteBrand = async (id: string): Promise<Result<boolean, AppError>> => {
  */
 const restoreBrand = async (id: string): Promise<Result<Brand, AppError>> => {
   try {
-    const response = await apiClient.post<BrandAPIResponse>(
-      `/stock/brands/${id}/restore`
-    );
+    const response = await apiClient.post<BrandAPIResponse>(`/stock/brands/${id}/restore`);
     const brand = mapBrandFromAPI(response.data);
     return ok(brand);
   } catch (error) {
@@ -597,10 +577,12 @@ const getStockMovements = async (
   filters?: StockMovementFiltersRequest
 ): Promise<Result<PaginatedStockMovements, AppError>> => {
   try {
-    const response = await apiClient.get<
-      AxiosResponse<PaginatedStockMovementsAPIResponse>
-    >('/stock/stock-movements', { params: filters });
-    return ok(mapPaginatedStockMovementsFromAPI(response.data.data));
+    const response = await apiClient.get<PaginatedStockMovementsAPIResponse>(
+      '/stock/stock-movements',
+      { params: filters }
+    );
+
+    return ok(mapPaginatedStockMovementsFromAPI(response.data));
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
   }
@@ -613,9 +595,9 @@ const getStockMovementById = async (
   id: string
 ): Promise<Result<StockMovement | null, AppError>> => {
   try {
-    const response = await apiClient.get<
-      AxiosResponse<StockMovementAPIResponse>
-    >(`/stock/stock-movements/${id}`);
+    const response = await apiClient.get<AxiosResponse<StockMovementAPIResponse>>(
+      `/stock/stock-movements/${id}`
+    );
     return ok(mapStockMovementFromAPI(response.data.data));
   } catch (error) {
     return err(extractErrorFromAxiosError(error));

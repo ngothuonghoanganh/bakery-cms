@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Form, Input, InputNumber, Select, Row, Col } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
 import { BusinessType, ProductStatus } from '../../../../types/models/product.model';
 import type { ProductFormProps, ProductFormValues } from './ProductForm.types';
@@ -14,6 +15,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm<ProductFormValues>();
   const isEditMode = Boolean(product);
 
@@ -54,47 +56,47 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   return (
     <AntModal
-      title={isEditMode ? 'Edit Product' : 'Create Product'}
+      title={isEditMode ? t('products.form.editTitle') : t('products.form.createTitle')}
       open={visible}
       onOk={handleSubmit}
       onCancel={handleCancel}
       confirmLoading={loading}
       width={700}
-      okText={isEditMode ? 'Update' : 'Create'}
+      okText={isEditMode ? t('products.form.updateButton') : t('products.form.createButton')}
     >
       <Form form={form} layout="vertical" requiredMark="optional">
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
               name="name"
-              label="Product Name"
+              label={t('products.form.name')}
               rules={[
-                { required: true, message: 'Product name is required' },
-                { min: 3, message: 'Product name must be at least 3 characters' },
-                { max: 255, message: 'Product name must not exceed 255 characters' },
+                { required: true, message: t('products.form.validation.nameRequired') },
+                { min: 3, message: t('products.form.validation.nameMin') },
+                { max: 255, message: t('products.form.validation.nameMax') },
               ]}
             >
-              <Input placeholder="Enter product name" />
+              <Input placeholder={t('products.form.namePlaceholder')} />
             </Form.Item>
           </Col>
 
           <Col span={24}>
             <Form.Item
               name="description"
-              label="Description"
-              rules={[{ max: 1000, message: 'Description must not exceed 1000 characters' }]}
+              label={t('products.form.description')}
+              rules={[{ max: 1000, message: t('products.form.validation.descriptionMax') }]}
             >
-              <TextArea rows={4} placeholder="Enter product description" />
+              <TextArea rows={4} placeholder={t('products.form.descriptionPlaceholder')} />
             </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item
               name="price"
-              label="Price"
+              label={t('products.form.price')}
               rules={[
-                { required: true, message: 'Price is required' },
-                { type: 'number', min: 0.01, message: 'Price must be greater than 0' },
+                { required: true, message: t('products.form.validation.priceRequired') },
+                { type: 'number', min: 0.01, message: t('products.form.validation.priceMin') },
               ]}
             >
               <InputNumber
@@ -102,7 +104,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 prefix="$"
                 min={0}
                 precision={2}
-                placeholder="0.00"
+                placeholder={t('products.form.pricePlaceholder')}
               />
             </Form.Item>
           </Col>
@@ -110,23 +112,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="category"
-              label="Category"
-              rules={[{ max: 100, message: 'Category must not exceed 100 characters' }]}
+              label={t('products.form.category')}
+              rules={[{ max: 100, message: t('products.form.validation.categoryMax') }]}
             >
-              <Input placeholder="Enter category" />
+              <Input placeholder={t('products.form.categoryPlaceholder')} />
             </Form.Item>
           </Col>
 
           <Col span={12}>
             <Form.Item
               name="businessType"
-              label="Business Type"
-              rules={[{ required: true, message: 'Business type is required' }]}
+              label={t('products.form.businessType')}
+              rules={[{ required: true, message: t('products.form.validation.businessTypeRequired') }]}
             >
-              <Select placeholder="Select business type">
-                <Option value={BusinessType.READY_TO_SELL}>Ready to Sell</Option>
-                <Option value={BusinessType.MADE_TO_ORDER}>Made to Order</Option>
-                <Option value={BusinessType.BOTH}>Both</Option>
+              <Select placeholder={t('products.form.businessTypePlaceholder')}>
+                <Option value={BusinessType.READY_TO_SELL}>{t('products.businessType.readyToSell')}</Option>
+                <Option value={BusinessType.MADE_TO_ORDER}>{t('products.businessType.madeToOrder')}</Option>
+                <Option value={BusinessType.BOTH}>{t('products.businessType.both')}</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -134,12 +136,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <Col span={12}>
             <Form.Item
               name="status"
-              label="Status"
-              rules={[{ required: true, message: 'Status is required' }]}
+              label={t('products.form.status')}
+              rules={[{ required: true, message: t('products.form.validation.statusRequired') }]}
             >
-              <Select placeholder="Select status">
-                <Option value={ProductStatus.AVAILABLE}>Available</Option>
-                <Option value={ProductStatus.OUT_OF_STOCK}>Out of Stock</Option>
+              <Select placeholder={t('products.form.statusPlaceholder')}>
+                <Option value={ProductStatus.AVAILABLE}>{t('products.status.available')}</Option>
+                <Option value={ProductStatus.OUT_OF_STOCK}>{t('products.status.outOfStock')}</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -147,10 +149,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <Col span={24}>
             <Form.Item
               name="imageUrl"
-              label="Image URL"
-              rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+              label={t('products.form.imageUrl')}
+              rules={[{ type: 'url', message: t('products.form.validation.imageUrlInvalid') }]}
             >
-              <Input placeholder="https://example.com/image.jpg" />
+              <Input placeholder={t('products.form.imageUrlPlaceholder')} />
             </Form.Item>
           </Col>
         </Row>

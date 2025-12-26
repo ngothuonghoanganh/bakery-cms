@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Descriptions, Button, Space, Tag, Image } from 'antd';
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { BusinessType, ProductStatus } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import { ProductRecipe } from '../../stock/ProductRecipe';
@@ -14,13 +15,21 @@ const getStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
-const getBusinessTypeLabel = (type: string) => {
-  const labelMap: Record<string, string> = {
-    [BusinessType.MADE_TO_ORDER]: 'Made to Order',
-    [BusinessType.READY_TO_SELL]: 'Ready to Sell',
-    [BusinessType.BOTH]: 'Both',
+const getBusinessTypeKey = (type: string): 'madeToOrder' | 'readyToSell' | 'both' => {
+  const keyMap: Record<string, 'madeToOrder' | 'readyToSell' | 'both'> = {
+    [BusinessType.MADE_TO_ORDER]: 'madeToOrder',
+    [BusinessType.READY_TO_SELL]: 'readyToSell',
+    [BusinessType.BOTH]: 'both',
   };
-  return labelMap[type] || type;
+  return keyMap[type] || type;
+};
+
+const getStatusKey = (status: string): 'available' | 'outOfStock' => {
+  const keyMap: Record<string, 'available' | 'outOfStock'> = {
+    [ProductStatus.AVAILABLE]: 'available',
+    [ProductStatus.OUT_OF_STOCK]: 'outOfStock',
+  };
+  return keyMap[status] || status;
 };
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -30,11 +39,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onDelete,
   onBack,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-          Back to Products
+          {t('products.detail.backToProducts')}
         </Button>
       </div>
 
@@ -44,10 +55,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         extra={
           <Space>
             <Button type="primary" icon={<EditOutlined />} onClick={onEdit}>
-              Edit
+              {t('common.actions.edit')}
             </Button>
             <Button danger icon={<DeleteOutlined />} onClick={onDelete}>
-              Delete
+              {t('common.actions.delete')}
             </Button>
           </Space>
         }
@@ -64,42 +75,42 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         )}
 
         <Descriptions bordered column={2}>
-          <Descriptions.Item label="Product ID">{product.id}</Descriptions.Item>
-          <Descriptions.Item label="Price">
+          <Descriptions.Item label={t('products.detail.productId')}>{product.id}</Descriptions.Item>
+          <Descriptions.Item label={t('products.detail.price')}>
             <strong style={{ fontSize: 18, color: '#52c41a' }}>
               {formatCurrency(product.price)}
             </strong>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Category">{product.category || '-'}</Descriptions.Item>
-          <Descriptions.Item label="Business Type">
-            <Tag color="blue">{getBusinessTypeLabel(product.businessType)}</Tag>
+          <Descriptions.Item label={t('products.detail.category')}>{product.category || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('products.detail.businessType')}>
+            <Tag color="blue">{t(`products.businessType.${getBusinessTypeKey(product.businessType)}`)}</Tag>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Status">
+          <Descriptions.Item label={t('products.detail.status')}>
             <Tag color={getStatusColor(product.status)}>
-              {product.status?.replace('_', ' ').toUpperCase()}
+              {t(`products.status.${getStatusKey(product.status)}`)}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Created At">
+          <Descriptions.Item label={t('products.detail.createdAt')}>
             {formatDateTime(product.createdAt)}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Updated At">
+          <Descriptions.Item label={t('products.detail.updatedAt')}>
             {formatDateTime(product.updatedAt)}
           </Descriptions.Item>
-          <Descriptions.Item label="Image URL">
+          <Descriptions.Item label={t('products.detail.imageUrl')}>
             {product.imageUrl ? (
               <a href={product.imageUrl} target="_blank" rel="noopener noreferrer">
-                View Image
+                {t('products.detail.viewImage')}
               </a>
             ) : (
               '-'
             )}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Description" span={2}>
-            {product.description || 'No description available'}
+          <Descriptions.Item label={t('products.detail.description')} span={2}>
+            {product.description || t('products.detail.noDescription')}
           </Descriptions.Item>
         </Descriptions>
       </Card>

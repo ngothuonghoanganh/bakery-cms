@@ -12,6 +12,7 @@ import {
   CheckOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared/DataTable/DataTable';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { OrderTableProps } from './OrderTable.types';
@@ -30,35 +31,6 @@ const getStatusColor = (status: OrderStatus): string => {
   return colorMap[status] || 'default';
 };
 
-// Status label mapping
-const getStatusLabel = (status: OrderStatus): string => {
-  const labelMap: Record<OrderStatus, string> = {
-    draft: 'Draft',
-    confirmed: 'Confirmed',
-    paid: 'Completed',
-    cancelled: 'Cancelled',
-  };
-  return labelMap[status] || status;
-};
-
-// Order type label mapping
-const getOrderTypeLabel = (orderType: string): string => {
-  const labelMap: Record<string, string> = {
-    temporary: 'Temporary',
-    official: 'Official',
-  };
-  return labelMap[orderType] || orderType;
-};
-
-// Business model label mapping
-const getBusinessModelLabel = (businessModel: string): string => {
-  const labelMap: Record<string, string> = {
-    made_to_order: 'Made to Order',
-    ready_to_sell: 'Ready to Sell',
-  };
-  return labelMap[businessModel] || businessModel;
-};
-
 export const OrderTable: React.FC<OrderTableProps> = ({
   orders,
   loading = false,
@@ -68,9 +40,11 @@ export const OrderTable: React.FC<OrderTableProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useTranslation();
+
   const columns = [
     {
-      title: 'Order Number',
+      title: t('orders.table.orderNumber'),
       dataIndex: 'orderNumber',
       key: 'orderNumber',
       sorter: true,
@@ -78,36 +52,36 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       render: (orderNumber: string) => <Text strong>{orderNumber}</Text>,
     },
     {
-      title: 'Customer',
+      title: t('orders.table.customer'),
       dataIndex: 'customerName',
       key: 'customerName',
       sorter: true,
       width: 150,
-      render: (customerName: string | null) => customerName || <Text type="secondary">N/A</Text>,
+      render: (customerName: string | null) => customerName || <Text type="secondary">{t('orders.detail.na')}</Text>,
     },
     {
-      title: 'Type',
+      title: t('orders.table.type'),
       dataIndex: 'orderType',
       key: 'orderType',
       width: 120,
-      render: (orderType: string) => getOrderTypeLabel(orderType),
+      render: (orderType: string) => t(`orders.orderType.${orderType}`),
     },
     {
-      title: 'Business Model',
+      title: t('orders.table.businessModel'),
       dataIndex: 'businessModel',
       key: 'businessModel',
       width: 150,
-      render: (businessModel: string) => getBusinessModelLabel(businessModel),
+      render: (businessModel: string) => t(`orders.businessModel.${businessModel === 'made_to_order' ? 'madeToOrder' : 'readyToSell'}`),
     },
     {
-      title: 'Items',
+      title: t('orders.table.items'),
       key: 'items',
       width: 80,
       align: 'center' as const,
       render: (_: any, record: Order) => <Text>{record.items ? record.items.length : 0}</Text>,
     },
     {
-      title: 'Total Amount',
+      title: t('orders.table.totalAmount'),
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       sorter: true,
@@ -116,16 +90,16 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       render: (amount: number) => <Text strong>{formatCurrency(amount)}</Text>,
     },
     {
-      title: 'Status',
+      title: t('orders.table.status'),
       dataIndex: 'status',
       key: 'status',
       width: 120,
       render: (status: OrderStatus) => (
-        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+        <Tag color={getStatusColor(status)}>{t(`orders.status.${status}`)}</Tag>
       ),
     },
     {
-      title: 'Created At',
+      title: t('orders.table.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       sorter: true,
@@ -133,14 +107,14 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       render: (date: Date) => formatDateTime(date),
     },
     {
-      title: 'Actions',
+      title: t('orders.table.actions'),
       key: 'actions',
       fixed: 'right' as const,
       width: 200,
       render: (_: any, record: Order) => (
         <Space size="small">
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => onView(record)}>
-            View
+            {t('orders.actions.view')}
           </Button>
           {record.status === 'draft' && (
             <>
@@ -150,43 +124,43 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                 icon={<EditOutlined />}
                 onClick={() => onEdit(record)}
               >
-                Edit
+                {t('orders.actions.edit')}
               </Button>
               <Popconfirm
-                title="Confirm Order"
-                description="Are you sure you want to confirm this order?"
+                title={t('orders.confirm.confirmTitle')}
+                description={t('orders.confirm.confirmDescription')}
                 onConfirm={() => onConfirm(record.id)}
-                okText="Yes"
-                cancelText="No"
+                okText={t('orders.confirm.yes')}
+                cancelText={t('orders.confirm.no')}
               >
                 <Button type="link" size="small" icon={<CheckOutlined />}>
-                  Confirm
+                  {t('orders.actions.confirm')}
                 </Button>
               </Popconfirm>
             </>
           )}
           {(record.status === 'draft' || record.status === 'confirmed') && (
             <Popconfirm
-              title="Cancel Order"
-              description="Are you sure you want to cancel this order?"
+              title={t('orders.confirm.cancelTitle')}
+              description={t('orders.confirm.cancelDescription')}
               onConfirm={() => onCancel(record.id)}
-              okText="Yes"
-              cancelText="No"
+              okText={t('orders.confirm.yes')}
+              cancelText={t('orders.confirm.no')}
             >
               <Button type="link" danger size="small" icon={<CloseOutlined />}>
-                Cancel
+                {t('orders.actions.cancel')}
               </Button>
             </Popconfirm>
           )}
           <Popconfirm
-            title="Delete Order"
-            description="Are you sure you want to delete this order?"
+            title={t('orders.confirm.deleteTitle')}
+            description={t('orders.confirm.deleteDescription')}
             onConfirm={() => onDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText={t('orders.confirm.yes')}
+            cancelText={t('orders.confirm.no')}
           >
             <Button type="link" danger size="small" icon={<DeleteOutlined />}>
-              Delete
+              {t('orders.actions.delete')}
             </Button>
           </Popconfirm>
         </Space>

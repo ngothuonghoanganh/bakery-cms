@@ -52,8 +52,8 @@ const getAll = async (
  */
 const getById = async (id: string): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.get<OrderAPIResponse>(`/orders/${id}`);
-    const order = mapOrderFromAPI(response.data);
+    const response = await apiClient.get<{ success: boolean; data: OrderAPIResponse }>(`/orders/${id}`);
+    const order = mapOrderFromAPI(response.data.data);
     return ok(order);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -65,8 +65,8 @@ const getById = async (id: string): Promise<Result<Order, AppError>> => {
  */
 const create = async (data: CreateOrderRequest): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.post<OrderAPIResponse>('/orders', data);
-    const order = mapOrderFromAPI(response.data);
+    const response = await apiClient.post<{ success: boolean; data: OrderAPIResponse }>('/orders', data);
+    const order = mapOrderFromAPI(response.data.data);
     return ok(order);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -78,8 +78,8 @@ const create = async (data: CreateOrderRequest): Promise<Result<Order, AppError>
  */
 const update = async (id: string, data: UpdateOrderRequest): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.patch<OrderAPIResponse>(`/orders/${id}`, data);
-    const order = mapOrderFromAPI(response.data);
+    const response = await apiClient.patch<{ success: boolean; data: OrderAPIResponse }>(`/orders/${id}`, data);
+    const order = mapOrderFromAPI(response.data.data);
     return ok(order);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -91,8 +91,8 @@ const update = async (id: string, data: UpdateOrderRequest): Promise<Result<Orde
  */
 const confirm = async (id: string): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.post<OrderAPIResponse>(`/orders/${id}/confirm`);
-    const order = mapOrderFromAPI(response.data);
+    const response = await apiClient.post<{ success: boolean; data: OrderAPIResponse }>(`/orders/${id}/confirm`);
+    const order = mapOrderFromAPI(response.data.data);
     return ok(order);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -104,8 +104,8 @@ const confirm = async (id: string): Promise<Result<Order, AppError>> => {
  */
 const cancel = async (id: string): Promise<Result<Order, AppError>> => {
   try {
-    const response = await apiClient.post<OrderAPIResponse>(`/orders/${id}/cancel`);
-    const order = mapOrderFromAPI(response.data);
+    const response = await apiClient.post<{ success: boolean; data: OrderAPIResponse }>(`/orders/${id}/cancel`);
+    const order = mapOrderFromAPI(response.data.data);
     return ok(order);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));

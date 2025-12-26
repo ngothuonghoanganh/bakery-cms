@@ -43,7 +43,7 @@ export const createStockMovementRepository = (
         {
           model: UserModel,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstName', 'lastName', 'email'],
         },
       ],
     });
@@ -112,7 +112,7 @@ export const createStockMovementRepository = (
         {
           model: UserModel,
           as: 'user',
-          attributes: ['id', 'name', 'email'],
+          attributes: ['id', 'firstName', 'lastName', 'email'],
         },
       ],
     });

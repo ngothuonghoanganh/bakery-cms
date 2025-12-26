@@ -6,6 +6,7 @@
 import React from 'react';
 import { Input, Select, DatePicker, Row, Col } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { FilterPanel } from '../../../shared/FilterPanel/FilterPanel';
 import { OrderStatus, OrderType, BusinessModel } from '../../../../types/models/order.model';
 import type { OrderFiltersProps } from './OrderFilters.types';
@@ -15,6 +16,8 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onReset }) => {
+  const { t } = useTranslation();
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ ...value, search: e.target.value });
   };
@@ -56,7 +59,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onR
         {/* Search */}
         <Col xs={24} sm={12} md={6}>
           <Input
-            placeholder="Search by order number or customer..."
+            placeholder={t('orders.filter.searchPlaceholder')}
             prefix={<SearchOutlined />}
             value={value.search}
             onChange={handleSearchChange}
@@ -67,44 +70,44 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onR
         {/* Status Filter */}
         <Col xs={24} sm={12} md={6}>
           <Select
-            placeholder="Filter by status"
+            placeholder={t('orders.filter.statusPlaceholder')}
             value={value.status}
             onChange={handleStatusChange}
             allowClear
             style={{ width: '100%' }}
           >
-            <Option value={OrderStatus.DRAFT}>Draft</Option>
-            <Option value={OrderStatus.CONFIRMED}>Confirmed</Option>
-            <Option value={OrderStatus.PAID}>Paid</Option>
-            <Option value={OrderStatus.CANCELLED}>Cancelled</Option>
+            <Option value={OrderStatus.DRAFT}>{t('orders.status.draft')}</Option>
+            <Option value={OrderStatus.CONFIRMED}>{t('orders.status.confirmed')}</Option>
+            <Option value={OrderStatus.PAID}>{t('orders.status.paid')}</Option>
+            <Option value={OrderStatus.CANCELLED}>{t('orders.status.cancelled')}</Option>
           </Select>
         </Col>
 
         {/* Order Type Filter */}
         <Col xs={24} sm={12} md={6}>
           <Select
-            placeholder="Filter by order type"
+            placeholder={t('orders.filter.orderTypePlaceholder')}
             value={value.orderType}
             onChange={handleOrderTypeChange}
             allowClear
             style={{ width: '100%' }}
           >
-            <Option value={OrderType.TEMPORARY}>Temporary</Option>
-            <Option value={OrderType.OFFICIAL}>Official</Option>
+            <Option value={OrderType.TEMPORARY}>{t('orders.orderType.temporary')}</Option>
+            <Option value={OrderType.OFFICIAL}>{t('orders.orderType.official')}</Option>
           </Select>
         </Col>
 
         {/* Business Model Filter */}
         <Col xs={24} sm={12} md={6}>
           <Select
-            placeholder="Filter by business model"
+            placeholder={t('orders.filter.businessModelPlaceholder')}
             value={value.businessModel}
             onChange={handleBusinessModelChange}
             allowClear
             style={{ width: '100%' }}
           >
-            <Option value={BusinessModel.MADE_TO_ORDER}>Made to Order</Option>
-            <Option value={BusinessModel.READY_TO_SELL}>Ready to Sell</Option>
+            <Option value={BusinessModel.MADE_TO_ORDER}>{t('orders.businessModel.madeToOrder')}</Option>
+            <Option value={BusinessModel.READY_TO_SELL}>{t('orders.businessModel.readyToSell')}</Option>
           </Select>
         </Col>
 
@@ -114,7 +117,7 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onR
             value={dateRange as any}
             onChange={handleDateRangeChange}
             style={{ width: '100%' }}
-            placeholder={['Start Date', 'End Date']}
+            placeholder={[t('orders.filter.startDate'), t('orders.filter.endDate')]}
           />
         </Col>
       </Row>

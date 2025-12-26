@@ -12,6 +12,7 @@ import {
   CheckOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { OrderDetailProps } from './OrderDetail.types';
 import type { OrderStatus } from '../../../../types/models/order.model';
@@ -29,35 +30,6 @@ const getStatusColor = (status: OrderStatus): string => {
   return colorMap[status] || 'default';
 };
 
-// Status label mapping
-const getStatusLabel = (status: OrderStatus): string => {
-  const labelMap: Record<OrderStatus, string> = {
-    draft: 'Draft',
-    confirmed: 'Confirmed',
-    paid: 'Paid',
-    cancelled: 'Cancelled',
-  };
-  return labelMap[status] || status;
-};
-
-// Order type label mapping
-const getOrderTypeLabel = (orderType: string): string => {
-  const labelMap: Record<string, string> = {
-    temporary: 'Temporary',
-    official: 'Official',
-  };
-  return labelMap[orderType] || orderType;
-};
-
-// Business model label mapping
-const getBusinessModelLabel = (businessModel: string): string => {
-  const labelMap: Record<string, string> = {
-    made_to_order: 'Made to Order',
-    ready_to_sell: 'Ready to Sell',
-  };
-  return labelMap[businessModel] || businessModel;
-};
-
 export const OrderDetail: React.FC<OrderDetailProps> = ({
   order,
   onEdit,
@@ -67,23 +39,25 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   onBack,
   loading = false,
 }) => {
+  const { t } = useTranslation();
+
   // Table columns for order items
   const itemsColumns = [
     {
-      title: 'Product ID',
+      title: t('orders.detail.productId'),
       dataIndex: 'productId',
       key: 'productId',
       width: 200,
     },
     {
-      title: 'Quantity',
+      title: t('orders.detail.quantity'),
       dataIndex: 'quantity',
       key: 'quantity',
       width: 100,
       align: 'center' as const,
     },
     {
-      title: 'Unit Price',
+      title: t('orders.detail.unitPrice'),
       dataIndex: 'unitPrice',
       key: 'unitPrice',
       width: 120,
@@ -91,7 +65,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       render: (price: number) => formatCurrency(price),
     },
     {
-      title: 'Subtotal',
+      title: t('orders.detail.subtotal'),
       dataIndex: 'subtotal',
       key: 'subtotal',
       width: 120,
@@ -110,94 +84,94 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       {/* Header with actions */}
       <Space style={{ marginBottom: 24, width: '100%', justifyContent: 'space-between' }}>
         <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-          Back to Orders
+          {t('orders.detail.backToOrders')}
         </Button>
 
         <Space>
           {canEdit && (
             <Button icon={<EditOutlined />} onClick={onEdit}>
-              Edit
+              {t('orders.actions.edit')}
             </Button>
           )}
           {canConfirm && (
             <Popconfirm
-              title="Confirm Order"
-              description="Are you sure you want to confirm this order?"
+              title={t('orders.confirm.confirmTitle')}
+              description={t('orders.confirm.confirmDescription')}
               onConfirm={onConfirm}
-              okText="Yes"
-              cancelText="No"
+              okText={t('orders.confirm.yes')}
+              cancelText={t('orders.confirm.no')}
             >
               <Button type="primary" icon={<CheckOutlined />}>
-                Confirm Order
+                {t('orders.actions.confirmOrder')}
               </Button>
             </Popconfirm>
           )}
           {canCancel && (
             <Popconfirm
-              title="Cancel Order"
-              description="Are you sure you want to cancel this order?"
+              title={t('orders.confirm.cancelTitle')}
+              description={t('orders.confirm.cancelDescription')}
               onConfirm={onCancel}
-              okText="Yes"
-              cancelText="No"
+              okText={t('orders.confirm.yes')}
+              cancelText={t('orders.confirm.no')}
             >
               <Button danger icon={<CloseOutlined />}>
-                Cancel Order
+                {t('orders.actions.cancelOrder')}
               </Button>
             </Popconfirm>
           )}
           <Popconfirm
-            title="Delete Order"
-            description="Are you sure you want to delete this order? This action cannot be undone."
+            title={t('orders.confirm.deleteTitle')}
+            description={t('orders.confirm.deleteDescription')}
             onConfirm={onDelete}
-            okText="Yes"
-            cancelText="No"
+            okText={t('orders.confirm.yes')}
+            cancelText={t('orders.confirm.no')}
           >
             <Button danger icon={<DeleteOutlined />}>
-              Delete
+              {t('orders.actions.delete')}
             </Button>
           </Popconfirm>
         </Space>
       </Space>
 
       {/* Order information card */}
-      <Card title={<Title level={3}>Order #{order.orderNumber}</Title>} loading={loading}>
+      <Card title={<Title level={3}>{t('orders.detail.orderNumber')} #{order.orderNumber}</Title>} loading={loading}>
         <Descriptions column={2} bordered>
-          <Descriptions.Item label="Order Number">
+          <Descriptions.Item label={t('orders.detail.orderNumber')}>
             <Text strong>{order.orderNumber}</Text>
           </Descriptions.Item>
-          <Descriptions.Item label="Status">
-            <Tag color={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Tag>
+          <Descriptions.Item label={t('orders.detail.status')}>
+            <Tag color={getStatusColor(order.status)}>{t(`orders.status.${order.status}`)}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Order Type">
-            {getOrderTypeLabel(order.orderType)}
+          <Descriptions.Item label={t('orders.detail.orderType')}>
+            {t(`orders.orderType.${order.orderType}`)}
           </Descriptions.Item>
-          <Descriptions.Item label="Business Model">
-            {getBusinessModelLabel(order.businessModel)}
+          <Descriptions.Item label={t('orders.detail.businessModel')}>
+            {t(`orders.businessModel.${order.businessModel === 'made_to_order' ? 'madeToOrder' : 'readyToSell'}`)}
           </Descriptions.Item>
-          <Descriptions.Item label="Customer Name">
-            {order.customerName || <Text type="secondary">N/A</Text>}
+          <Descriptions.Item label={t('orders.detail.customerName')}>
+            {order.customerName || <Text type="secondary">{t('orders.detail.na')}</Text>}
           </Descriptions.Item>
-          <Descriptions.Item label="Customer Phone">
-            {order.customerPhone || <Text type="secondary">N/A</Text>}
+          <Descriptions.Item label={t('orders.detail.customerPhone')}>
+            {order.customerPhone || <Text type="secondary">{t('orders.detail.na')}</Text>}
           </Descriptions.Item>
-          <Descriptions.Item label="Total Amount" span={2}>
+          <Descriptions.Item label={t('orders.detail.totalAmount')} span={2}>
             <Text strong style={{ fontSize: 18 }}>
               {formatCurrency(order.totalAmount)}
             </Text>
           </Descriptions.Item>
-          <Descriptions.Item label="Created At">
+          <Descriptions.Item label={t('orders.detail.createdAt')}>
             {formatDateTime(order.createdAt)}
           </Descriptions.Item>
-          <Descriptions.Item label="Updated At">
+          <Descriptions.Item label={t('orders.detail.updatedAt')}>
             {formatDateTime(order.updatedAt)}
           </Descriptions.Item>
           {order.confirmedAt && (
-            <Descriptions.Item label="Confirmed At" span={2}>
+            <Descriptions.Item label={t('orders.detail.confirmedAt')} span={2}>
               {formatDateTime(order.confirmedAt)}
             </Descriptions.Item>
           )}
           {order.notes && (
-            <Descriptions.Item label="Notes" span={2}>
+            <Descriptions.Item label={t('orders.detail.notes')} span={2}>
               {order.notes}
             </Descriptions.Item>
           )}
@@ -206,7 +180,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
 
       {/* Order items card */}
       <Card
-        title={<Title level={4}>Order Items</Title>}
+        title={<Title level={4}>{t('orders.detail.orderItems')}</Title>}
         style={{ marginTop: 24 }}
         loading={loading}
       >
@@ -219,7 +193,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             <Table.Summary fixed>
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={3} align="right">
-                  <Text strong>Total:</Text>
+                  <Text strong>{t('orders.detail.total')}:</Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1} align="right">
                   <Text strong style={{ fontSize: 16 }}>
