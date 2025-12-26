@@ -17,7 +17,7 @@ export type PaymentAPIResponse = {
 };
 
 export type PaginatedPaymentsAPIResponse = {
-  readonly payments: readonly PaymentAPIResponse[];
+  readonly data: readonly PaymentAPIResponse[];
   readonly total: number;
   readonly page: number;
   readonly pageSize: number;

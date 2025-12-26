@@ -23,6 +23,7 @@ import {
   mapPaginatedPaymentsFromAPI,
   mapVietQRDataFromAPI,
 } from '@/types/mappers/payment.mapper';
+import type { AxiosResponse } from 'axios';
 
 /**
  * Payment service type definition
@@ -50,9 +51,12 @@ const getAll = async (
     const response = await apiClient.get<PaginatedPaymentsAPIResponse>('/payments', {
       params: filters,
     });
+    console.log('API Response:', response.data);
     const paginatedPayments = mapPaginatedPaymentsFromAPI(response.data);
+    console.log('Fetched payments:', paginatedPayments);
     return ok(paginatedPayments);
   } catch (error) {
+    console.error('Error fetching payments:', error);
     return err(extractErrorFromAxiosError(error));
   }
 };
@@ -62,8 +66,8 @@ const getAll = async (
  */
 const getById = async (id: string): Promise<Result<Payment | null, AppError>> => {
   try {
-    const response = await apiClient.get<PaymentAPIResponse>(`/payments/${id}`);
-    const payment = mapPaymentFromAPI(response.data);
+    const response = await apiClient.get<AxiosResponse<PaymentAPIResponse>>(`/payments/${id}`);
+    const payment = mapPaymentFromAPI(response.data.data);
     return ok(payment);
   } catch (error) {
     const appError = extractErrorFromAxiosError(error);

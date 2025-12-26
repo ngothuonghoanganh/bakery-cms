@@ -41,7 +41,7 @@ export const mapPaymentFromAPI = (apiPayment: PaymentAPIResponse): Payment => ({
 export const mapPaginatedPaymentsFromAPI = (
   apiResponse: PaginatedPaymentsAPIResponse
 ): PaginatedPayments => ({
-  payments: apiResponse.payments.map(mapPaymentFromAPI),
+  payments: apiResponse?.data?.map(mapPaymentFromAPI),
   total: apiResponse.total,
   page: apiResponse.page,
   pageSize: apiResponse.pageSize,

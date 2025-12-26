@@ -11,6 +11,7 @@ import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { PaymentDetailProps } from './PaymentDetail.types';
@@ -25,25 +26,6 @@ const getStatusColor = (status: PaymentStatus): string => {
   return colorMap[status] || 'default';
 };
 
-const getStatusLabel = (status: PaymentStatus): string => {
-  const labelMap: Record<PaymentStatus, string> = {
-    [PaymentStatus.PENDING]: 'Pending',
-    [PaymentStatus.PAID]: 'Paid',
-    [PaymentStatus.FAILED]: 'Failed',
-    [PaymentStatus.CANCELLED]: 'Cancelled',
-  };
-  return labelMap[status] || status;
-};
-
-const getMethodLabel = (method: PaymentMethod): string => {
-  const labelMap: Record<PaymentMethod, string> = {
-    [PaymentMethod.CASH]: 'Cash',
-    [PaymentMethod.VIETQR]: 'VietQR',
-    [PaymentMethod.BANK_TRANSFER]: 'Bank Transfer',
-  };
-  return labelMap[method] || method;
-};
-
 export const PaymentDetail: React.FC<PaymentDetailProps> = ({
   payment,
   loading = false,
@@ -52,79 +34,112 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
   onMarkAsPaid,
   onBack,
 }) => {
-  const isPending = payment.status === PaymentStatus.PENDING;
-  const hasVietQR = payment.method === PaymentMethod.VIETQR && payment.vietqrData;
+  const { t } = useTranslation();
+  const isPending = payment?.status === PaymentStatus.PENDING;
+  const hasVietQR = payment?.method === PaymentMethod.VIETQR && payment?.vietqrData;
+
+  if (!payment?.id) {
+    return (
+      <div>
+        <div style={{ marginBottom: 16 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
+            {t('payments.detail.backToPayments')}
+          </Button>
+        </div>
+        <Card loading={loading} />
+      </div>
+    );
+  }
+
+  const getStatusLabel = (status: PaymentStatus): string => {
+    const labelMap: Record<PaymentStatus, string> = {
+      [PaymentStatus.PENDING]: t('payments.status.pending'),
+      [PaymentStatus.PAID]: t('payments.status.paid'),
+      [PaymentStatus.FAILED]: t('payments.status.failed'),
+      [PaymentStatus.CANCELLED]: t('payments.status.cancelled'),
+    };
+    return labelMap[status] || status;
+  };
+
+  const getMethodLabel = (method: PaymentMethod): string => {
+    const labelMap: Record<PaymentMethod, string> = {
+      [PaymentMethod.CASH]: t('payments.method.cash'),
+      [PaymentMethod.VIETQR]: t('payments.method.vietqr'),
+      [PaymentMethod.BANK_TRANSFER]: t('payments.method.bankTransfer'),
+    };
+    return labelMap[method] || method;
+  };
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-          Back to Payments
+          {t('payments.detail.backToPayments')}
         </Button>
       </div>
 
       <Card
         loading={loading}
-        title={`Payment #${payment.id.substring(0, 8)}`}
+        title={`${t('payments.detail.title')} #${payment.id.substring(0, 8)}`}
         extra={
           <Space>
             {isPending && onMarkAsPaid && (
               <Button type="primary" icon={<CheckCircleOutlined />} onClick={onMarkAsPaid}>
-                Mark as Paid
+                {t('payments.actions.markAsPaid')}
               </Button>
             )}
             {onEdit && (
               <Button icon={<EditOutlined />} onClick={onEdit}>
-                Edit
+                {t('payments.actions.edit')}
               </Button>
             )}
             {onDelete && (
               <Button danger icon={<DeleteOutlined />} onClick={onDelete}>
-                Delete
+                {t('payments.actions.delete')}
               </Button>
             )}
           </Space>
         }
       >
         <Descriptions bordered column={2}>
-          <Descriptions.Item label="Payment ID" span={2}>
+          <Descriptions.Item label={t('payments.detail.paymentId')} span={2}>
             {payment.id}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Order ID" span={2}>
+          <Descriptions.Item label={t('payments.detail.orderId')} span={2}>
             {payment.orderId}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Amount" span={1}>
+          <Descriptions.Item label={t('payments.detail.amount')} span={1}>
             <strong style={{ fontSize: '16px' }}>{formatCurrency(payment.amount)}</strong>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Status" span={1}>
+          <Descriptions.Item label={t('payments.detail.status')} span={1}>
             <Tag color={getStatusColor(payment.status)}>{getStatusLabel(payment.status)}</Tag>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Payment Method" span={1}>
+          <Descriptions.Item label={t('payments.detail.method')} span={1}>
             {getMethodLabel(payment.method)}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Transaction ID" span={1}>
+          <Descriptions.Item label={t('payments.detail.transactionId')} span={1}>
             {payment.transactionId || '-'}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Paid At" span={1}>
+          <Descriptions.Item label={t('payments.detail.paidAt')} span={1}>
             {payment.paidAt ? formatDateTime(payment.paidAt) : '-'}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Created At" span={1}>
+          <Descriptions.Item label={t('payments.detail.createdAt')} span={1}>
             {formatDateTime(payment.createdAt)}
           </Descriptions.Item>
 
-          <Descriptions.Item label="Updated At" span={2}>
+          <Descriptions.Item label={t('payments.detail.updatedAt')} span={2}>
             {formatDateTime(payment.updatedAt)}
           </Descriptions.Item>
 
           {payment.notes && (
-            <Descriptions.Item label="Notes" span={2}>
+            <Descriptions.Item label={t('payments.detail.notes')} span={2}>
               {payment.notes}
             </Descriptions.Item>
           )}
@@ -132,10 +147,10 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
 
         {hasVietQR && (
           <div style={{ marginTop: 24 }}>
-            <Card title="VietQR Code" type="inner">
+            <Card title={t('payments.detail.vietqrTitle')} type="inner">
               <Alert
-                message="Scan QR code to pay"
-                description="Use your banking app to scan this QR code and complete the payment."
+                message={t('payments.detail.vietqrScanMessage')}
+                description={t('payments.detail.vietqrScanDescription')}
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
@@ -155,8 +170,8 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
 
         {isPending && !hasVietQR && (
           <Alert
-            message="Payment Pending"
-            description="This payment is pending. Mark it as paid once you receive the payment."
+            message={t('payments.detail.pendingMessage')}
+            description={t('payments.detail.pendingDescription')}
             type="warning"
             showIcon
             style={{ marginTop: 24 }}

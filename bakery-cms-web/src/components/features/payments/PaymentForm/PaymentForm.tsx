@@ -5,25 +5,13 @@
 
 import React, { useMemo, useEffect } from 'react';
 import { Form, InputNumber, Select, Input, Row, Col } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
 import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
 import { useOrders } from '../../../../hooks/useOrders';
 import type { PaymentFormProps, PaymentFormValues } from './PaymentForm.types';
 
 const { TextArea } = Input;
-
-const PAYMENT_METHOD_OPTIONS = [
-  { label: 'Cash', value: PaymentMethod.CASH },
-  { label: 'VietQR', value: PaymentMethod.VIETQR },
-  { label: 'Bank Transfer', value: PaymentMethod.BANK_TRANSFER },
-];
-
-const PAYMENT_STATUS_OPTIONS = [
-  { label: 'Pending', value: PaymentStatus.PENDING },
-  { label: 'Paid', value: PaymentStatus.PAID },
-  { label: 'Failed', value: PaymentStatus.FAILED },
-  { label: 'Cancelled', value: PaymentStatus.CANCELLED },
-];
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   visible,
@@ -32,10 +20,30 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  const { t } = useTranslation();
   const [form] = Form.useForm<PaymentFormValues>();
   const { orders, loading: ordersLoading } = useOrders({ autoFetch: true });
 
   const isEditMode = useMemo(() => !!initialValues, [initialValues]);
+
+  const paymentMethodOptions = useMemo(
+    () => [
+      { label: t('payments.method.cash'), value: PaymentMethod.CASH },
+      { label: t('payments.method.vietqr'), value: PaymentMethod.VIETQR },
+      { label: t('payments.method.bankTransfer'), value: PaymentMethod.BANK_TRANSFER },
+    ],
+    [t]
+  );
+
+  const paymentStatusOptions = useMemo(
+    () => [
+      { label: t('payments.status.pending'), value: PaymentStatus.PENDING },
+      { label: t('payments.status.paid'), value: PaymentStatus.PAID },
+      { label: t('payments.status.failed'), value: PaymentStatus.FAILED },
+      { label: t('payments.status.cancelled'), value: PaymentStatus.CANCELLED },
+    ],
+    [t]
+  );
 
   const orderOptions = useMemo(
     () =>
@@ -67,11 +75,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
   return (
     <AntModal
-      title={isEditMode ? 'Edit Payment' : 'Create Payment'}
+      title={isEditMode ? t('payments.form.editTitle') : t('payments.form.createTitle')}
       visible={visible}
       onOk={form.submit}
       onCancel={handleCancel}
-      okText={isEditMode ? 'Update' : 'Create'}
+      okText={isEditMode ? t('payments.form.updateButton') : t('payments.form.createButton')}
       okButtonProps={{ loading }}
       width={600}
     >
@@ -87,12 +95,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              label="Order"
+              label={t('payments.form.order')}
               name="orderId"
-              rules={[{ required: true, message: 'Please select an order' }]}
+              rules={[{ required: true, message: t('payments.form.orderRequired') }]}
             >
               <Select
-                placeholder="Select an order"
+                placeholder={t('payments.form.orderPlaceholder')}
                 options={orderOptions}
                 loading={ordersLoading}
                 showSearch
@@ -108,16 +116,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              label="Amount"
+              label={t('payments.form.amount')}
               name="amount"
               rules={[
-                { required: true, message: 'Please enter amount' },
-                { type: 'number', min: 0.01, message: 'Amount must be positive' },
+                { required: true, message: t('payments.form.amountRequired') },
+                { type: 'number', min: 0.01, message: t('payments.form.amountPositive') },
               ]}
             >
               <InputNumber
                 style={{ width: '100%' }}
-                placeholder="Enter amount"
+                placeholder={t('payments.form.amountPlaceholder')}
                 min={0}
                 precision={2}
               />
@@ -126,11 +134,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
           <Col span={12}>
             <Form.Item
-              label="Payment Method"
+              label={t('payments.form.method')}
               name="method"
-              rules={[{ required: true, message: 'Please select payment method' }]}
+              rules={[{ required: true, message: t('payments.form.methodRequired') }]}
             >
-              <Select placeholder="Select payment method" options={PAYMENT_METHOD_OPTIONS} />
+              <Select placeholder={t('payments.form.methodPlaceholder')} options={paymentMethodOptions} />
             </Form.Item>
           </Col>
         </Row>
@@ -138,27 +146,27 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              label="Status"
+              label={t('payments.form.status')}
               name="status"
-              rules={[{ required: true, message: 'Please select status' }]}
+              rules={[{ required: true, message: t('payments.form.statusRequired') }]}
             >
-              <Select placeholder="Select status" options={PAYMENT_STATUS_OPTIONS} />
+              <Select placeholder={t('payments.form.statusPlaceholder')} options={paymentStatusOptions} />
             </Form.Item>
           </Col>
 
           <Col span={12}>
-            <Form.Item label="Transaction ID" name="transactionId">
-              <Input placeholder="Enter transaction ID (optional)" />
+            <Form.Item label={t('payments.form.transactionId')} name="transactionId">
+              <Input placeholder={t('payments.form.transactionIdPlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
           <Col span={24}>
-            <Form.Item label="Notes" name="notes">
+            <Form.Item label={t('payments.form.notes')} name="notes">
               <TextArea
                 rows={3}
-                placeholder="Enter additional notes (optional)"
+                placeholder={t('payments.form.notesPlaceholder')}
                 maxLength={500}
                 showCount
               />
