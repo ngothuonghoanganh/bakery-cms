@@ -156,7 +156,7 @@ export const createPaymentService = (
       return ok(toPaymentResponseDto(payment));
     } catch (error) {
       logger.error('Failed to create payment', { error, dto });
-      return err(createDatabaseError('Failed to create payment'));
+      return err(createDatabaseError('Failed to create payment', error));
     }
   };
 
@@ -179,7 +179,7 @@ export const createPaymentService = (
       return ok(toPaymentResponseDto(payment));
     } catch (error) {
       logger.error('Failed to fetch payment', { error, paymentId: id });
-      return err(createDatabaseError('Failed to fetch payment'));
+      return err(createDatabaseError('Failed to fetch payment', error));
     }
   };
 
@@ -202,7 +202,7 @@ export const createPaymentService = (
       return ok(toPaymentResponseDto(payment));
     } catch (error) {
       logger.error('Failed to fetch payment by order', { error, orderId });
-      return err(createDatabaseError('Failed to fetch payment'));
+      return err(createDatabaseError('Failed to fetch payment', error));
     }
   };
 
@@ -248,7 +248,7 @@ export const createPaymentService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch payments list', { error, query });
-      return err(createDatabaseError('Failed to fetch payments'));
+      return err(createDatabaseError('Failed to fetch payments', error));
     }
   };
 
@@ -309,7 +309,7 @@ export const createPaymentService = (
       return ok(toPaymentResponseDto(updatedPayment));
     } catch (error) {
       logger.error('Failed to mark payment as paid', { error, paymentId: id });
-      return err(createDatabaseError('Failed to mark payment as paid'));
+      return err(createDatabaseError('Failed to mark payment as paid', error));
     }
   };
 
@@ -385,7 +385,7 @@ export const createPaymentService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to generate VietQR', { error, orderId });
-      return err(createDatabaseError('Failed to generate VietQR'));
+      return err(createDatabaseError('Failed to generate VietQR', error));
     }
   };
 
@@ -428,7 +428,7 @@ export const createPaymentService = (
       return ok(true);
     } catch (error) {
       logger.error('Failed to soft delete payment', { error, paymentId: id });
-      return err(createDatabaseError('Failed to delete payment'));
+      return err(createDatabaseError('Failed to delete payment', error));
     }
   };
 
@@ -466,7 +466,7 @@ export const createPaymentService = (
       return ok(toPaymentResponseDto(restoredPayment));
     } catch (error) {
       logger.error('Failed to restore payment', { error, paymentId: id });
-      return err(createDatabaseError('Failed to restore payment'));
+      return err(createDatabaseError('Failed to restore payment', error));
     }
   };
 

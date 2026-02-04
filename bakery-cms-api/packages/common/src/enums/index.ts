@@ -8,3 +8,4 @@ export * from './order.enums';
 export * from './payment.enums';
 export * from './auth.enums';
 export * from './stock.enums';
+export * from './file.enums';

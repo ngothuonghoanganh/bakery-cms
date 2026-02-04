@@ -13,7 +13,6 @@ import {
   formatDateTime,
   getLocaleConfig,
 } from '../i18n/utils/locale.utils';
-import type { SupportedLanguage } from '../i18n/types';
 
 /**
  * Hook for locale-aware formatting utilities

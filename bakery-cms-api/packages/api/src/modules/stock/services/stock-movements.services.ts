@@ -61,7 +61,7 @@ export const createStockMovementService = (
       return ok(toStockMovementResponseDto(stockMovement));
     } catch (error) {
       logger.error('Failed to fetch stock movement', { error, stockMovementId: id });
-      return err(createDatabaseError('Failed to fetch stock movement'));
+      return err(createDatabaseError('Failed to fetch stock movement', error));
     }
   };
 
@@ -107,7 +107,7 @@ export const createStockMovementService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch stock movements list', { error, query });
-      return err(createDatabaseError('Failed to fetch stock movements'));
+      return err(createDatabaseError('Failed to fetch stock movements', error));
     }
   };
 

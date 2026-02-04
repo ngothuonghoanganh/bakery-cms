@@ -8,7 +8,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import session from 'express-session';
 import passport from 'passport';
+import path from 'path';
 import { getAppConfig } from './config/app';
+import { getEnvConfig } from './config/env';
 import { getLogger } from './utils/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { rateLimiter } from './middleware/rate-limiter';
@@ -17,6 +19,7 @@ import { createOrdersRouter } from './modules/orders/routes';
 import { createPaymentsRouter } from './modules/payments/routes';
 import { createAuthRouter } from './modules/auth/routes';
 import { createStockRouter } from './modules/stock/routes';
+import { createFilesRouter } from './modules/files/routes';
 
 /**
  * Create and configure Express application
@@ -75,7 +78,17 @@ export const createApp = (): Express => {
       uptime: process.uptime(),
     });
   });
-  
+
+  // Static file serving for uploads
+  // Serves files from uploads directory at /uploads path
+  const envConfig = getEnvConfig();
+  const uploadsPath = path.resolve(envConfig.UPLOAD_DIR);
+  app.use('/uploads', express.static(uploadsPath, {
+    maxAge: '1y', // Cache for 1 year since files are immutable (unique names)
+    etag: true,
+    lastModified: true,
+  }));
+
   // Get API base path with version
   const apiBasePath = `${config.apiPrefix}/${config.apiVersion}`;
   
@@ -85,6 +98,7 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/orders`, createOrdersRouter());
   app.use(`${apiBasePath}/payments`, createPaymentsRouter());
   app.use(`${apiBasePath}/stock`, createStockRouter());
+  app.use(`${apiBasePath}/files`, createFilesRouter());
   
   // 404 handler
   app.use(notFoundHandler);

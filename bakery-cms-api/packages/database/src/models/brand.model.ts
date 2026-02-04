@@ -14,6 +14,7 @@ export class BrandModel extends Model {
   declare name: string;
   declare description: string | null;
   declare isActive: boolean;
+  declare imageFileId: string | null;
   declare deletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -49,6 +50,15 @@ export const initBrandModel = (sequelize: Sequelize): typeof BrandModel => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true,
+      },
+      imageFileId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'image_file_id',
+        references: {
+          model: 'files',
+          key: 'id',
+        },
       },
     },
     {

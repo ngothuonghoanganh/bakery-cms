@@ -19,6 +19,7 @@ export class ProductModel extends Model {
   declare businessType: string;
   declare status: string;
   declare imageUrl: string | null;
+  declare imageFileId: string | null;
   declare deletedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -80,6 +81,15 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         field: 'image_url',
         validate: {
           isUrl: true,
+        },
+      },
+      imageFileId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'image_file_id',
+        references: {
+          model: 'files',
+          key: 'id',
         },
       },
       createdAt: {

@@ -1,0 +1,79 @@
+.fileUpload {
+  width: 100%;
+}
+
+.dragger {
+  padding: 24px;
+}
+
+.dragger :global(.ant-upload-drag-container) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.uploadContent {
+  text-align: center;
+}
+
+.uploadIcon {
+  font-size: 48px;
+  color: #1890ff;
+  margin-bottom: 16px;
+}
+
+.uploadText {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.85);
+  margin-bottom: 8px;
+}
+
+.uploadHint {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.uploading {
+  text-align: center;
+  padding: 16px;
+}
+
+.uploading p {
+  margin-top: 16px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+}
+
+.imagePreview {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.videoPreview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+}
+
+.removeButton {
+  margin-top: 12px;
+}
+
+.error {
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-top: 8px;
+}

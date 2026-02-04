@@ -77,7 +77,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(stockItem));
     } catch (error) {
       logger.error('Failed to create stock item', { error, dto });
-      return err(createDatabaseError('Failed to create stock item'));
+      return err(createDatabaseError('Failed to create stock item', error));
     }
   };
 
@@ -100,7 +100,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(stockItem));
     } catch (error) {
       logger.error('Failed to fetch stock item', { error, stockItemId: id });
-      return err(createDatabaseError('Failed to fetch stock item'));
+      return err(createDatabaseError('Failed to fetch stock item', error));
     }
   };
 
@@ -146,7 +146,7 @@ export const createStockItemService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch stock items list', { error, query });
-      return err(createDatabaseError('Failed to fetch stock items'));
+      return err(createDatabaseError('Failed to fetch stock items', error));
     }
   };
 
@@ -179,7 +179,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(stockItem));
     } catch (error) {
       logger.error('Failed to update stock item', { error, stockItemId: id, dto });
-      return err(createDatabaseError('Failed to update stock item'));
+      return err(createDatabaseError('Failed to update stock item', error));
     }
   };
 
@@ -206,7 +206,7 @@ export const createStockItemService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete stock item', { error, stockItemId: id });
-      return err(createDatabaseError('Failed to delete stock item'));
+      return err(createDatabaseError('Failed to delete stock item', error));
     }
   };
 
@@ -235,7 +235,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(stockItem));
     } catch (error) {
       logger.error('Failed to restore stock item', { error, stockItemId: id });
-      return err(createDatabaseError('Failed to restore stock item'));
+      return err(createDatabaseError('Failed to restore stock item', error));
     }
   };
 
@@ -288,7 +288,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(updatedStockItem));
     } catch (error) {
       logger.error('Failed to receive stock', { error, stockItemId: id, dto });
-      return err(createDatabaseError('Failed to receive stock'));
+      return err(createDatabaseError('Failed to receive stock', error));
     }
   };
 
@@ -354,7 +354,7 @@ export const createStockItemService = (
       return ok(toStockItemResponseDto(updatedStockItem));
     } catch (error) {
       logger.error('Failed to adjust stock', { error, stockItemId: id, dto });
-      return err(createDatabaseError('Failed to adjust stock'));
+      return err(createDatabaseError('Failed to adjust stock', error));
     }
   };
 

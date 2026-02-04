@@ -8,6 +8,7 @@ import { Result, ok, err } from 'neverthrow';
 import { AppError } from '@bakery-cms/common';
 import { BrandRepository } from '../repositories/brands.repositories';
 import { StockItemBrandRepository } from '../repositories/stock-item-brands.repositories';
+import type { FileService } from '../../files/services/files.services';
 import {
   CreateBrandDto,
   UpdateBrandDto,
@@ -57,14 +58,23 @@ export interface BrandService {
 }
 
 /**
+ * Brand service dependencies
+ */
+export type BrandServiceDependencies = {
+  readonly brandRepository: BrandRepository;
+  readonly stockItemBrandRepository: StockItemBrandRepository;
+  readonly fileService?: FileService;
+};
+
+/**
  * Create brands service
  * Factory function that returns service implementation
- * Uses dependency injection for repositories
+ * Uses dependency injection for repositories and optional file service
  */
 export const createBrandService = (
-  brandRepository: BrandRepository,
-  stockItemBrandRepository: StockItemBrandRepository
+  deps: BrandServiceDependencies
 ): BrandService => {
+  const { brandRepository, stockItemBrandRepository, fileService } = deps;
   /**
    * Create new brand
    */
@@ -82,7 +92,7 @@ export const createBrandService = (
       return ok(toBrandResponseDto(brand));
     } catch (error) {
       logger.error('Failed to create brand', { error, dto });
-      return err(createDatabaseError('Failed to create brand'));
+      return err(createDatabaseError('Failed to create brand', error));
     }
   };
 
@@ -105,7 +115,7 @@ export const createBrandService = (
       return ok(toBrandResponseDto(brand));
     } catch (error) {
       logger.error('Failed to fetch brand', { error, brandId: id });
-      return err(createDatabaseError('Failed to fetch brand'));
+      return err(createDatabaseError('Failed to fetch brand', error));
     }
   };
 
@@ -137,7 +147,7 @@ export const createBrandService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch brands', { error, query });
-      return err(createDatabaseError('Failed to fetch brands'));
+      return err(createDatabaseError('Failed to fetch brands', error));
     }
   };
 
@@ -164,18 +174,44 @@ export const createBrandService = (
       return ok(toBrandResponseDto(brand));
     } catch (error) {
       logger.error('Failed to update brand', { error, brandId: id, dto });
-      return err(createDatabaseError('Failed to update brand'));
+      return err(createDatabaseError('Failed to update brand', error));
     }
   };
 
   /**
    * Delete brand by ID (soft delete)
+   * Also cleans up associated image file if present
    */
   const deleteBrand = async (
     id: string
   ): Promise<Result<void, AppError>> => {
     try {
       logger.info('Deleting brand', { brandId: id });
+
+      // Get brand first to check for associated file
+      const brand = await brandRepository.findById(id);
+
+      if (!brand) {
+        logger.warn('Brand not found for deletion', { brandId: id });
+        return err(createNotFoundError('Brand', id));
+      }
+
+      // Delete associated image file if exists
+      if (brand.imageFileId && fileService) {
+        logger.info('Cleaning up brand image file', {
+          brandId: id,
+          imageFileId: brand.imageFileId
+        });
+        const deleteFileResult = await fileService.deleteFile(brand.imageFileId);
+        if (deleteFileResult.isErr()) {
+          // Log but don't fail the brand deletion
+          logger.warn('Failed to delete associated image file', {
+            brandId: id,
+            imageFileId: brand.imageFileId,
+            error: deleteFileResult.error,
+          });
+        }
+      }
 
       const deleted = await brandRepository.delete(id);
 
@@ -189,7 +225,7 @@ export const createBrandService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete brand', { error, brandId: id });
-      return err(createDatabaseError('Failed to delete brand'));
+      return err(createDatabaseError('Failed to delete brand', error));
     }
   };
 
@@ -214,7 +250,7 @@ export const createBrandService = (
       return ok(toBrandResponseDto(brand));
     } catch (error) {
       logger.error('Failed to restore brand', { error, brandId: id });
-      return err(createDatabaseError('Failed to restore brand'));
+      return err(createDatabaseError('Failed to restore brand', error));
     }
   };
 
@@ -259,7 +295,7 @@ export const createBrandService = (
       return ok(toStockItemBrandResponseDto(stockItemBrand, brand.name));
     } catch (error) {
       logger.error('Failed to add brand to stock item', { error, stockItemId, dto });
-      return err(createDatabaseError('Failed to add brand to stock item'));
+      return err(createDatabaseError('Failed to add brand to stock item', error));
     }
   };
 
@@ -282,7 +318,7 @@ export const createBrandService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch stock item brands', { error, stockItemId });
-      return err(createDatabaseError('Failed to fetch stock item brands'));
+      return err(createDatabaseError('Failed to fetch stock item brands', error));
     }
   };
 
@@ -318,7 +354,7 @@ export const createBrandService = (
       return ok(toStockItemBrandResponseDto(stockItemBrand, brandName));
     } catch (error) {
       logger.error('Failed to update stock item brand', { error, stockItemId, brandId, dto });
-      return err(createDatabaseError('Failed to update stock item brand'));
+      return err(createDatabaseError('Failed to update stock item brand', error));
     }
   };
 
@@ -344,7 +380,7 @@ export const createBrandService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to remove brand from stock item', { error, stockItemId, brandId });
-      return err(createDatabaseError('Failed to remove brand from stock item'));
+      return err(createDatabaseError('Failed to remove brand from stock item', error));
     }
   };
 
@@ -371,7 +407,7 @@ export const createBrandService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to set preferred brand', { error, stockItemId, brandId });
-      return err(createDatabaseError('Failed to set preferred brand'));
+      return err(createDatabaseError('Failed to set preferred brand', error));
     }
   };
 

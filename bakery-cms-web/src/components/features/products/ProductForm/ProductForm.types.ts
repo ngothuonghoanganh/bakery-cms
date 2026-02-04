@@ -1,4 +1,5 @@
 import type { Product, BusinessType, ProductStatus } from '../../../../types/models/product.model';
+import type { ProductImageItem } from '../../../shared/MultiFileUpload';
 
 export interface ProductFormValues {
   name: string;
@@ -8,6 +9,8 @@ export interface ProductFormValues {
   businessType: BusinessType;
   status: ProductStatus;
   imageUrl?: string;
+  imageFileId?: string | null;
+  images?: ProductImageItem[];
 }
 
 export interface ProductFormProps {

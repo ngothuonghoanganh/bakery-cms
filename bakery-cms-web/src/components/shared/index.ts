@@ -33,6 +33,10 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export type { LoadingSpinnerProps } from './LoadingSpinner/LoadingSpinner.types';
 
+// File upload component
+export { FileUpload } from './FileUpload';
+export type { FileUploadProps } from './FileUpload';
+
 // Legacy components (to be migrated/removed)
 export { Navigation } from './Navigation/Navigation';
 export { ProductCard } from './ProductCard/ProductCard';

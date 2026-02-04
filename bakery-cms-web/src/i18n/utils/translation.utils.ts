@@ -19,11 +19,11 @@ export const getTranslation = (
   const lng = language || (i18n.language as SupportedLanguage);
 
   // Try to get translation for current language
-  const translation = i18n.t(key, { lng, ...params });
+  const translation = i18n.t(key as any, { lng, ...params } as any);
 
   // If translation is the key itself (not found), try fallback language
   if (translation === key && lng !== DEFAULT_LANGUAGE) {
-    return i18n.t(key, { lng: DEFAULT_LANGUAGE, ...params });
+    return i18n.t(key as any, { lng: DEFAULT_LANGUAGE, ...params } as any);
   }
 
   return translation;
@@ -82,5 +82,5 @@ export const pluralize = (
   count: number,
   params?: Record<string, unknown>
 ): string => {
-  return i18n.t(key, { count, ...params });
+  return i18n.t(key as any, { count, ...params } as any);
 };

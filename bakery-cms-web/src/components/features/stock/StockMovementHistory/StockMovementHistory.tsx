@@ -14,7 +14,6 @@ import type { StockMovement } from '../../../../types/models/stock.model';
 import type { StockMovementFiltersRequest } from '../../../../types/api/stock.api';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 /**
  * Movement type color mapping
@@ -219,7 +218,7 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
       {error && (
         <Alert
           message={t('stock.movementHistory.loadFailed')}
-          description={error.message || t('stock.movementHistory.loadError')}
+          description={typeof error === 'object' && error !== null && 'message' in error ? (error as { message: string }).message : t('stock.movementHistory.loadError')}
           type="error"
           showIcon
           style={{ marginBottom: 16 }}

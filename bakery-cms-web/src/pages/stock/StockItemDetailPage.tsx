@@ -28,6 +28,7 @@ import {
   Popconfirm,
   Table,
   Empty,
+  Avatar,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -39,12 +40,14 @@ import {
   DeleteOutlined,
   StarOutlined,
   StarFilled,
+  PictureOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { PageHeader } from '@/components/shared';
+import { PageHeader, FileUpload } from '@/components/shared';
 import { StockMovementHistory } from '@/components/features/stock/StockMovementHistory/StockMovementHistory';
 import { useNotification } from '@/hooks/useNotification';
 import { useBrands } from '@/hooks/useBrands';
+import { fileService } from '@/services/file.service';
 import {
   getStockItemById,
   receiveStock,
@@ -65,6 +68,7 @@ const { TextArea } = Input;
 interface BrandPriceFormValues {
   brandId?: string;
   newBrandName?: string;
+  newBrandImageFileId?: string;
   priceBeforeTax: number;
   priceAfterTax: number;
 }
@@ -250,7 +254,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
 
       // If creating a new brand, create it first
       if (isCreatingNewBrand && values.newBrandName) {
-        const createResult = await createBrand({ name: values.newBrandName });
+        const createResult = await createBrand({
+          name: values.newBrandName,
+          imageFileId: values.newBrandImageFileId,
+        });
         if (!createResult.success) {
           notifyError(t('stock.detail.brandCreateFailed', 'Failed to Create Brand'), createResult.error.message);
           return;
@@ -348,8 +355,30 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     (brand: Brand) => !stockItemBrands.some((sib) => sib.brandId === brand.id)
   ) || [];
 
+  // Helper to get brand image URL from allBrands
+  const getBrandImageUrl = (brandId: string): string | null => {
+    const brand = allBrands?.find((b: Brand) => b.id === brandId);
+    if (brand?.imageFileId) {
+      return fileService.getDownloadUrl(brand.imageFileId);
+    }
+    return null;
+  };
+
   // Brand table columns
   const brandColumns: ColumnsType<StockItemBrand> = [
+    {
+      title: t('stock.detail.brandImage', 'Image'),
+      key: 'image',
+      width: 60,
+      render: (_: unknown, record: StockItemBrand) => {
+        const imageUrl = getBrandImageUrl(record.brandId);
+        return imageUrl ? (
+          <Avatar src={imageUrl} size={40} shape="square" />
+        ) : (
+          <Avatar icon={<PictureOutlined />} size={40} shape="square" />
+        );
+      },
+    },
     {
       title: t('stock.detail.brand', 'Brand'),
       dataIndex: 'brandName',
@@ -701,6 +730,22 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                         ]}
                       >
                         <Input placeholder={t('stock.detail.enterBrandName', 'Enter new brand name')} />
+                      </Form.Item>
+                      <Form.Item
+                        name="newBrandImageFileId"
+                        label={t('stock.detail.brandImageOptional', 'Brand Image (Optional)')}
+                        style={{ marginTop: 16 }}
+                      >
+                        <FileUpload
+                          accept="image"
+                          maxSize={10}
+                          onUploadSuccess={(file) => {
+                            brandPriceForm.setFieldsValue({ newBrandImageFileId: file.id });
+                          }}
+                          onRemove={() => {
+                            brandPriceForm.setFieldsValue({ newBrandImageFileId: undefined });
+                          }}
+                        />
                       </Form.Item>
                       <Button type="link" onClick={() => setIsCreatingNewBrand(false)} style={{ padding: 0 }}>
                         {t('stock.detail.selectExistingBrand', 'Select Existing Brand')}

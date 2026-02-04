@@ -81,6 +81,34 @@ export const createProductSchema = Joi.object({
       'string.uri': 'Image URL must be a valid URL',
       'string.max': 'Image URL must not exceed 500 characters',
     }),
+
+  imageFileId: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .allow(null)
+    .optional()
+    .messages({
+      'string.guid': 'Image file ID must be a valid UUID',
+    }),
+
+  images: Joi.array()
+    .items(
+      Joi.object({
+        id: Joi.string().optional(),
+        fileId: Joi.string()
+          .uuid({ version: 'uuidv4' })
+          .required()
+          .messages({
+            'string.guid': 'File ID must be a valid UUID',
+            'any.required': 'File ID is required for each image',
+          }),
+        displayOrder: Joi.number().integer().min(0).optional(),
+        isPrimary: Joi.boolean().optional(),
+      })
+    )
+    .optional()
+    .messages({
+      'array.base': 'Images must be an array',
+    }),
 });
 
 /**
@@ -148,6 +176,34 @@ export const updateProductSchema = Joi.object({
     .messages({
       'string.uri': 'Image URL must be a valid URL',
       'string.max': 'Image URL must not exceed 500 characters',
+    }),
+
+  imageFileId: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .allow(null)
+    .optional()
+    .messages({
+      'string.guid': 'Image file ID must be a valid UUID',
+    }),
+
+  images: Joi.array()
+    .items(
+      Joi.object({
+        id: Joi.string().optional(),
+        fileId: Joi.string()
+          .uuid({ version: 'uuidv4' })
+          .required()
+          .messages({
+            'string.guid': 'File ID must be a valid UUID',
+            'any.required': 'File ID is required for each image',
+          }),
+        displayOrder: Joi.number().integer().min(0).optional(),
+        isPrimary: Joi.boolean().optional(),
+      })
+    )
+    .optional()
+    .messages({
+      'array.base': 'Images must be an array',
     }),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',

@@ -32,6 +32,7 @@ import type {
 } from '@/types/models/stock.model';
 
 import { StockItemStatus, MovementType } from '@/types/models/stock.model';
+import { mapFileFromAPI } from './file.mapper';
 
 // Stock Item Mappers
 
@@ -91,6 +92,8 @@ export const mapBrandFromAPI = (apiBrand: BrandAPIResponse): Brand => ({
   name: apiBrand.name,
   description: apiBrand.description,
   isActive: apiBrand.isActive,
+  imageFileId: apiBrand.imageFileId,
+  imageFile: apiBrand.imageFile ? mapFileFromAPI(apiBrand.imageFile) : null,
   createdAt: new Date(apiBrand.createdAt),
   updatedAt: new Date(apiBrand.updatedAt),
 });

@@ -45,12 +45,12 @@ export const createProductStockItemRepository = (
       include: [
         {
           model: StockItemModel,
-          as: 'StockItem',
+          as: 'stockItem',
           attributes: ['id', 'name', 'unitOfMeasure'],
         },
         {
           model: BrandModel,
-          as: 'PreferredBrand',
+          as: 'preferredBrand',
           attributes: ['id', 'name'],
         },
       ],
@@ -70,12 +70,12 @@ export const createProductStockItemRepository = (
       include: [
         {
           model: StockItemModel,
-          as: 'StockItem',
+          as: 'stockItem',
           attributes: ['id', 'name', 'unitOfMeasure'],
         },
         {
           model: BrandModel,
-          as: 'PreferredBrand',
+          as: 'preferredBrand',
           attributes: ['id', 'name'],
         },
       ],
@@ -96,12 +96,12 @@ export const createProductStockItemRepository = (
       include: [
         {
           model: StockItemModel,
-          as: 'StockItem',
+          as: 'stockItem',
           attributes: ['id', 'name', 'unitOfMeasure'],
         },
         {
           model: BrandModel,
-          as: 'PreferredBrand',
+          as: 'preferredBrand',
           attributes: ['id', 'name'],
         },
       ],
@@ -135,12 +135,12 @@ export const createProductStockItemRepository = (
       include: [
         {
           model: StockItemModel,
-          as: 'StockItem',
+          as: 'stockItem',
           attributes: ['id', 'name', 'unitOfMeasure'],
         },
         {
           model: BrandModel,
-          as: 'PreferredBrand',
+          as: 'preferredBrand',
           attributes: ['id', 'name'],
         },
       ],

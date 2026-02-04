@@ -30,13 +30,16 @@ type DatabaseConfig = {
     readonly acquire: number;
     readonly idle: number;
   };
-  readonly logging: boolean | ((sql: string) => void);
+  readonly logging: boolean | ((sql: string, timing?: number) => void);
+  readonly benchmark?: boolean;
+  readonly logQueryParameters?: boolean;
 };
 
 /**
  * Get database configuration from environment variables
  */
 export const getDatabaseConfig = (): DatabaseConfig => {
+  const isDevelopment = process.env['NODE_ENV'] === 'development';
   const baseConfig: DatabaseConfig = {
     host: process.env['DB_HOST'] || 'localhost',
     port: parseInt(process.env['DB_PORT'] || '3306', 10),
@@ -50,7 +53,17 @@ export const getDatabaseConfig = (): DatabaseConfig => {
       acquire: 30000,
       idle: 10000,
     },
-    logging: process.env['NODE_ENV'] === 'development' ? console.log : false,
+    logging: isDevelopment
+      ? (sql, timing): void => {
+          if (timing !== undefined) {
+            console.log(`[SQL ${timing}ms] ${sql}`);
+            return;
+          }
+          console.log(`[SQL] ${sql}`);
+        }
+      : false,
+    benchmark: isDevelopment,
+    logQueryParameters: isDevelopment,
   };
 
   // Add SSL for cloud databases

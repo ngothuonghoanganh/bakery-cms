@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { Space, Button, Popconfirm, Tag } from 'antd';
+import { Space, Button, Popconfirm, Tag, Image } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared';
 import { ProductStatus, BusinessType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
+import { fileService } from '../../../../services/file.service';
 import type { ProductTableProps, ProductColumn } from './ProductTable.types';
 import type { Product } from '../../../../types/models/product.model';
 
@@ -48,12 +49,82 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
   const columns: ProductColumn = useMemo(
     () => [
       {
+        title: t('products.table.image'),
+        key: 'image',
+        width: 80,
+        render: (_: any, record: Product) => {
+          // Get the primary image from multi-images, or fall back to legacy image
+          let imageUrl: string | null = null;
+          let imageCount = 0;
+
+          if (record.images && record.images.length > 0) {
+            // Find primary image or use the first one
+            const primaryImage = record.images.find(img => img.isPrimary) || record.images[0];
+            if (primaryImage?.file?.id) {
+              imageUrl = fileService.getDownloadUrl(primaryImage.file.id);
+            } else if (primaryImage?.fileId) {
+              imageUrl = fileService.getDownloadUrl(primaryImage.fileId);
+            }
+            imageCount = record.images.length;
+          } else if (record.imageFile) {
+            imageUrl = fileService.getDownloadUrl(record.imageFile.id);
+          } else if (record.imageUrl) {
+            imageUrl = record.imageUrl;
+          }
+
+          return imageUrl ? (
+            <div style={{ position: 'relative' }}>
+              <Image
+                src={imageUrl}
+                alt={record.name}
+                width={50}
+                height={50}
+                style={{ objectFit: 'cover', borderRadius: 4 }}
+                fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                preview={{ mask: <EyeOutlined /> }}
+              />
+              {imageCount > 1 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 2,
+                    right: 2,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    color: 'white',
+                    padding: '1px 4px',
+                    borderRadius: 2,
+                    fontSize: 10,
+                  }}
+                >
+                  +{imageCount - 1}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                width: 50,
+                height: 50,
+                backgroundColor: '#f0f0f0',
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#999',
+                fontSize: 10,
+              }}
+            >
+              {t('products.noImage')}
+            </div>
+          );
+        },
+      },
+      {
         title: t('products.table.name'),
         dataIndex: 'name',
         key: 'name',
         sorter: true,
         width: 200,
-        fixed: 'left',
         render: (text: string) => <strong>{text}</strong>,
       },
       {

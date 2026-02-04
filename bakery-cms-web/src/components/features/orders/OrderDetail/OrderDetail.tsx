@@ -146,7 +146,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             {t(`orders.orderType.${order.orderType}`)}
           </Descriptions.Item>
           <Descriptions.Item label={t('orders.detail.businessModel')}>
-            {t(`orders.businessModel.${order.businessModel === 'made_to_order' ? 'madeToOrder' : 'readyToSell'}`)}
+            {t(`orders.businessModel.${order.businessModel === 'made-to-order' ? 'madeToOrder' : 'readyToSell'}`)}
           </Descriptions.Item>
           <Descriptions.Item label={t('orders.detail.customerName')}>
             {order.customerName || <Text type="secondary">{t('orders.detail.na')}</Text>}

@@ -4,6 +4,8 @@
  */
 
 import { BusinessType, ProductStatus } from '@bakery-cms/common';
+import { FileResponseDto } from '../../files/dto/files.dto';
+import { ProductImageResponseDto } from './product-images.dto';
 
 /**
  * Product response DTO
@@ -18,8 +20,21 @@ export interface ProductResponseDto {
   businessType: BusinessType;
   status: ProductStatus;
   imageUrl: string | null;
+  imageFileId: string | null;
+  imageFile: FileResponseDto | null;
+  images: ProductImageResponseDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Product image input for create/update operations
+ */
+export interface ProductImageInputDto {
+  id?: string; // Optional: existing image ID (for updates)
+  fileId: string;
+  displayOrder?: number;
+  isPrimary?: boolean;
 }
 
 /**
@@ -34,6 +49,8 @@ export interface CreateProductDto {
   businessType: BusinessType;
   status?: ProductStatus;
   imageUrl?: string;
+  imageFileId?: string;
+  images?: ProductImageInputDto[];
 }
 
 /**
@@ -48,6 +65,8 @@ export interface UpdateProductDto {
   businessType?: BusinessType;
   status?: ProductStatus;
   imageUrl?: string;
+  imageFileId?: string | null;
+  images?: ProductImageInputDto[];
 }
 
 /**

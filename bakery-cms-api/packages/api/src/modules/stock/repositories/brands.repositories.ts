@@ -4,7 +4,7 @@
  */
 
 import { Op } from 'sequelize';
-import { BrandModel } from '@bakery-cms/database';
+import { BrandModel, FileModel } from '@bakery-cms/database';
 import { BrandListQueryDto } from '../dto/brands.dto';
 
 /**
@@ -31,10 +31,12 @@ export const createBrandRepository = (
   model: typeof BrandModel
 ): BrandRepository => {
   /**
-   * Find brand by ID
+   * Find brand by ID with imageFile association
    */
   const findById = async (id: string): Promise<BrandModel | null> => {
-    return await model.findByPk(id);
+    return await model.findByPk(id, {
+      include: [{ model: FileModel, as: 'imageFile' }],
+    });
   };
 
   /**
@@ -73,6 +75,7 @@ export const createBrandRepository = (
       limit,
       offset,
       order: [['createdAt', 'DESC']],
+      include: [{ model: FileModel, as: 'imageFile' }],
     });
 
     return result;
@@ -89,7 +92,7 @@ export const createBrandRepository = (
 
   /**
    * Update brand by ID
-   * Returns updated brand or null if not found
+   * Returns updated brand with imageFile association or null if not found
    */
   const update = async (
     id: string,
@@ -102,7 +105,11 @@ export const createBrandRepository = (
     }
 
     await brand.update(attributes);
-    return brand;
+
+    // Reload to include imageFile association
+    return await model.findByPk(id, {
+      include: [{ model: FileModel, as: 'imageFile' }],
+    });
   };
 
   /**

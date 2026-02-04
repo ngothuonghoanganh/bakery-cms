@@ -29,7 +29,15 @@ module.exports = {
       acquire: 30000,
       idle: 10000,
     },
-    logging: console.log,
+    logging: (sql, timing) => {
+      if (timing !== undefined) {
+        console.log(`[SQL ${timing}ms] ${sql}`);
+        return;
+      }
+      console.log(`[SQL] ${sql}`);
+    },
+    benchmark: true,
+    logQueryParameters: true,
   },
   test: {
     username: process.env.DB_USERNAME || 'root',

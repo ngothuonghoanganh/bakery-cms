@@ -24,5 +24,7 @@ export {
   StockItemBrandModel,
   ProductStockItemModel,
   StockMovementModel,
+  FileModel,
+  ProductImageModel,
   TokenType,
 } from './models';

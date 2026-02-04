@@ -42,6 +42,14 @@ export const createBrandSchema = Joi.object({
     .messages({
       'boolean.base': 'Is active must be a boolean',
     }),
+
+  imageFileId: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .optional()
+    .allow(null)
+    .messages({
+      'string.guid': 'Image file ID must be a valid UUID',
+    }),
 });
 
 /**
@@ -73,6 +81,14 @@ export const updateBrandSchema = Joi.object({
     .optional()
     .messages({
       'boolean.base': 'Is active must be a boolean',
+    }),
+
+  imageFileId: Joi.string()
+    .uuid({ version: 'uuidv4' })
+    .optional()
+    .allow(null)
+    .messages({
+      'string.guid': 'Image file ID must be a valid UUID',
     }),
 });
 

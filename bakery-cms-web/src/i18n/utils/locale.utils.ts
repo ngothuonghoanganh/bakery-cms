@@ -48,7 +48,6 @@ export const isSupportedLanguage = (lang: string): lang is SupportedLanguage => 
  * Format number according to locale
  */
 export const formatNumber = (value: number, language: SupportedLanguage): string => {
-  const config = LOCALE_CONFIGS[language];
   return new Intl.NumberFormat(language, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,

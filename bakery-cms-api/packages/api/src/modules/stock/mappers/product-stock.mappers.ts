@@ -17,19 +17,19 @@ import {
  */
 export const toProductStockItemResponseDto = (
   model: ProductStockItemModel & {
-    StockItem?: StockItemModel;
-    PreferredBrand?: BrandModel;
+    stockItem?: StockItemModel;
+    preferredBrand?: BrandModel;
   }
 ): ProductStockItemResponseDto => {
   return {
     id: model.id,
     productId: model.productId,
     stockItemId: model.stockItemId,
-    stockItemName: model.StockItem?.name ?? '',
-    unitOfMeasure: model.StockItem?.unitOfMeasure ?? '',
+    stockItemName: model.stockItem?.name ?? '',
+    unitOfMeasure: model.stockItem?.unitOfMeasure ?? '',
     quantity: Number(model.quantity),
     preferredBrandId: model.preferredBrandId,
-    preferredBrandName: model.PreferredBrand?.name ?? null,
+    preferredBrandName: model.preferredBrand?.name ?? null,
     notes: model.notes,
     createdAt: model.createdAt.toISOString(),
     updatedAt: model.updatedAt.toISOString(),
@@ -42,8 +42,8 @@ export const toProductStockItemResponseDto = (
  */
 export const toProductStockItemResponseDtoList = (
   models: (ProductStockItemModel & {
-    StockItem?: StockItemModel;
-    PreferredBrand?: BrandModel;
+    stockItem?: StockItemModel;
+    preferredBrand?: BrandModel;
   })[]
 ): ProductStockItemResponseDto[] => {
   return models.map(toProductStockItemResponseDto);

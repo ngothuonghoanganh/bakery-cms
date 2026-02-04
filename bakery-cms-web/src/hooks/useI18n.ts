@@ -20,7 +20,7 @@ export const useI18n = () => {
    */
   const translate = useCallback(
     (key: string, params?: Record<string, unknown>) => {
-      return t(key, params as Record<string, string>);
+      return t(key as any, params as any);
     },
     [t]
   );
@@ -41,7 +41,7 @@ export const useI18n = () => {
   const translateOrDefault = useCallback(
     (key: string, defaultValue: string, params?: Record<string, unknown>) => {
       if (i18n.exists(key)) {
-        return t(key, params as Record<string, string>);
+        return t(key as any, params as any);
       }
       return defaultValue;
     },

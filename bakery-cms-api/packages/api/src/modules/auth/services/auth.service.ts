@@ -250,7 +250,7 @@ export const createAuthService = (
       return ok(response);
     } catch (error) {
       logger.error('Login failed with error', { error, email: dto.email });
-      return err(createDatabaseError('Login failed'));
+      return err(createDatabaseError('Login failed', error));
     }
   };
 
@@ -294,7 +294,7 @@ export const createAuthService = (
       return ok(toUserResponseDto(user));
     } catch (error) {
       logger.error('Registration failed with error', { error, email: dto.email });
-      return err(createDatabaseError('Registration failed'));
+      return err(createDatabaseError('Registration failed', error));
     }
   };
 
@@ -374,7 +374,7 @@ export const createAuthService = (
       return ok(response);
     } catch (error) {
       logger.error('Token refresh failed with error', { error, refreshToken: dto.refreshToken.substring(0, 20) + '...' });
-      return err(createDatabaseError('Token refresh failed'));
+      return err(createDatabaseError('Token refresh failed', error));
     }
   };
 
@@ -398,7 +398,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Logout failed with error', { error });
-      return err(createDatabaseError('Logout failed'));
+      return err(createDatabaseError('Logout failed', error));
     }
   };
 
@@ -415,7 +415,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Logout all failed with error', { error, userId });
-      return err(createDatabaseError('Logout all failed'));
+      return err(createDatabaseError('Logout all failed', error));
     }
   };
 
@@ -494,7 +494,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Password change failed with error', { error, userId });
-      return err(createDatabaseError('Password change failed'));
+      return err(createDatabaseError('Password change failed', error));
     }
   };
 
@@ -543,7 +543,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Forgot password failed with error', { error, email: dto.email });
-      return err(createDatabaseError('Password reset request failed'));
+      return err(createDatabaseError('Password reset request failed', error));
     }
   };
 
@@ -607,7 +607,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Password reset failed with error', { error });
-      return err(createDatabaseError('Password reset failed'));
+      return err(createDatabaseError('Password reset failed', error));
     }
   };
 
@@ -651,7 +651,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Email verification failed with error', { error });
-      return err(createDatabaseError('Email verification failed'));
+      return err(createDatabaseError('Email verification failed', error));
     }
   };
 
@@ -701,7 +701,7 @@ export const createAuthService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Resend email verification failed with error', { error, email });
-      return err(createDatabaseError('Email verification request failed'));
+      return err(createDatabaseError('Email verification request failed', error));
     }
   };
 
@@ -721,7 +721,7 @@ export const createAuthService = (
       return ok(toUserResponseDto(user));
     } catch (error) {
       logger.error('Get profile failed with error', { error, userId });
-      return err(createDatabaseError('Failed to get user profile'));
+      return err(createDatabaseError('Failed to get user profile', error));
     }
   };
 
@@ -757,7 +757,7 @@ export const createAuthService = (
       return ok(toUserResponseDto(updatedUser));
     } catch (error) {
       logger.error('Update profile failed with error', { error, userId });
-      return err(createDatabaseError('Profile update failed'));
+      return err(createDatabaseError('Profile update failed', error));
     }
   };
 
@@ -802,7 +802,7 @@ export const createAuthService = (
       return await authenticateOAuthUser(user);
     } catch (error) {
       logger.error('OAuth user creation failed with error', { error, email, provider });
-      return err(createDatabaseError('OAuth authentication failed'));
+      return err(createDatabaseError('OAuth authentication failed', error));
     }
   };
 

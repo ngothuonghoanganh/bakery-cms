@@ -3,24 +3,34 @@
  * Transform between Sequelize models and DTOs
  */
 
-import { BrandModel, StockItemBrandModel } from '@bakery-cms/database';
+import { BrandModel, StockItemBrandModel, FileModel } from '@bakery-cms/database';
 import {
   BrandResponseDto,
   CreateBrandDto,
   UpdateBrandDto,
 } from '../dto/brands.dto';
 import { StockItemBrandResponseDto, AddBrandToStockItemDto, UpdateStockItemBrandDto } from '../dto/stock-items.dto';
+import { toFileResponseDto } from '../../files/mappers/files.mappers';
+
+/**
+ * Extended BrandModel type with imageFile association
+ */
+type BrandWithFile = BrandModel & {
+  imageFile?: FileModel | null;
+};
 
 /**
  * Map BrandModel to BrandResponseDto
  * Pure function that transforms database entity to API response
  */
-export const toBrandResponseDto = (model: BrandModel): BrandResponseDto => {
+export const toBrandResponseDto = (model: BrandWithFile): BrandResponseDto => {
   return {
     id: model.id,
     name: model.name,
     description: model.description,
     isActive: model.isActive,
+    imageFileId: model.imageFileId,
+    imageFile: model.imageFile ? toFileResponseDto(model.imageFile) : null,
     createdAt: model.createdAt.toISOString(),
     updatedAt: model.updatedAt.toISOString(),
   };
@@ -47,6 +57,7 @@ export const toBrandCreationAttributes = (
     name: dto.name,
     description: dto.description ?? null,
     isActive: dto.isActive ?? true,
+    imageFileId: dto.imageFileId ?? null,
   };
 };
 
@@ -68,6 +79,9 @@ export const toBrandUpdateAttributes = (
   }
   if (dto.isActive !== undefined) {
     attributes.isActive = dto.isActive;
+  }
+  if (dto.imageFileId !== undefined) {
+    attributes.imageFileId = dto.imageFileId ?? null;
   }
 
   return attributes;

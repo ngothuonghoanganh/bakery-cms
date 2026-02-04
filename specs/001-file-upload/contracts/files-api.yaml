@@ -1,0 +1,586 @@
+openapi: 3.0.3
+info:
+  title: Bakery CMS - Files API
+  description: API endpoints for file upload and management
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: files
+    description: File upload and management operations
+
+paths:
+  /files:
+    post:
+      tags:
+        - files
+      summary: Upload a file
+      description: Upload an image or video file. Requires authentication (Seller+ role).
+      operationId: uploadFile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (image or video)
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          description: Invalid file (wrong type, too large, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - files
+      summary: List files
+      description: Get a paginated list of files. Requires authentication (Manager+ role).
+      operationId: listFiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: mimeType
+          in: query
+          schema:
+            type: string
+          description: Filter by MIME type prefix (e.g., 'image/', 'video/')
+        - name: uploadedBy
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by uploader user ID
+      responses:
+        '200':
+          description: List of files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFilesResponse'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized (requires Manager+ role)
+
+  /files/{id}:
+    get:
+      tags:
+        - files
+      summary: Get file metadata
+      description: Get metadata for a specific file. Requires authentication.
+      operationId: getFile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - files
+      summary: Delete a file
+      description: Delete a file (hard delete). Requires Manager+ role.
+      operationId: deleteFile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File deleted successfully
+        '404':
+          description: File not found
+        '403':
+          description: Not authorized
+
+  /files/{id}/download:
+    get:
+      tags:
+        - files
+      summary: Download/view a file
+      description: |
+        Stream the file content for download or inline viewing.
+        Returns the actual file with appropriate Content-Type header.
+        Requires authentication.
+      operationId: downloadFile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: disposition
+          in: query
+          schema:
+            type: string
+            enum: [inline, attachment]
+            default: inline
+          description: Content-Disposition header value
+      responses:
+        '200':
+          description: File content
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: MIME type of the file
+            Content-Disposition:
+              schema:
+                type: string
+              description: Inline or attachment disposition
+            Cache-Control:
+              schema:
+                type: string
+              description: Caching directive
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+
+  /products/{id}/image:
+    post:
+      tags:
+        - files
+      summary: Upload product image
+      description: Upload and associate an image with a product. Replaces existing image.
+      operationId: uploadProductImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded and associated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Invalid file
+        '404':
+          description: Product not found
+
+    delete:
+      tags:
+        - files
+      summary: Remove product image
+      description: Remove the image association from a product and delete the file.
+      operationId: deleteProductImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Image removed
+        '404':
+          description: Product not found
+
+  /products/{id}/video:
+    post:
+      tags:
+        - files
+      summary: Upload product video
+      description: Upload and associate a video with a product. Replaces existing video.
+      operationId: uploadProductVideo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Video uploaded and associated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Invalid file
+        '404':
+          description: Product not found
+
+    delete:
+      tags:
+        - files
+      summary: Remove product video
+      description: Remove the video association from a product and delete the file.
+      operationId: deleteProductVideo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Video removed
+        '404':
+          description: Product not found
+
+  /brands/{id}/image:
+    post:
+      tags:
+        - files
+      summary: Upload brand image
+      description: Upload and associate an image/logo with a brand. Replaces existing image.
+      operationId: uploadBrandImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded and associated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+        '400':
+          description: Invalid file
+        '404':
+          description: Brand not found
+
+    delete:
+      tags:
+        - files
+      summary: Remove brand image
+      description: Remove the image association from a brand and delete the file.
+      operationId: deleteBrandImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Image removed
+        '404':
+          description: Brand not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FileResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/File'
+
+    File:
+      type: object
+      required:
+        - id
+        - originalName
+        - mimeType
+        - size
+        - url
+        - uploadedAt
+        - uploadedBy
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        originalName:
+          type: string
+          example: "product-image.jpg"
+        mimeType:
+          type: string
+          example: "image/jpeg"
+        size:
+          type: integer
+          format: int64
+          example: 1048576
+          description: File size in bytes
+        url:
+          type: string
+          format: uri
+          example: "/api/v1/files/550e8400-e29b-41d4-a716-446655440000/download"
+          description: URL to access the file
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2025-12-26T10:30:00Z"
+        uploadedBy:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    PaginatedFilesResponse:
+      type: object
+      required:
+        - success
+        - data
+        - meta
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+
+    ProductResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Product'
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+        category:
+          type: string
+        businessType:
+          type: string
+          enum: [MADE_TO_ORDER, READY_TO_SELL, BOTH]
+        status:
+          type: string
+          enum: [AVAILABLE, OUT_OF_STOCK]
+        imageFile:
+          $ref: '#/components/schemas/File'
+        videoFile:
+          $ref: '#/components/schemas/File'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BrandResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Brand'
+
+    Brand:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+        imageFile:
+          $ref: '#/components/schemas/File'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+        - message
+      properties:
+        status:
+          type: string
+          example: "error"
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid file type"
+        details:
+          type: object
+          additionalProperties: true

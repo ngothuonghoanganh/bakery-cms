@@ -13,6 +13,8 @@ import { createBrandRepository } from './repositories/brands.repositories';
 import { createStockItemBrandRepository } from './repositories/stock-item-brands.repositories';
 import { createBrandService } from './services/brands.services';
 import { createBrandHandlers } from './handlers/brands.handlers';
+import { createFileRepository } from '../files/repositories/files.repositories';
+import { createFileService } from '../files/services/files.services';
 import { createProductStockItemRepository } from './repositories/product-stock-items.repositories';
 import { createProductStockService } from './services/product-stock.services';
 import { createProductStockHandlers } from './handlers/product-stock.handlers';
@@ -67,13 +69,21 @@ export const createStockRouter = (): Router => {
   const stockItemService = createStockItemService(stockItemRepository, stockMovementRepository);
   const stockItemHandlers = createStockItemHandlers(stockItemService);
 
+  // Create file service for cleanup operations
+  const fileRepository = createFileRepository(models.File);
+  const fileService = createFileService(fileRepository);
+
   // Create brands repositories, service, and handlers (dependency injection)
   const brandRepository = createBrandRepository(models.Brand);
   const stockItemBrandRepository = createStockItemBrandRepository(
     models.StockItemBrand,
     models.Brand
   );
-  const brandService = createBrandService(brandRepository, stockItemBrandRepository);
+  const brandService = createBrandService({
+    brandRepository,
+    stockItemBrandRepository,
+    fileService,
+  });
   const brandHandlers = createBrandHandlers(brandService);
 
   // Create product-stock repositories, service, and handlers (dependency injection)

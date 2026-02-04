@@ -242,6 +242,9 @@ export const vi = {
       businessTypePlaceholder: 'Chọn loại kinh doanh',
       statusPlaceholder: 'Chọn trạng thái',
       imageUrlPlaceholder: 'https://example.com/image.jpg',
+      images: 'Hình ảnh sản phẩm',
+      multiImages: 'Thư viện ảnh',
+      legacyImage: 'Ảnh bìa (Cũ)',
       validation: {
         nameRequired: 'Tên sản phẩm là bắt buộc',
         nameMin: 'Tên sản phẩm phải có ít nhất 3 ký tự',
@@ -266,6 +269,7 @@ export const vi = {
       both: 'Cả hai',
     },
     table: {
+      image: 'Hình ảnh',
       name: 'Tên',
       category: 'Danh mục',
       price: 'Giá',
@@ -274,6 +278,7 @@ export const vi = {
       createdAt: 'Ngày tạo',
       actions: 'Hành động',
     },
+    noImage: 'Không có ảnh',
     filter: {
       searchPlaceholder: 'Tìm kiếm sản phẩm...',
       category: 'Danh mục',
@@ -798,6 +803,11 @@ export const vi = {
       brandRemovedMessage: 'Thương hiệu "{{brandName}}" đã được xóa khỏi mặt hàng này.',
       preferredBrandSet: 'Đã đặt thương hiệu ưu tiên',
       preferredBrandSetMessage: '"{{brandName}}" hiện là thương hiệu ưu tiên.',
+      // Brand image
+      brandImage: 'Hình ảnh thương hiệu',
+      brandImageOptional: 'Hình ảnh thương hiệu (Tùy chọn)',
+      uploadBrandImage: 'Tải lên hình ảnh thương hiệu',
+      noBrandImage: 'Không có hình',
     },
   },
 
@@ -853,6 +863,49 @@ export const vi = {
     number: 'Giá trị phải là số',
     positive: 'Giá trị phải là số dương',
     integer: 'Giá trị phải là số nguyên',
+  },
+
+  // Files namespace
+  files: {
+    title: 'Tập tin',
+    subtitle: 'Quản lý tập tin đã tải lên',
+    upload: 'Tải lên tập tin',
+    delete: 'Xóa tập tin',
+    deleteConfirm: 'Bạn có chắc chắn muốn xóa tập tin này?',
+    uploadImage: 'Nhấn hoặc kéo ảnh vào đây để tải lên',
+    uploadVideo: 'Nhấn hoặc kéo video vào đây để tải lên',
+    uploadFile: 'Nhấn hoặc kéo tập tin vào đây để tải lên',
+    uploading: 'Đang tải lên...',
+    uploadSuccess: 'Tải lên tập tin thành công',
+    uploadError: 'Tải lên thất bại',
+    invalidType: 'Loại tập tin không hợp lệ',
+    tooLarge: 'Tập tin quá lớn. Kích thước tối đa: {{size}}',
+    maxSize: 'Kích thước tối đa: {{size}}',
+    preview: 'Xem trước',
+    download: 'Tải xuống',
+    originalName: 'Tên gốc',
+    mimeType: 'Loại MIME',
+    size: 'Kích thước',
+    uploadedAt: 'Tải lên lúc',
+    uploadedBy: 'Tải lên bởi',
+    noFiles: 'Không tìm thấy tập tin nào',
+    primary: 'Chính',
+    setAsPrimary: 'Đặt làm ảnh chính',
+    maxFilesReached: 'Tối đa {{count}} tập tin',
+    multiUploadHint: '{{current}}/{{max}} ảnh. Kéo để sắp xếp. Kích thước tối đa: {{size}}',
+    table: {
+      name: 'Tên tập tin',
+      type: 'Loại',
+      size: 'Kích thước',
+      uploadedAt: 'Tải lên lúc',
+      actions: 'Thao tác',
+    },
+    notifications: {
+      deleted: 'Đã xóa tập tin',
+      deletedMessage: 'Tập tin đã được xóa thành công',
+      deleteFailed: 'Xóa thất bại',
+      deleteError: 'Không thể xóa tập tin',
+    },
   },
 
   // Errors namespace

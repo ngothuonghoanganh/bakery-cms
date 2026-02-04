@@ -15,6 +15,8 @@ import { StockItemModel, initStockItemModel } from './stock-item.model';
 import { StockItemBrandModel, initStockItemBrandModel } from './stock-item-brand.model';
 import { ProductStockItemModel, initProductStockItemModel } from './product-stock-item.model';
 import { StockMovementModel, initStockMovementModel } from './stock-movement.model';
+import { FileModel, initFileModel } from './file.model';
+import { ProductImageModel, initProductImageModel } from './product-image.model';
 
 // Re-export TokenType for convenience
 export { TokenType } from './auth-session.model';
@@ -35,6 +37,8 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly StockItemBrand: typeof StockItemBrandModel;
   readonly ProductStockItem: typeof ProductStockItemModel;
   readonly StockMovement: typeof StockMovementModel;
+  readonly File: typeof FileModel;
+  readonly ProductImage: typeof ProductImageModel;
 } => {
   // Initialize all models
   const Product = initProductModel(sequelize);
@@ -48,6 +52,8 @@ export const initializeModels = (sequelize: Sequelize): {
   const StockItemBrand = initStockItemBrandModel(sequelize);
   const ProductStockItem = initProductStockItemModel(sequelize);
   const StockMovement = initStockMovementModel(sequelize);
+  const File = initFileModel(sequelize);
+  const ProductImage = initProductImageModel(sequelize);
 
   // Define associations
   
@@ -220,6 +226,80 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  // File associations
+  File.belongsTo(User, {
+    foreignKey: 'uploadedBy',
+    as: 'uploader',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  User.hasMany(File, {
+    foreignKey: 'uploadedBy',
+    as: 'uploadedFiles',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  // Product-File association (image)
+  Product.belongsTo(File, {
+    foreignKey: 'imageFileId',
+    as: 'imageFile',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  File.hasMany(Product, {
+    foreignKey: 'imageFileId',
+    as: 'products',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  // Brand-File association (image/logo)
+  Brand.belongsTo(File, {
+    foreignKey: 'imageFileId',
+    as: 'imageFile',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  File.hasMany(Brand, {
+    foreignKey: 'imageFileId',
+    as: 'brands',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  // ProductImage associations (many-to-many between Product and File)
+  Product.hasMany(ProductImage, {
+    foreignKey: 'productId',
+    as: 'images',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductImage.belongsTo(Product, {
+    foreignKey: 'productId',
+    as: 'product',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductImage.belongsTo(File, {
+    foreignKey: 'fileId',
+    as: 'file',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  File.hasMany(ProductImage, {
+    foreignKey: 'fileId',
+    as: 'productImages',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
   return {
     Product,
     Order,
@@ -232,6 +312,8 @@ export const initializeModels = (sequelize: Sequelize): {
     StockItemBrand,
     ProductStockItem,
     StockMovement,
+    File,
+    ProductImage,
   };
 };
 
@@ -248,4 +330,6 @@ export {
   StockItemBrandModel,
   ProductStockItemModel,
   StockMovementModel,
+  FileModel,
+  ProductImageModel,
 };

@@ -125,7 +125,7 @@ export const createProductStockService = (
       return ok(toProductStockItemResponseDto(link));
     } catch (error) {
       logger.error('Failed to add stock item to product', { error, productId, dto });
-      return err(createDatabaseError('Failed to add stock item to product'));
+      return err(createDatabaseError('Failed to add stock item to product', error));
     }
   };
 
@@ -151,7 +151,7 @@ export const createProductStockService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch product recipe', { error, productId });
-      return err(createDatabaseError('Failed to fetch product recipe'));
+      return err(createDatabaseError('Failed to fetch product recipe', error));
     }
   };
 
@@ -203,7 +203,7 @@ export const createProductStockService = (
         stockItemId,
         dto,
       });
-      return err(createDatabaseError('Failed to update product stock item'));
+      return err(createDatabaseError('Failed to update product stock item', error));
     }
   };
 
@@ -233,7 +233,7 @@ export const createProductStockService = (
         productId,
         stockItemId,
       });
-      return err(createDatabaseError('Failed to remove stock item from product'));
+      return err(createDatabaseError('Failed to remove stock item from product', error));
     }
   };
 
@@ -304,7 +304,7 @@ export const createProductStockService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to calculate product cost', { error, productId });
-      return err(createDatabaseError('Failed to calculate product cost'));
+      return err(createDatabaseError('Failed to calculate product cost', error));
     }
   };
 
@@ -333,7 +333,7 @@ export const createProductStockService = (
       return ok(result);
     } catch (error) {
       logger.error('Failed to check stock item deletion protection', { error, stockItemId });
-      return err(createDatabaseError('Failed to check stock item deletion protection'));
+      return err(createDatabaseError('Failed to check stock item deletion protection', error));
     }
   };
 

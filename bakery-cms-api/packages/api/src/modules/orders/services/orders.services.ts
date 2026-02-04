@@ -153,7 +153,7 @@ export const createOrderService = (
       );
     } catch (error) {
       logger.error('Failed to create order', { error, dto });
-      return err(createDatabaseError('Failed to create order'));
+      return err(createDatabaseError('Failed to create order', error));
     }
   };
 
@@ -176,7 +176,7 @@ export const createOrderService = (
       return ok(toOrderResponseDto(order, (order as any).items));
     } catch (error) {
       logger.error('Failed to fetch order', { error, orderId: id });
-      return err(createDatabaseError('Failed to fetch order'));
+      return err(createDatabaseError('Failed to fetch order', error));
     }
   };
 
@@ -222,7 +222,7 @@ export const createOrderService = (
       return ok(response);
     } catch (error) {
       logger.error('Failed to fetch orders list', { error, query });
-      return err(createDatabaseError('Failed to fetch orders'));
+      return err(createDatabaseError('Failed to fetch orders', error));
     }
   };
 
@@ -302,7 +302,7 @@ export const createOrderService = (
       );
     } catch (error) {
       logger.error('Failed to update order', { error, orderId: id, dto });
-      return err(createDatabaseError('Failed to update order'));
+      return err(createDatabaseError('Failed to update order', error));
     }
   };
 
@@ -351,7 +351,7 @@ export const createOrderService = (
       );
     } catch (error) {
       logger.error('Failed to confirm order', { error, orderId: id });
-      return err(createDatabaseError('Failed to confirm order'));
+      return err(createDatabaseError('Failed to confirm order', error));
     }
   };
 
@@ -408,7 +408,7 @@ export const createOrderService = (
       );
     } catch (error) {
       logger.error('Failed to cancel order', { error, orderId: id });
-      return err(createDatabaseError('Failed to cancel order'));
+      return err(createDatabaseError('Failed to cancel order', error));
     }
   };
 
@@ -459,7 +459,7 @@ export const createOrderService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete order', { error, orderId: id });
-      return err(createDatabaseError('Failed to delete order'));
+      return err(createDatabaseError('Failed to delete order', error));
     }
   };
 
@@ -495,7 +495,7 @@ export const createOrderService = (
       return ok(toOrderResponseDto(order));
     } catch (error) {
       logger.error('Failed to restore order', { error, orderId: id });
-      return err(createDatabaseError('Failed to restore order'));
+      return err(createDatabaseError('Failed to restore order', error));
     }
   };
 

@@ -4,7 +4,7 @@
  */
 
 import { Op } from 'sequelize';
-import { ProductModel } from '@bakery-cms/database';
+import { ProductModel, FileModel, ProductImageModel } from '@bakery-cms/database';
 import { ProductListQueryDto } from '../dto/products.dto';
 
 /**
@@ -31,10 +31,20 @@ export const createProductRepository = (
   model: typeof ProductModel
 ): ProductRepository => {
   /**
-   * Find product by ID
+   * Find product by ID with imageFile and images associations
    */
   const findById = async (id: string): Promise<ProductModel | null> => {
-    return await model.findByPk(id);
+    return await model.findByPk(id, {
+      include: [
+        { model: FileModel, as: 'imageFile' },
+        {
+          model: ProductImageModel,
+          as: 'images',
+          include: [{ model: FileModel, as: 'file' }],
+          order: [['displayOrder', 'ASC']],
+        },
+      ],
+    });
   };
 
   /**
@@ -83,6 +93,16 @@ export const createProductRepository = (
       limit,
       offset,
       order: [['createdAt', 'DESC']],
+      include: [
+        { model: FileModel, as: 'imageFile' },
+        {
+          model: ProductImageModel,
+          as: 'images',
+          include: [{ model: FileModel, as: 'file' }],
+          separate: true,
+          order: [['displayOrder', 'ASC']],
+        },
+      ],
     });
 
     return result;
@@ -99,7 +119,7 @@ export const createProductRepository = (
 
   /**
    * Update product by ID
-   * Returns updated product or null if not found
+   * Returns updated product with imageFile association or null if not found
    */
   const update = async (
     id: string,
@@ -112,7 +132,19 @@ export const createProductRepository = (
     }
 
     await product.update(attributes);
-    return product;
+
+    // Reload to include imageFile and images associations
+    return await model.findByPk(id, {
+      include: [
+        { model: FileModel, as: 'imageFile' },
+        {
+          model: ProductImageModel,
+          as: 'images',
+          include: [{ model: FileModel, as: 'file' }],
+          order: [['displayOrder', 'ASC']],
+        },
+      ],
+    });
   };
 
   /**

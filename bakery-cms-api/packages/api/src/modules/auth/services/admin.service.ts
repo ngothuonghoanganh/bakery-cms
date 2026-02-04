@@ -109,7 +109,7 @@ export const createAdminService = (
       });
     } catch (error) {
       logger.error('Failed to list users', { error });
-      return err(createDatabaseError('Failed to retrieve users'));
+      return err(createDatabaseError('Failed to retrieve users', error));
     }
   };
 
@@ -128,7 +128,7 @@ export const createAdminService = (
       return ok(toAdminUserResponse(user));
     } catch (error) {
       logger.error('Failed to get user', { error, id });
-      return err(createDatabaseError('Failed to retrieve user'));
+      return err(createDatabaseError('Failed to retrieve user', error));
     }
   };
 
@@ -174,7 +174,7 @@ export const createAdminService = (
       return ok(toAdminUserResponse(user));
     } catch (error) {
       logger.error('Failed to create user', { error, adminId });
-      return err(createDatabaseError('User creation failed'));
+      return err(createDatabaseError('User creation failed', error));
     }
   };
 
@@ -212,7 +212,7 @@ export const createAdminService = (
       return ok(toAdminUserResponse(updatedUser));
     } catch (error) {
       logger.error('Failed to update user', { error, id, adminId });
-      return err(createDatabaseError('User update failed'));
+      return err(createDatabaseError('User update failed', error));
     }
   };
 
@@ -242,7 +242,7 @@ export const createAdminService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to delete user', { error, id, adminId });
-      return err(createDatabaseError('User deletion failed'));
+      return err(createDatabaseError('User deletion failed', error));
     }
   };
 
@@ -262,7 +262,7 @@ export const createAdminService = (
       return ok(toAdminUserResponse(user));
     } catch (error) {
       logger.error('Failed to restore user', { error, id, adminId });
-      return err(createDatabaseError('User restoration failed'));
+      return err(createDatabaseError('User restoration failed', error));
     }
   };
 
@@ -284,7 +284,7 @@ export const createAdminService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to unlock user account', { error, userId: dto.userId, adminId });
-      return err(createDatabaseError('Account unlock failed'));
+      return err(createDatabaseError('Account unlock failed', error));
     }
   };
 
@@ -327,7 +327,7 @@ export const createAdminService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to reset user password', { error, userId: dto.userId, adminId });
-      return err(createDatabaseError('Password reset failed'));
+      return err(createDatabaseError('Password reset failed', error));
     }
   };
 
@@ -349,7 +349,7 @@ export const createAdminService = (
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to revoke user sessions', { error, userId: dto.userId, adminId });
-      return err(createDatabaseError('Session revocation failed'));
+      return err(createDatabaseError('Session revocation failed', error));
     }
   };
 
@@ -405,7 +405,7 @@ export const createAdminService = (
       return ok(statistics);
     } catch (error) {
       logger.error('Failed to get statistics', { error });
-      return err(createDatabaseError('Failed to retrieve statistics'));
+      return err(createDatabaseError('Failed to retrieve statistics', error));
     }
   };
 

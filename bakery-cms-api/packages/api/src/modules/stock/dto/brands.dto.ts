@@ -3,6 +3,8 @@
  * Type definitions for API request/response payloads
  */
 
+import { FileResponseDto } from '../../files/dto/files.dto';
+
 /**
  * Brand response DTO
  * Returned in API responses
@@ -12,6 +14,8 @@ export interface BrandResponseDto {
   name: string;
   description: string | null;
   isActive: boolean;
+  imageFileId: string | null;
+  imageFile: FileResponseDto | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +28,7 @@ export interface CreateBrandDto {
   name: string;
   description?: string;
   isActive?: boolean;
+  imageFileId?: string;
 }
 
 /**
@@ -34,6 +39,7 @@ export interface UpdateBrandDto {
   name?: string;
   description?: string;
   isActive?: boolean;
+  imageFileId?: string | null;
 }
 
 /**

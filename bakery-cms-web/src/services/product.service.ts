@@ -69,8 +69,8 @@ const getById = async (id: string): Promise<Result<Product | null, AppError>> =>
  */
 const create = async (data: CreateProductRequest): Promise<Result<Product, AppError>> => {
   try {
-    const response = await apiClient.post<ProductAPIResponse>('/products', data);
-    const product = mapProductFromAPI(response.data);
+    const response = await apiClient.post<AxiosResponse<ProductAPIResponse>>('/products', data);
+    const product = mapProductFromAPI(response?.data?.data);
     return ok(product);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -85,8 +85,8 @@ const update = async (
   data: UpdateProductRequest
 ): Promise<Result<Product, AppError>> => {
   try {
-    const response = await apiClient.patch<ProductAPIResponse>(`/products/${id}`, data);
-    const product = mapProductFromAPI(response.data);
+    const response = await apiClient.patch<AxiosResponse<ProductAPIResponse>>(`/products/${id}`, data);
+    const product = mapProductFromAPI(response?.data?.data);
     return ok(product);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));

@@ -64,14 +64,14 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       dataIndex: 'orderType',
       key: 'orderType',
       width: 120,
-      render: (orderType: string) => t(`orders.orderType.${orderType}`),
+      render: (orderType: string): React.ReactNode => t(`orders.orderType.${orderType}` as any) as string,
     },
     {
       title: t('orders.table.businessModel'),
       dataIndex: 'businessModel',
       key: 'businessModel',
       width: 150,
-      render: (businessModel: string) => t(`orders.businessModel.${businessModel === 'made_to_order' ? 'madeToOrder' : 'readyToSell'}`),
+      render: (businessModel: string): React.ReactNode => t(`orders.businessModel.${businessModel === 'made-to-order' ? 'madeToOrder' : 'readyToSell'}` as any) as string,
     },
     {
       title: t('orders.table.items'),

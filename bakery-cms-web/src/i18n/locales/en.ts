@@ -241,6 +241,9 @@ export const en = {
       businessTypePlaceholder: 'Select business type',
       statusPlaceholder: 'Select status',
       imageUrlPlaceholder: 'https://example.com/image.jpg',
+      images: 'Product Images',
+      multiImages: 'Gallery Images',
+      legacyImage: 'Cover Image (Legacy)',
       validation: {
         nameRequired: 'Product name is required',
         nameMin: 'Product name must be at least 3 characters',
@@ -265,6 +268,7 @@ export const en = {
       both: 'Both',
     },
     table: {
+      image: 'Image',
       name: 'Name',
       category: 'Category',
       price: 'Price',
@@ -273,6 +277,7 @@ export const en = {
       createdAt: 'Created At',
       actions: 'Actions',
     },
+    noImage: 'No image',
     filter: {
       searchPlaceholder: 'Search products...',
       category: 'Category',
@@ -797,6 +802,11 @@ export const en = {
       brandRemovedMessage: 'Brand "{{brandName}}" has been removed from this stock item.',
       preferredBrandSet: 'Preferred Brand Set',
       preferredBrandSetMessage: '"{{brandName}}" is now the preferred brand.',
+      // Brand image
+      brandImage: 'Brand Image',
+      brandImageOptional: 'Brand Image (Optional)',
+      uploadBrandImage: 'Upload brand image',
+      noBrandImage: 'No Image',
     },
   },
 
@@ -852,6 +862,49 @@ export const en = {
     number: 'Value must be a number',
     positive: 'Value must be a positive number',
     integer: 'Value must be an integer',
+  },
+
+  // Files namespace
+  files: {
+    title: 'Files',
+    subtitle: 'Manage uploaded files',
+    upload: 'Upload File',
+    delete: 'Delete File',
+    deleteConfirm: 'Are you sure you want to delete this file?',
+    uploadImage: 'Click or drag image to upload',
+    uploadVideo: 'Click or drag video to upload',
+    uploadFile: 'Click or drag file to upload',
+    uploading: 'Uploading...',
+    uploadSuccess: 'File uploaded successfully',
+    uploadError: 'Upload failed',
+    invalidType: 'Invalid file type',
+    tooLarge: 'File is too large. Maximum size: {{size}}',
+    maxSize: 'Max size: {{size}}',
+    preview: 'Preview',
+    download: 'Download',
+    originalName: 'Original Name',
+    mimeType: 'MIME Type',
+    size: 'Size',
+    uploadedAt: 'Uploaded At',
+    uploadedBy: 'Uploaded By',
+    noFiles: 'No files found',
+    primary: 'Primary',
+    setAsPrimary: 'Set as primary',
+    maxFilesReached: 'Maximum {{count}} files allowed',
+    multiUploadHint: '{{current}}/{{max}} images. Drag to reorder. Max size: {{size}}',
+    table: {
+      name: 'File Name',
+      type: 'Type',
+      size: 'Size',
+      uploadedAt: 'Uploaded At',
+      actions: 'Actions',
+    },
+    notifications: {
+      deleted: 'File Deleted',
+      deletedMessage: 'File has been deleted successfully',
+      deleteFailed: 'Delete Failed',
+      deleteError: 'Failed to delete file',
+    },
   },
 
   // Errors namespace

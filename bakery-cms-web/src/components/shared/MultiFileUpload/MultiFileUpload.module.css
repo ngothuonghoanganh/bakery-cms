@@ -1,0 +1,124 @@
+.multiFileUpload {
+  width: 100%;
+}
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.imageItem {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+  cursor: grab;
+}
+
+.imageItem:hover {
+  border-color: #1890ff;
+}
+
+.imageItem.primary {
+  border-color: #52c41a;
+}
+
+.imageItem.dragging {
+  opacity: 0.5;
+}
+
+.imagePreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.imageItem:hover .imageOverlay {
+  opacity: 1;
+}
+
+.overlayActions {
+  display: flex;
+  gap: 8px;
+}
+
+.primaryBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #52c41a;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.uploadButton {
+  aspect-ratio: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  background: #fafafa;
+}
+
+.uploadButton:hover {
+  border-color: #1890ff;
+}
+
+.uploadButton.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.uploadIcon {
+  font-size: 24px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.uploadText {
+  font-size: 12px;
+  color: #666;
+}
+
+.uploadingItem {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1890ff;
+  border-radius: 8px;
+  background: #f0f5ff;
+}
+
+.hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 8px;
+}

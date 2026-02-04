@@ -15,3 +15,4 @@ export * from './product.types';
 export * from './order.types';
 export * from './payment.types';
 export * from './soft-delete.types';
+export * from './file.types';

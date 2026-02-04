@@ -4,6 +4,7 @@
  */
 
 import { StockItemStatus, MovementType } from '@bakery-cms/common';
+import type { FileModel } from './file.model';
 
 // Re-export for backward compatibility
 export { StockItemStatus, MovementType };
@@ -68,6 +69,8 @@ export type Brand = {
   readonly name: string;
   readonly description: string | null;
   readonly isActive: boolean;
+  readonly imageFileId: string | null;
+  readonly imageFile: FileModel | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };

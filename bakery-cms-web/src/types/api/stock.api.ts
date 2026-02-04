@@ -3,6 +3,8 @@
  * These types represent the data structure returned by the backend API
  */
 
+import type { FileAPIResponse } from './file.api';
+
 // Stock Items
 export type StockItemAPIResponse = {
   readonly id: string;
@@ -93,6 +95,8 @@ export type BrandAPIResponse = {
   readonly name: string;
   readonly description: string | null;
   readonly isActive: boolean;
+  readonly imageFileId: string | null;
+  readonly imageFile: FileAPIResponse | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -111,12 +115,14 @@ export type CreateBrandRequest = {
   readonly name: string;
   readonly description?: string;
   readonly isActive?: boolean;
+  readonly imageFileId?: string;
 };
 
 export type UpdateBrandRequest = {
   readonly name?: string;
   readonly description?: string;
   readonly isActive?: boolean;
+  readonly imageFileId?: string | null;
 };
 
 export type BrandFiltersRequest = {

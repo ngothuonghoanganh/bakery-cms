@@ -11,3 +11,6 @@ export type { OrderService } from './order.service';
 
 export { paymentService } from './payment.service';
 export type { PaymentService } from './payment.service';
+
+export { fileService } from './file.service';
+export type { FileService } from './file.service';
