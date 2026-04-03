@@ -13,9 +13,15 @@ export interface ProductStockItemRepository {
   findByProductId(productId: string): Promise<ProductStockItemModel[]>;
   findByProductAndStockItem(
     productId: string,
-    stockItemId: string
+    stockItemId: string,
+    includeDeleted?: boolean
   ): Promise<ProductStockItemModel | null>;
   create(attributes: Partial<ProductStockItemModel>): Promise<ProductStockItemModel>;
+  restore(
+    productId: string,
+    stockItemId: string,
+    attributes: Partial<ProductStockItemModel>
+  ): Promise<ProductStockItemModel | null>;
   update(
     productId: string,
     stockItemId: string,
@@ -33,6 +39,26 @@ export interface ProductStockItemRepository {
 export const createProductStockItemRepository = (
   model: typeof ProductStockItemModel
 ): ProductStockItemRepository => {
+  const includeRelations = [
+    {
+      model: StockItemModel,
+      as: 'stockItem',
+      attributes: ['id', 'name', 'unitOfMeasure'],
+    },
+    {
+      model: BrandModel,
+      as: 'preferredBrand',
+      attributes: ['id', 'name'],
+    },
+  ] as const;
+
+  const findByIdWithRelations = async (id: string): Promise<ProductStockItemModel | null> => {
+    return await model.findOne({
+      where: { id },
+      include: includeRelations as any,
+    });
+  };
+
   /**
    * Find all stock items for a product (recipe)
    * Includes stock item and brand details
@@ -42,18 +68,7 @@ export const createProductStockItemRepository = (
   ): Promise<ProductStockItemModel[]> => {
     return await model.findAll({
       where: { productId },
-      include: [
-        {
-          model: StockItemModel,
-          as: 'stockItem',
-          attributes: ['id', 'name', 'unitOfMeasure'],
-        },
-        {
-          model: BrandModel,
-          as: 'preferredBrand',
-          attributes: ['id', 'name'],
-        },
-      ],
+      include: includeRelations as any,
       order: [['createdAt', 'ASC']],
     });
   };
@@ -63,22 +78,13 @@ export const createProductStockItemRepository = (
    */
   const findByProductAndStockItem = async (
     productId: string,
-    stockItemId: string
+    stockItemId: string,
+    includeDeleted: boolean = false
   ): Promise<ProductStockItemModel | null> => {
     return await model.findOne({
       where: { productId, stockItemId },
-      include: [
-        {
-          model: StockItemModel,
-          as: 'stockItem',
-          attributes: ['id', 'name', 'unitOfMeasure'],
-        },
-        {
-          model: BrandModel,
-          as: 'preferredBrand',
-          attributes: ['id', 'name'],
-        },
-      ],
+      include: includeRelations as any,
+      paranoid: !includeDeleted,
     });
   };
 
@@ -89,25 +95,35 @@ export const createProductStockItemRepository = (
     attributes: Partial<ProductStockItemModel>
   ): Promise<ProductStockItemModel> => {
     const created = await model.create(attributes);
-
-    // Fetch with includes
-    const result = await model.findOne({
-      where: { id: created.id },
-      include: [
-        {
-          model: StockItemModel,
-          as: 'stockItem',
-          attributes: ['id', 'name', 'unitOfMeasure'],
-        },
-        {
-          model: BrandModel,
-          as: 'preferredBrand',
-          attributes: ['id', 'name'],
-        },
-      ],
-    });
+    const result = await findByIdWithRelations(created.id);
 
     return result!;
+  };
+
+  /**
+   * Restore a soft-deleted product-stock-item link and update its attributes
+   * Returns restored link or null if not found
+   */
+  const restore = async (
+    productId: string,
+    stockItemId: string,
+    attributes: Partial<ProductStockItemModel>
+  ): Promise<ProductStockItemModel | null> => {
+    const link = await model.findOne({
+      where: { productId, stockItemId },
+      paranoid: false,
+    });
+
+    if (!link) {
+      return null;
+    }
+
+    if (link.deletedAt) {
+      await link.restore();
+    }
+
+    await link.update(attributes);
+    return await findByIdWithRelations(link.id);
   };
 
   /**
@@ -128,23 +144,7 @@ export const createProductStockItemRepository = (
     }
 
     await link.update(attributes);
-
-    // Refetch with includes
-    const result = await model.findOne({
-      where: { id: link.id },
-      include: [
-        {
-          model: StockItemModel,
-          as: 'stockItem',
-          attributes: ['id', 'name', 'unitOfMeasure'],
-        },
-        {
-          model: BrandModel,
-          as: 'preferredBrand',
-          attributes: ['id', 'name'],
-        },
-      ],
-    });
+    const result = await findByIdWithRelations(link.id);
 
     return result;
   };
@@ -180,6 +180,7 @@ export const createProductStockItemRepository = (
     findByProductId,
     findByProductAndStockItem,
     create,
+    restore,
     update,
     delete: deleteLink,
     countByStockItemId,

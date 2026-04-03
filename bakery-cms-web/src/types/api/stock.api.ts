@@ -211,7 +211,7 @@ export type ProductCostBreakdownItem = {
 export type AddStockItemToProductRequest = {
   readonly stockItemId: string;
   readonly quantity: number;
-  readonly preferredBrandId?: string;
+  readonly preferredBrandId: string;
   readonly notes?: string;
 };
 

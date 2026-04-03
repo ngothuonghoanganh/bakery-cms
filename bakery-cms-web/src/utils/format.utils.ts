@@ -7,10 +7,12 @@ dayjs.extend(relativeTime);
 /**
  * Format currency amount
  */
-export const formatCurrency = (amount: number, currency = 'USD'): string => {
-  return new Intl.NumberFormat('en-US', {
+export const formatCurrency = (amount: number, currency = 'VND', locale = 'vi-VN'): string => {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    minimumFractionDigits: currency === 'VND' ? 0 : 2,
+    maximumFractionDigits: currency === 'VND' ? 0 : 2,
   }).format(amount);
 };
 

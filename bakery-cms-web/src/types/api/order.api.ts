@@ -2,6 +2,8 @@
  * API response types for Order endpoints
  */
 
+import type { PaymentAPIResponse, VietQRDataAPIResponse } from './payment.api';
+
 export type OrderItemAPIResponse = {
   readonly id: string;
   readonly orderId: string;
@@ -58,6 +60,18 @@ export type UpdateOrderRequest = {
   readonly customerPhone?: string;
   readonly notes?: string;
   readonly items?: readonly CreateOrderItemRequest[];
+};
+
+export type ConfirmOrderRequest = {
+  readonly paymentMethod: string;
+  readonly paymentNotes?: string;
+  readonly confirmedAt?: string;
+};
+
+export type ConfirmOrderAPIResponse = {
+  readonly order: OrderAPIResponse;
+  readonly payment: PaymentAPIResponse;
+  readonly vietqr: VietQRDataAPIResponse | null;
 };
 
 export type OrderFiltersRequest = {

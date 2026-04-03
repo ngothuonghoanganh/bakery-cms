@@ -2,16 +2,39 @@
  * API response types for Payment endpoints
  */
 
+export type StoredVietQRDataAPIResponse = {
+  readonly bankId: string;
+  readonly accountNo: string;
+  readonly accountName: string;
+  readonly amount: number;
+  readonly addInfo: string;
+  readonly template: string;
+  readonly qrDataURL?: string;
+  readonly qrContent?: string;
+};
+
+export type PaymentOrderBasicAPIResponse = {
+  readonly id: string;
+  readonly orderNumber: string;
+  readonly status: string;
+  readonly customerName: string | null;
+  readonly customerPhone: string | null;
+  readonly totalAmount: number;
+  readonly createdAt: string;
+};
+
 export type PaymentAPIResponse = {
   readonly id: string;
   readonly orderId: string;
+  readonly paymentType: string;
   readonly amount: number;
   readonly method: string;
   readonly status: string;
   readonly transactionId: string | null;
-  readonly vietqrData: string | null;
+  readonly vietqrData: StoredVietQRDataAPIResponse | null;
   readonly notes: string | null;
   readonly paidAt: string | null;
+  readonly order?: PaymentOrderBasicAPIResponse | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -24,12 +47,13 @@ export type PaginatedPaymentsAPIResponse = {
 };
 
 export type VietQRDataAPIResponse = {
+  readonly qrDataURL: string;
+  readonly qrContent: string;
+  readonly bankId: string;
   readonly accountNo: string;
   readonly accountName: string;
-  readonly bankBin: string;
   readonly amount: number;
-  readonly description: string;
-  readonly qrDataURL: string;
+  readonly addInfo: string;
 };
 
 export type CreatePaymentRequest = {
@@ -48,7 +72,9 @@ export type UpdatePaymentRequest = {
 };
 
 export type PaymentFiltersRequest = {
+  readonly orderId?: string;
   readonly search?: string;
+  readonly paymentType?: string;
   readonly status?: string;
   readonly method?: string;
   readonly dateFrom?: string;
@@ -59,4 +85,12 @@ export type PaymentFiltersRequest = {
 
 export type MarkAsPaidRequest = {
   readonly transactionId?: string;
+};
+
+export type CreateRefundPaymentRequest = {
+  readonly amount: number;
+  readonly method: string;
+  readonly transactionId?: string;
+  readonly paidAt?: string;
+  readonly notes?: string;
 };

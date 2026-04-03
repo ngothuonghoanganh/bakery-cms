@@ -10,5 +10,7 @@ export type PaymentDetailProps = {
   readonly onEdit?: () => void;
   readonly onDelete?: () => void;
   readonly onMarkAsPaid?: () => void;
+  readonly onRegenerateVietQR?: () => void;
+  readonly regeneratingVietQR?: boolean;
   readonly onBack?: () => void;
 };

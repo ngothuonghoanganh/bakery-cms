@@ -20,6 +20,7 @@ import { createPaymentsRouter } from './modules/payments/routes';
 import { createAuthRouter } from './modules/auth/routes';
 import { createStockRouter } from './modules/stock/routes';
 import { createFilesRouter } from './modules/files/routes';
+import { createSettingsRouter } from './modules/settings/routes';
 
 /**
  * Create and configure Express application
@@ -99,6 +100,7 @@ export const createApp = (): Express => {
   app.use(`${apiBasePath}/payments`, createPaymentsRouter());
   app.use(`${apiBasePath}/stock`, createStockRouter());
   app.use(`${apiBasePath}/files`, createFilesRouter());
+  app.use(`${apiBasePath}/settings`, createSettingsRouter());
   
   // 404 handler
   app.use(notFoundHandler);

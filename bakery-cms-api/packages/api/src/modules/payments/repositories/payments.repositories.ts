@@ -5,7 +5,7 @@
 
 import { Op } from 'sequelize';
 import { PaymentModel } from '@bakery-cms/database';
-import { PaymentStatus } from '@bakery-cms/common';
+import { PaymentStatus, PaymentType } from '@bakery-cms/common';
 import { PaymentListQueryDto } from '../dto/payments.dto';
 
 /**
@@ -16,6 +16,11 @@ export interface PaymentRepository {
   findById(id: string): Promise<PaymentModel | null>;
   findByOrderId(orderId: string): Promise<PaymentModel | null>;
   findAll(query: PaymentListQueryDto): Promise<{ rows: PaymentModel[]; count: number }>;
+  sumAmountByOrderIdAndStatus(
+    orderId: string,
+    status: PaymentStatus,
+    paymentType?: PaymentType
+  ): Promise<number>;
   create(attributes: Partial<PaymentModel>): Promise<PaymentModel>;
   updateStatus(id: string, status: PaymentStatus, paidAt?: Date): Promise<PaymentModel | null>;
   markAsPaid(id: string, paidAt: Date, transactionId?: string): Promise<PaymentModel | null>;
@@ -33,11 +38,26 @@ export interface PaymentRepository {
 export const createPaymentRepository = (
   model: typeof PaymentModel
 ): PaymentRepository => {
+  const orderBasicInclude = {
+    association: 'order',
+    attributes: [
+      'id',
+      'orderNumber',
+      'status',
+      'customerName',
+      'customerPhone',
+      'totalAmount',
+      'createdAt',
+    ],
+  };
+
   /**
    * Find payment by ID
    */
   const findById = async (id: string): Promise<PaymentModel | null> => {
-    return await model.findByPk(id);
+    return await model.findByPk(id, {
+      include: [orderBasicInclude],
+    });
   };
 
   /**
@@ -45,7 +65,12 @@ export const createPaymentRepository = (
    */
   const findByOrderId = async (orderId: string): Promise<PaymentModel | null> => {
     return await model.findOne({
-      where: { orderId },
+      where: {
+        orderId,
+        paymentType: PaymentType.PAYMENT,
+      },
+      include: [orderBasicInclude],
+      order: [['createdAt', 'DESC']],
     });
   };
 
@@ -58,6 +83,7 @@ export const createPaymentRepository = (
     const {
       page = 1,
       limit = 10,
+      paymentType,
       status,
       method,
       orderId,
@@ -70,6 +96,10 @@ export const createPaymentRepository = (
 
     if (status) {
       where['status'] = status;
+    }
+
+    if (paymentType) {
+      where['paymentType'] = paymentType;
     }
 
     if (method) {
@@ -100,9 +130,32 @@ export const createPaymentRepository = (
       limit,
       offset,
       order: [['createdAt', 'DESC']],
+      include: [orderBasicInclude],
+      distinct: true,
     });
 
     return result;
+  };
+
+  /**
+   * Sum payment amounts by order ID and status
+   */
+  const sumAmountByOrderIdAndStatus = async (
+    orderId: string,
+    status: PaymentStatus,
+    paymentType?: PaymentType
+  ): Promise<number> => {
+    const where: Record<string, unknown> = { orderId, status };
+
+    if (paymentType) {
+      where['paymentType'] = paymentType;
+    }
+
+    const sum = await model.sum('amount', {
+      where,
+    });
+
+    return Number(sum ?? 0);
   };
 
   /**
@@ -111,7 +164,8 @@ export const createPaymentRepository = (
   const create = async (
     attributes: Partial<PaymentModel>
   ): Promise<PaymentModel> => {
-    return await model.create(attributes);
+    const payment = await model.create(attributes);
+    return (await findById(payment.id)) ?? payment;
   };
 
   /**
@@ -135,7 +189,7 @@ export const createPaymentRepository = (
     }
 
     await payment.update(updateData);
-    return payment;
+    return await findById(payment.id);
   };
 
   /**
@@ -163,7 +217,7 @@ export const createPaymentRepository = (
     }
 
     await payment.update(updateData);
-    return payment;
+    return await findById(payment.id);
   };
 
   /**
@@ -181,7 +235,7 @@ export const createPaymentRepository = (
     }
 
     await payment.update(attributes);
-    return payment;
+    return await findById(payment.id);
   };
 
   /**
@@ -227,6 +281,7 @@ export const createPaymentRepository = (
     findById,
     findByOrderId,
     findAll,
+    sumAmountByOrderIdAndStatus,
     create,
     updateStatus,
     markAsPaid,

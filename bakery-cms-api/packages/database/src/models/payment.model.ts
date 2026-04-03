@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize, Op } from 'sequelize';
-import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
+import { PaymentMethod, PaymentStatus, PaymentType } from '@bakery-cms/common';
 
 /**
  * Payment model class
@@ -13,6 +13,7 @@ import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
 export class PaymentModel extends Model {
   declare id: string;
   declare orderId: string;
+  declare paymentType: string;
   declare amount: number;
   declare method: string;
   declare status: string;
@@ -41,7 +42,6 @@ export const initPaymentModel = (sequelize: Sequelize): typeof PaymentModel => {
       orderId: {
         type: DataTypes.UUID,
         allowNull: false,
-        unique: true,
         field: 'order_id',
         references: {
           model: 'orders',
@@ -49,6 +49,12 @@ export const initPaymentModel = (sequelize: Sequelize): typeof PaymentModel => {
         },
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
+      },
+      paymentType: {
+        type: DataTypes.ENUM(...Object.values(PaymentType)),
+        allowNull: false,
+        defaultValue: PaymentType.PAYMENT,
+        field: 'payment_type',
       },
       amount: {
         type: DataTypes.DECIMAL(10, 2),
@@ -130,8 +136,10 @@ export const initPaymentModel = (sequelize: Sequelize): typeof PaymentModel => {
       },
       indexes: [
         {
-          unique: true,
           fields: ['order_id'],
+        },
+        {
+          fields: ['payment_type'],
         },
         {
           fields: ['status'],

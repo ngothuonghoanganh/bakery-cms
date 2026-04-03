@@ -13,6 +13,7 @@ export type TranslationNamespace =
   | 'products'
   | 'orders'
   | 'payments'
+  | 'settings'
   | 'stock'
   | 'dashboard'
   | 'validation'

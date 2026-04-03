@@ -27,6 +27,7 @@ export type UsePaymentsOptions = {
 export type UsePaymentsReturn = {
   payments: Payment[];
   loading: boolean;
+  refreshing: boolean;
   error: AppError | null;
   total: number;
   refetch: () => Promise<void>;
@@ -35,12 +36,15 @@ export type UsePaymentsReturn = {
 export const usePayments = (options: UsePaymentsOptions = {}): UsePaymentsReturn => {
   const { filters, autoFetch = true } = options;
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(autoFetch);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const [total, setTotal] = useState(0);
 
   // Use ref to store the latest filters without causing re-renders
   const filtersRef = useRef(filters);
+  const requestIdRef = useRef(0);
+  const hasLoadedOnceRef = useRef(false);
 
   // Update ref when props change
   useEffect(() => {
@@ -48,21 +52,32 @@ export const usePayments = (options: UsePaymentsOptions = {}): UsePaymentsReturn
   }, [filters]);
 
   const fetchPayments = useCallback(async (): Promise<void> => {
-    setLoading(true);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (hasLoadedOnceRef.current) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     const result = await paymentService.getAll(mapFiltersToRequest(filtersRef.current));
 
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
     if (result.success) {
       setPayments([...result.data.payments]);
       setTotal(result.data.total);
+      hasLoadedOnceRef.current = true;
     } else {
       setError(result.error);
-      setPayments([]);
-      setTotal(0);
     }
 
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   // Create a stable key from filters for dependency tracking
@@ -77,6 +92,7 @@ export const usePayments = (options: UsePaymentsOptions = {}): UsePaymentsReturn
   return {
     payments,
     loading,
+    refreshing,
     error,
     total,
     refetch: fetchPayments,

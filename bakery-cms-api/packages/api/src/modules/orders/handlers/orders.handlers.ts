@@ -10,6 +10,7 @@ import {
   CreateOrderDto,
   UpdateOrderDto,
   OrderListQueryDto,
+  ConfirmOrderDto,
 } from '../dto/orders.dto';
 import { getLogger } from '../../../utils/logger';
 
@@ -180,12 +181,13 @@ export const createOrderHandlers = (service: OrderService): OrderHandlers => {
   ): Promise<void> => {
     try {
       const { id } = req.params;
+      const dto: ConfirmOrderDto = req.body;
 
       if (!id) {
         return next(new Error('Order ID is required'));
       }
 
-      const result = await service.confirmOrder(id);
+      const result = await service.confirmOrder(id, dto);
 
       if (result.isErr()) {
         return next(result.error);

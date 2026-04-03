@@ -11,6 +11,8 @@ import {
   DeleteOutlined,
   CheckOutlined,
   CloseOutlined,
+  CreditCardOutlined,
+  RollbackOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
@@ -25,6 +27,8 @@ const getStatusColor = (status: OrderStatus): string => {
     draft: 'default',
     confirmed: 'processing',
     paid: 'success',
+    refund_pending: 'warning',
+    refunded: 'geekblue',
     cancelled: 'error',
   };
   return colorMap[status] || 'default';
@@ -36,6 +40,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   onDelete,
   onConfirm,
   onCancel,
+  onViewPayments,
+  onRefund,
   onBack,
   loading = false,
 }) => {
@@ -78,6 +84,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   const canEdit = order.status === 'draft';
   const canConfirm = order.status === 'draft';
   const canCancel = order.status === 'draft' || order.status === 'confirmed';
+  const canRefund = order.status === 'paid';
+  const canDelete = order.status === 'draft';
 
   return (
     <div>
@@ -88,23 +96,20 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
         </Button>
 
         <Space>
+          {onViewPayments && (
+            <Button icon={<CreditCardOutlined />} onClick={onViewPayments}>
+              {t('orders.actions.viewPayments')}
+            </Button>
+          )}
           {canEdit && (
             <Button icon={<EditOutlined />} onClick={onEdit}>
               {t('orders.actions.edit')}
             </Button>
           )}
           {canConfirm && (
-            <Popconfirm
-              title={t('orders.confirm.confirmTitle')}
-              description={t('orders.confirm.confirmDescription')}
-              onConfirm={onConfirm}
-              okText={t('orders.confirm.yes')}
-              cancelText={t('orders.confirm.no')}
-            >
-              <Button type="primary" icon={<CheckOutlined />}>
-                {t('orders.actions.confirmOrder')}
-              </Button>
-            </Popconfirm>
+            <Button type="primary" icon={<CheckOutlined />} onClick={onConfirm}>
+              {t('orders.actions.confirmOrder')}
+            </Button>
           )}
           {canCancel && (
             <Popconfirm
@@ -119,17 +124,24 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               </Button>
             </Popconfirm>
           )}
-          <Popconfirm
-            title={t('orders.confirm.deleteTitle')}
-            description={t('orders.confirm.deleteDescription')}
-            onConfirm={onDelete}
-            okText={t('orders.confirm.yes')}
-            cancelText={t('orders.confirm.no')}
-          >
-            <Button danger icon={<DeleteOutlined />}>
-              {t('orders.actions.delete')}
+          {canRefund && onRefund && (
+            <Button icon={<RollbackOutlined />} onClick={onRefund}>
+              {t('orders.actions.refundOrder')}
             </Button>
-          </Popconfirm>
+          )}
+          {canDelete && (
+            <Popconfirm
+              title={t('orders.confirm.deleteTitle')}
+              description={t('orders.confirm.deleteDescription')}
+              onConfirm={onDelete}
+              okText={t('orders.confirm.yes')}
+              cancelText={t('orders.confirm.no')}
+            >
+              <Button danger icon={<DeleteOutlined />}>
+                {t('orders.actions.delete')}
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       </Space>
 

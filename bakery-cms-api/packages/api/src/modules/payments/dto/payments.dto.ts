@@ -3,7 +3,7 @@
  * Type definitions for API request/response payloads
  */
 
-import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
+import { OrderStatus, PaymentMethod, PaymentStatus, PaymentType } from '@bakery-cms/common';
 
 /**
  * VietQR data structure
@@ -16,6 +16,8 @@ export interface VietQRData {
   amount: number;
   addInfo: string;
   template: string;
+  qrDataURL?: string;
+  qrContent?: string;
 }
 
 /**
@@ -33,12 +35,27 @@ export interface VietQRResponseDto {
 }
 
 /**
+ * Basic order data embedded in payment response
+ * Used by payment screens to avoid extra order fetches
+ */
+export interface PaymentOrderBasicDto {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  customerName: string | null;
+  customerPhone: string | null;
+  totalAmount: number;
+  createdAt: string;
+}
+
+/**
  * Payment response DTO
  * Returned in API responses
  */
 export interface PaymentResponseDto {
   id: string;
   orderId: string;
+  paymentType: PaymentType;
   amount: number;
   method: PaymentMethod;
   status: PaymentStatus;
@@ -46,6 +63,7 @@ export interface PaymentResponseDto {
   vietqrData: VietQRData | null;
   paidAt: string | null;
   notes: string | null;
+  order: PaymentOrderBasicDto | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,12 +102,25 @@ export interface MarkAsPaidDto {
 }
 
 /**
+ * Create refund payment request DTO
+ * Expected in POST /payments/order/:orderId/refund
+ */
+export interface CreateRefundPaymentDto {
+  amount: number;
+  method: PaymentMethod;
+  transactionId?: string;
+  paidAt?: string;
+  notes?: string;
+}
+
+/**
  * Payment list query parameters
  * Expected in GET /payments
  */
 export interface PaymentListQueryDto {
   page?: number;
   limit?: number;
+  paymentType?: PaymentType;
   status?: PaymentStatus;
   method?: PaymentMethod;
   orderId?: string;

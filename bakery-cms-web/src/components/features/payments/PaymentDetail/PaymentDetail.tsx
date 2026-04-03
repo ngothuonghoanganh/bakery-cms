@@ -4,15 +4,16 @@
  */
 
 import React from 'react';
-import { Card, Descriptions, Button, Space, Tag, Image, Alert } from 'antd';
+import { Card, Descriptions, Button, Space, Tag, Image, Alert, Popconfirm } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
   ArrowLeftOutlined,
   CheckCircleOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
+import { PaymentMethod, PaymentStatus, PaymentType } from '../../../../types/models/payment.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { PaymentDetailProps } from './PaymentDetail.types';
 
@@ -32,11 +33,18 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
   onEdit,
   onDelete,
   onMarkAsPaid,
+  onRegenerateVietQR,
+  regeneratingVietQR = false,
   onBack,
 }) => {
   const { t } = useTranslation();
   const isPending = payment?.status === PaymentStatus.PENDING;
-  const hasVietQR = payment?.method === PaymentMethod.VIETQR && payment?.vietqrData;
+  const canDelete = payment?.status === PaymentStatus.PENDING;
+  const vietqrImageUrl = payment?.vietqrData?.qrDataURL ?? null;
+  const hasVietQR =
+    payment?.paymentType === PaymentType.PAYMENT &&
+    payment?.method === PaymentMethod.VIETQR &&
+    Boolean(vietqrImageUrl);
 
   if (!payment?.id) {
     return (
@@ -70,6 +78,14 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
     return labelMap[method] || method;
   };
 
+  const getPaymentTypeLabel = (paymentType: PaymentType): string => {
+    const labelMap: Record<PaymentType, string> = {
+      [PaymentType.PAYMENT]: t('payments.type.payment'),
+      [PaymentType.REFUND]: t('payments.type.refund'),
+    };
+    return labelMap[paymentType] || paymentType;
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
@@ -88,15 +104,32 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
                 {t('payments.actions.markAsPaid')}
               </Button>
             )}
+            {isPending && payment?.method === PaymentMethod.VIETQR && onRegenerateVietQR && (
+              <Button
+                icon={<ReloadOutlined />}
+                loading={regeneratingVietQR}
+                onClick={onRegenerateVietQR}
+              >
+                {t('payments.actions.regenerateVietQR')}
+              </Button>
+            )}
             {onEdit && (
               <Button icon={<EditOutlined />} onClick={onEdit}>
                 {t('payments.actions.edit')}
               </Button>
             )}
-            {onDelete && (
-              <Button danger icon={<DeleteOutlined />} onClick={onDelete}>
-                {t('payments.actions.delete')}
-              </Button>
+            {onDelete && canDelete && (
+              <Popconfirm
+                title={t('payments.delete')}
+                description={t('payments.deleteConfirm')}
+                onConfirm={onDelete}
+                okText={t('common.confirm.yes')}
+                cancelText={t('common.confirm.no')}
+              >
+                <Button danger icon={<DeleteOutlined />}>
+                  {t('payments.actions.delete')}
+                </Button>
+              </Popconfirm>
             )}
           </Space>
         }
@@ -107,7 +140,11 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
           </Descriptions.Item>
 
           <Descriptions.Item label={t('payments.detail.orderId')} span={2}>
-            {payment.orderId}
+            <Space direction="vertical" size={0}>
+              <span>{payment.order?.orderNumber ?? payment.orderId}</span>
+              {payment.order?.customerName && <span>{payment.order.customerName}</span>}
+              {payment.order?.customerPhone && <span>{payment.order.customerPhone}</span>}
+            </Space>
           </Descriptions.Item>
 
           <Descriptions.Item label={t('payments.detail.amount')} span={1}>
@@ -120,6 +157,12 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
 
           <Descriptions.Item label={t('payments.detail.method')} span={1}>
             {getMethodLabel(payment.method)}
+          </Descriptions.Item>
+
+          <Descriptions.Item label={t('payments.detail.paymentType')} span={1}>
+            <Tag color={payment.paymentType === PaymentType.REFUND ? 'magenta' : 'blue'}>
+              {getPaymentTypeLabel(payment.paymentType)}
+            </Tag>
           </Descriptions.Item>
 
           <Descriptions.Item label={t('payments.detail.transactionId')} span={1}>
@@ -157,13 +200,20 @@ export const PaymentDetail: React.FC<PaymentDetailProps> = ({
               />
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Image
-                  src={payment.vietqrData}
+                  src={vietqrImageUrl ?? undefined}
                   alt="VietQR Code"
                   width={300}
                   height={300}
                   style={{ border: '1px solid #d9d9d9', borderRadius: 4 }}
                 />
               </div>
+              {payment.vietqrData && (
+                <div style={{ marginTop: 12, textAlign: 'center' }}>
+                  <div>{payment.vietqrData.accountName}</div>
+                  <div>{payment.vietqrData.accountNo}</div>
+                  <div>{payment.vietqrData.addInfo}</div>
+                </div>
+              )}
             </Card>
           </div>
         )}

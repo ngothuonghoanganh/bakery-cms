@@ -9,6 +9,8 @@ export enum OrderStatus {
   DRAFT = 'draft',
   CONFIRMED = 'confirmed',
   PAID = 'paid',
+  REFUND_PENDING = 'refund_pending',
+  REFUNDED = 'refunded',
   CANCELLED = 'cancelled',
 }
 
@@ -56,7 +58,9 @@ export const isValidStatusTransition = (from: OrderStatus, to: OrderStatus): boo
   const validTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
     [OrderStatus.DRAFT]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
     [OrderStatus.CONFIRMED]: [OrderStatus.PAID, OrderStatus.CANCELLED],
-    [OrderStatus.PAID]: [], // Terminal state
+    [OrderStatus.PAID]: [OrderStatus.REFUND_PENDING, OrderStatus.CANCELLED],
+    [OrderStatus.REFUND_PENDING]: [OrderStatus.REFUNDED, OrderStatus.CANCELLED],
+    [OrderStatus.REFUNDED]: [], // Terminal state
     [OrderStatus.CANCELLED]: [], // Terminal state
   };
 

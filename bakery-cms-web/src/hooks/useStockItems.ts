@@ -21,6 +21,7 @@ interface UseStockItemsOptions {
 interface UseStockItemsReturn {
   stockItems: readonly StockItem[] | null;
   loading: boolean;
+  refreshing: boolean;
   error: AppError | null;
   total: number;
   refetch: () => Promise<void>;
@@ -32,11 +33,14 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
   const [stockItems, setStockItems] = useState<readonly StockItem[] | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(autoFetch);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
 
   // Use refs to store the latest filters and pagination without causing re-renders
   const filtersRef = useRef(filters);
   const paginationRef = useRef(pagination);
+  const requestIdRef = useRef(0);
+  const hasLoadedOnceRef = useRef(false);
 
   // Update refs when props change
   useEffect(() => {
@@ -48,7 +52,14 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
   }, [pagination]);
 
   const fetchStockItems = useCallback(async (): Promise<void> => {
-    setLoading(true);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (hasLoadedOnceRef.current) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     const result = await stockService.getAllStockItems({
@@ -56,17 +67,21 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
       ...paginationRef.current,
     });
 
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
     if (result.success) {
       setStockItems(result.data.stockItems);
       setTotal(result.data.total);
       setError(null);
+      hasLoadedOnceRef.current = true;
     } else {
-      setStockItems(null);
-      setTotal(0);
       setError(result.error);
     }
 
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   // Create a stable key from filters and pagination for dependency tracking
@@ -82,6 +97,7 @@ export const useStockItems = (options: UseStockItemsOptions = {}): UseStockItems
   return {
     stockItems,
     loading,
+    refreshing,
     error,
     total,
     refetch: fetchStockItems,

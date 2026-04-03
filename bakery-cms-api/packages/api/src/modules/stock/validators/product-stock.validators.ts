@@ -30,8 +30,9 @@ export const addStockItemToProductSchema = Joi.object({
       'any.required': 'Quantity is required',
     }),
 
-  preferredBrandId: uuidSchema.optional().messages({
+  preferredBrandId: uuidSchema.required().messages({
     'string.guid': 'Preferred brand ID must be a valid UUID',
+    'any.required': 'Preferred brand ID is required',
   }),
 
   notes: Joi.string()
@@ -90,6 +91,21 @@ export const productIdParamSchema = Joi.object({
  * Validates :stockItemId route parameter
  */
 export const stockItemIdParamSchema = Joi.object({
+  stockItemId: uuidSchema.required().messages({
+    'string.guid': 'Stock item ID must be a valid UUID',
+    'any.required': 'Stock item ID is required',
+  }),
+});
+
+/**
+ * Product + stock item ID parameter validation schema
+ * Validates :id and :stockItemId route parameters together
+ */
+export const productStockItemParamsSchema = Joi.object({
+  id: uuidSchema.required().messages({
+    'string.guid': 'Product ID must be a valid UUID',
+    'any.required': 'Product ID is required',
+  }),
   stockItemId: uuidSchema.required().messages({
     'string.guid': 'Stock item ID must be a valid UUID',
     'any.required': 'Stock item ID is required',

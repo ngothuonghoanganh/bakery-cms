@@ -17,6 +17,7 @@ import { ProductStockItemModel, initProductStockItemModel } from './product-stoc
 import { StockMovementModel, initStockMovementModel } from './stock-movement.model';
 import { FileModel, initFileModel } from './file.model';
 import { ProductImageModel, initProductImageModel } from './product-image.model';
+import { SystemSettingModel, initSystemSettingModel } from './system-setting.model';
 
 // Re-export TokenType for convenience
 export { TokenType } from './auth-session.model';
@@ -39,6 +40,7 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly StockMovement: typeof StockMovementModel;
   readonly File: typeof FileModel;
   readonly ProductImage: typeof ProductImageModel;
+  readonly SystemSetting: typeof SystemSettingModel;
 } => {
   // Initialize all models
   const Product = initProductModel(sequelize);
@@ -54,6 +56,7 @@ export const initializeModels = (sequelize: Sequelize): {
   const StockMovement = initStockMovementModel(sequelize);
   const File = initFileModel(sequelize);
   const ProductImage = initProductImageModel(sequelize);
+  const SystemSetting = initSystemSettingModel(sequelize);
 
   // Define associations
   
@@ -314,6 +317,7 @@ export const initializeModels = (sequelize: Sequelize): {
     StockMovement,
     File,
     ProductImage,
+    SystemSetting,
   };
 };
 
@@ -332,4 +336,5 @@ export {
   StockMovementModel,
   FileModel,
   ProductImageModel,
+  SystemSettingModel,
 };

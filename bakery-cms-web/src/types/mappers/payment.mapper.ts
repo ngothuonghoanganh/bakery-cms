@@ -5,10 +5,17 @@
 
 import type {
   PaymentAPIResponse,
+  PaymentOrderBasicAPIResponse,
   VietQRDataAPIResponse,
   PaginatedPaymentsAPIResponse,
 } from '@/types/api/payment.api';
-import type { Payment, VietQRData } from '@/types/models/payment.model';
+import type {
+  OrderStatusType as OrderStatus,
+  Payment,
+  PaymentOrderBasic,
+  PaymentTypeType as PaymentType,
+  VietQRData,
+} from '@/types/models/payment.model';
 import { PaymentMethod, PaymentStatus } from '@/types/models/payment.model';
 
 export type PaginatedPayments = {
@@ -18,12 +25,25 @@ export type PaginatedPayments = {
   readonly pageSize: number;
 };
 
+const mapPaymentOrderFromAPI = (
+  apiOrder: PaymentOrderBasicAPIResponse
+): PaymentOrderBasic => ({
+  id: apiOrder.id,
+  orderNumber: apiOrder.orderNumber,
+  status: apiOrder.status as OrderStatus,
+  customerName: apiOrder.customerName,
+  customerPhone: apiOrder.customerPhone,
+  totalAmount: apiOrder.totalAmount,
+  createdAt: new Date(apiOrder.createdAt),
+});
+
 /**
  * Map API response to Payment domain model
  */
 export const mapPaymentFromAPI = (apiPayment: PaymentAPIResponse): Payment => ({
   id: apiPayment.id,
   orderId: apiPayment.orderId,
+  paymentType: (apiPayment.paymentType || 'payment') as PaymentType,
   amount: apiPayment.amount,
   method: apiPayment.method as PaymentMethod,
   status: apiPayment.status as PaymentStatus,
@@ -31,6 +51,7 @@ export const mapPaymentFromAPI = (apiPayment: PaymentAPIResponse): Payment => ({
   vietqrData: apiPayment.vietqrData,
   notes: apiPayment.notes,
   paidAt: apiPayment.paidAt ? new Date(apiPayment.paidAt) : null,
+  order: apiPayment.order ? mapPaymentOrderFromAPI(apiPayment.order) : null,
   createdAt: new Date(apiPayment.createdAt),
   updatedAt: new Date(apiPayment.updatedAt),
 });
@@ -51,10 +72,11 @@ export const mapPaginatedPaymentsFromAPI = (
  * Map API response to VietQRData domain model
  */
 export const mapVietQRDataFromAPI = (apiData: VietQRDataAPIResponse): VietQRData => ({
+  bankId: apiData.bankId,
   accountNo: apiData.accountNo,
   accountName: apiData.accountName,
-  bankBin: apiData.bankBin,
   amount: apiData.amount,
-  description: apiData.description,
+  addInfo: apiData.addInfo,
   qrDataURL: apiData.qrDataURL,
+  qrContent: apiData.qrContent,
 });

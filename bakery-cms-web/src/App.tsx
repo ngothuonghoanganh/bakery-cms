@@ -94,6 +94,11 @@ const StockMovementsPage = lazy(() =>
     default: module.StockMovementsPage,
   }))
 );
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  }))
+);
 
 // Import global styles
 import './styles/global.css';
@@ -227,6 +232,16 @@ export const App = (): React.JSX.Element => {
                     <ProtectedRoute>
                       <DashboardLayout>
                         <StockMovementsPage />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <SettingsPage />
                       </DashboardLayout>
                     </ProtectedRoute>
                   }

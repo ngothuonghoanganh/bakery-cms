@@ -44,7 +44,7 @@ import {
   addStockItemToProductSchema,
   updateProductStockItemSchema,
   productIdParamSchema,
-  stockItemIdParamSchema as productStockItemIdParamSchema,
+  productStockItemParamsSchema,
 } from './validators/product-stock.validators';
 import {
   stockMovementIdParamSchema,
@@ -431,8 +431,7 @@ export const createStockRouter = (): Router => {
     '/products/:id/stock-items/:stockItemId',
     authenticateJWT as any,
     requireManager as any,
-    validateParams(productIdParamSchema),
-    validateParams(productStockItemIdParamSchema),
+    validateParams(productStockItemParamsSchema),
     validateBody(updateProductStockItemSchema),
     productStockHandlers.handleUpdateProductStockItem as any
   );
@@ -446,8 +445,7 @@ export const createStockRouter = (): Router => {
     '/products/:id/stock-items/:stockItemId',
     authenticateJWT as any,
     requireManager as any,
-    validateParams(productIdParamSchema),
-    validateParams(productStockItemIdParamSchema),
+    validateParams(productStockItemParamsSchema),
     productStockHandlers.handleRemoveStockItemFromProduct as any
   );
 

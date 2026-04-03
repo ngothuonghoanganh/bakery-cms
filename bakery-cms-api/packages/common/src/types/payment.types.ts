@@ -12,6 +12,7 @@ import { AppError } from './error.types';
 export type Payment = {
   readonly id: string;
   readonly orderId: string;
+  readonly paymentType: string; // PaymentType enum value
   readonly amount: number;
   readonly method: string; // PaymentMethod enum value
   readonly status: string; // PaymentStatus enum value

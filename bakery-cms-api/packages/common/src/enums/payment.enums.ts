@@ -12,6 +12,14 @@ export enum PaymentMethod {
 }
 
 /**
+ * Payment type distinguishes normal collections and refunds
+ */
+export enum PaymentType {
+  PAYMENT = 'payment',
+  REFUND = 'refund',
+}
+
+/**
  * Payment status lifecycle
  */
 export enum PaymentStatus {
@@ -26,6 +34,13 @@ export enum PaymentStatus {
  */
 export const isValidPaymentMethod = (value: string): value is PaymentMethod => {
   return Object.values(PaymentMethod).includes(value as PaymentMethod);
+};
+
+/**
+ * Helper to check if a value is a valid PaymentType
+ */
+export const isValidPaymentType = (value: string): value is PaymentType => {
+  return Object.values(PaymentType).includes(value as PaymentType);
 };
 
 /**

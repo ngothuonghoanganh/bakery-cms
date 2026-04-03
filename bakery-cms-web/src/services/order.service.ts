@@ -13,9 +13,20 @@ import type {
   CreateOrderRequest,
   UpdateOrderRequest,
   OrderFiltersRequest,
+  ConfirmOrderAPIResponse,
 } from '@/types/api/order.api';
 import type { Order, PaginatedOrders } from '@/types/models/order.model';
 import { mapOrderFromAPI, mapPaginatedOrdersFromAPI } from '@/types/mappers/order.mapper';
+import { PaymentMethod } from '@bakery-cms/common';
+import type { VietQRData } from '@/types/models/payment.model';
+import { mapVietQRDataFromAPI } from '@/types/mappers/payment.mapper';
+
+export type ConfirmOrderResult = {
+  readonly order: Order;
+  readonly paymentId: string;
+  readonly paymentMethod: PaymentMethod;
+  readonly vietqr: VietQRData | null;
+};
 
 /**
  * Order service type definition
@@ -26,7 +37,10 @@ export type OrderService = {
   readonly create: (data: CreateOrderRequest) => Promise<Result<Order, AppError>>;
   readonly update: (id: string, data: UpdateOrderRequest) => Promise<Result<Order, AppError>>;
   readonly delete: (id: string) => Promise<Result<void, AppError>>;
-  readonly confirm: (id: string) => Promise<Result<Order, AppError>>;
+  readonly confirm: (
+    id: string,
+    paymentMethod: PaymentMethod
+  ) => Promise<Result<ConfirmOrderResult, AppError>>;
   readonly cancel: (id: string) => Promise<Result<Order, AppError>>;
 };
 
@@ -89,11 +103,23 @@ const update = async (id: string, data: UpdateOrderRequest): Promise<Result<Orde
 /**
  * Confirm an order
  */
-const confirm = async (id: string): Promise<Result<Order, AppError>> => {
+const confirm = async (
+  id: string,
+  paymentMethod: PaymentMethod
+): Promise<Result<ConfirmOrderResult, AppError>> => {
   try {
-    const response = await apiClient.post<{ success: boolean; data: OrderAPIResponse }>(`/orders/${id}/confirm`);
-    const order = mapOrderFromAPI(response.data.data);
-    return ok(order);
+    const response = await apiClient.post<{ success: boolean; data: ConfirmOrderAPIResponse }>(
+      `/orders/${id}/confirm`,
+      { paymentMethod }
+    );
+    const payload = response.data.data;
+
+    return ok({
+      order: mapOrderFromAPI(payload.order),
+      paymentId: payload.payment.id,
+      paymentMethod: payload.payment.method as PaymentMethod,
+      vietqr: payload.vietqr ? mapVietQRDataFromAPI(payload.vietqr) : null,
+    });
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
   }

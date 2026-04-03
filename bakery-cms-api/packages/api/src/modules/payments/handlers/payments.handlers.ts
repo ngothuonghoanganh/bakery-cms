@@ -10,6 +10,7 @@ import {
   CreatePaymentDto,
   PaymentListQueryDto,
   MarkAsPaidDto,
+  CreateRefundPaymentDto,
 } from '../dto/payments.dto';
 import { getLogger } from '../../../utils/logger';
 
@@ -21,6 +22,7 @@ const logger = getLogger();
  */
 export interface PaymentHandlers {
   handleCreatePayment(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleCreateRefundPayment(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleGetPayment(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleGetPaymentByOrder(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleGetAllPayments(req: Request, res: Response, next: NextFunction): Promise<void>;
@@ -143,6 +145,7 @@ export const createPaymentHandlers = (
       const query: PaymentListQueryDto = {
         page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
         limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
+        paymentType: req.query['paymentType'] as any,
         status: req.query['status'] as any,
         method: req.query['method'] as any,
         orderId: req.query['orderId'] as string,
@@ -162,6 +165,41 @@ export const createPaymentHandlers = (
       });
     } catch (error) {
       logger.error('Unhandled error in handleGetAllPayments', { error });
+      next(error);
+    }
+  };
+
+  /**
+   * Handle create refund payment request
+   * POST /api/payments/order/:orderId/refund
+   */
+  const handleCreateRefundPayment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { orderId } = req.params;
+      const dto: CreateRefundPaymentDto = req.body;
+
+      if (!orderId) {
+        return next(new Error('Order ID is required'));
+      }
+
+      const result = await service.refundOrder(orderId, dto);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Refund payment created', { orderId, paymentId: result.value.id });
+
+      res.status(201).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleCreateRefundPayment', { error });
       next(error);
     }
   };
@@ -237,6 +275,7 @@ export const createPaymentHandlers = (
 
   return {
     handleCreatePayment,
+    handleCreateRefundPayment,
     handleGetPayment,
     handleGetPaymentByOrder,
     handleGetAllPayments,

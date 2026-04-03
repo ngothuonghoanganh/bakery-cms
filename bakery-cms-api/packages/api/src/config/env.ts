@@ -35,6 +35,8 @@ export type EnvConfig = {
   readonly GOOGLE_CLIENT_SECRET: string;
   readonly FACEBOOK_CLIENT_ID: string;
   readonly FACEBOOK_CLIENT_SECRET: string;
+  readonly VIETQR_CLIENT_ID: string;
+  readonly VIETQR_API_KEY: string;
   readonly UPLOAD_DIR: string;
   readonly MAX_IMAGE_SIZE: number;
   readonly MAX_VIDEO_SIZE: number;
@@ -119,6 +121,8 @@ export const loadEnvConfig = (): EnvConfig => {
     GOOGLE_CLIENT_SECRET: getOptionalEnv('GOOGLE_CLIENT_SECRET', ''),
     FACEBOOK_CLIENT_ID: getOptionalEnv('FACEBOOK_CLIENT_ID', ''),
     FACEBOOK_CLIENT_SECRET: getOptionalEnv('FACEBOOK_CLIENT_SECRET', ''),
+    VIETQR_CLIENT_ID: getOptionalEnv('VIETQR_CLIENT_ID', ''),
+    VIETQR_API_KEY: getOptionalEnv('VIETQR_API_KEY', ''),
     UPLOAD_DIR: getOptionalEnv('UPLOAD_DIR', './uploads'),
     MAX_IMAGE_SIZE: parseIntEnv('MAX_IMAGE_SIZE', 10 * 1024 * 1024), // 10MB
     MAX_VIDEO_SIZE: parseIntEnv('MAX_VIDEO_SIZE', 100 * 1024 * 1024), // 100MB

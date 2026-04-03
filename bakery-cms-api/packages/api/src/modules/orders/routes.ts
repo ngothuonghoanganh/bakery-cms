@@ -8,6 +8,8 @@ import { getDatabaseModels } from '../../config/database';
 import { createOrderRepository } from './repositories/orders.repositories';
 import { createOrderService } from './services/orders.services';
 import { createOrderHandlers } from './handlers/orders.handlers';
+import { createPaymentRepository } from '../payments/repositories/payments.repositories';
+import { createSettingsRepository } from '../settings/repositories/settings.repositories';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
 import { authenticateJWT } from '../../middleware';
 import { requireAuthenticated, requireStaff } from '../../middleware/rbac.middleware';
@@ -32,7 +34,9 @@ export const createOrdersRouter = (): Router => {
 
   // Create repository, service, and handlers (dependency injection)
   const repository = createOrderRepository(models.Order, models.OrderItem);
-  const service = createOrderService(repository);
+  const paymentRepository = createPaymentRepository(models.Payment);
+  const settingsRepository = createSettingsRepository(models.SystemSetting);
+  const service = createOrderService(repository, paymentRepository, settingsRepository);
   const handlers = createOrderHandlers(service);
 
   /**

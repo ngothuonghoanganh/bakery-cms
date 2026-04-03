@@ -6,7 +6,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Popconfirm } from 'antd';
 import { PaymentDetail } from '../../components/features/payments/PaymentDetail/PaymentDetail';
 import { PaymentForm } from '../../components/features/payments/PaymentForm/PaymentForm';
 import { LoadingSpinner, EmptyState } from '../../components/shared';
@@ -17,7 +16,9 @@ import {
   updatePayment,
   deletePayment,
   markPaymentAsPaid,
+  regeneratePaymentVietQR,
 } from '../../services/payment.service';
+import { PaymentMethod } from '../../types/models/payment.model';
 import type { Payment } from '../../types/models/payment.model';
 import type { PaymentFormValues } from '../../components/features/payments/PaymentForm/PaymentForm.types';
 
@@ -31,6 +32,7 @@ export const PaymentDetailPage: React.FC = () => {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [regeneratingVietQR, setRegeneratingVietQR] = useState(false);
 
   const fetchPayment = useCallback(async () => {
     if (!id) return;
@@ -98,12 +100,40 @@ export const PaymentDetailPage: React.FC = () => {
     const result = await markPaymentAsPaid(id);
 
     if (result.success) {
-      setPayment(result.data);
+      await fetchPayment();
       success(t('payments.notifications.markedAsPaid', 'Payment Marked as Paid'), t('payments.notifications.markedAsPaidMessage', 'Payment status has been updated to paid'));
     } else {
       error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
     }
-  }, [id, success, error, t]);
+  }, [id, fetchPayment, success, error, t]);
+
+  const handleRegenerateVietQR = useCallback(async () => {
+    if (!payment || payment.method !== PaymentMethod.VIETQR) {
+      return;
+    }
+
+    setRegeneratingVietQR(true);
+
+    const result = await regeneratePaymentVietQR(payment.orderId);
+
+    if (result.success) {
+      await fetchPayment();
+      success(
+        t('payments.notifications.regenerateVietQRSuccess', 'VietQR Regenerated'),
+        t(
+          'payments.notifications.regenerateVietQRSuccessMessage',
+          'Payment QR code has been regenerated successfully'
+        )
+      );
+    } else {
+      error(
+        t('payments.notifications.regenerateVietQRFailed', 'Failed to Regenerate VietQR'),
+        result.error.message
+      );
+    }
+
+    setRegeneratingVietQR(false);
+  }, [payment, fetchPayment, success, error, t]);
 
   const handleBack = useCallback(() => {
     navigate('/payments');
@@ -128,22 +158,16 @@ export const PaymentDetailPage: React.FC = () => {
 
   return (
     <>
-      <Popconfirm
-        title={t('payments.delete', 'Delete Payment')}
-        description={t('common.confirm.delete', 'Are you sure you want to delete this payment?')}
-        onConfirm={handleDelete}
-        okText={t('common.confirm.yes', 'Yes')}
-        cancelText={t('common.confirm.no', 'No')}
-      >
-        <PaymentDetail
-          payment={payment}
-          loading={loading}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onMarkAsPaid={handleMarkAsPaid}
-          onBack={handleBack}
-        />
-      </Popconfirm>
+      <PaymentDetail
+        payment={payment}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onMarkAsPaid={handleMarkAsPaid}
+        onRegenerateVietQR={handleRegenerateVietQR}
+        regeneratingVietQR={regeneratingVietQR}
+        onBack={handleBack}
+      />
 
       <PaymentForm
         visible={visible}

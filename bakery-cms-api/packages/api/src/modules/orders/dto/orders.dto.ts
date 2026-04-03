@@ -3,7 +3,8 @@
  * Type definitions for API request/response payloads
  */
 
-import { OrderStatus, OrderType, BusinessModel } from '@bakery-cms/common';
+import { OrderStatus, OrderType, BusinessModel, PaymentMethod } from '@bakery-cms/common';
+import { PaymentResponseDto, VietQRResponseDto } from '../../payments/dto/payments.dto';
 
 /**
  * Order item DTO
@@ -112,6 +113,18 @@ export interface OrderListResponseDto {
  */
 export interface ConfirmOrderDto {
   confirmedAt?: string;
+  paymentMethod: PaymentMethod;
+  paymentNotes?: string;
+}
+
+/**
+ * Confirm order response DTO
+ * Returned after order is confirmed and payment is created
+ */
+export interface ConfirmOrderResponseDto {
+  order: OrderResponseDto;
+  payment: PaymentResponseDto;
+  vietqr: VietQRResponseDto | null;
 }
 
 /**

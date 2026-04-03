@@ -4,8 +4,10 @@
  */
 
 import { PaymentModel } from '@bakery-cms/database';
-import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
+import type { OrderModel } from '@bakery-cms/database';
+import { OrderStatus, PaymentMethod, PaymentStatus, PaymentType } from '@bakery-cms/common';
 import {
+  PaymentOrderBasicDto,
   PaymentResponseDto,
   CreatePaymentDto,
   VietQRData,
@@ -27,6 +29,26 @@ const parseVietQRData = (vietqrData: string | null): VietQRData | null => {
   }
 };
 
+type PaymentModelWithOrder = PaymentModel & { order?: OrderModel | null };
+
+const toPaymentOrderBasicDto = (model: PaymentModel): PaymentOrderBasicDto | null => {
+  const order = (model as PaymentModelWithOrder).order;
+
+  if (!order) {
+    return null;
+  }
+
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status as OrderStatus,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    totalAmount: Number(order.totalAmount),
+    createdAt: order.createdAt.toISOString(),
+  };
+};
+
 /**
  * Map PaymentModel to PaymentResponseDto
  * Pure function that transforms database entity to API response
@@ -35,6 +57,7 @@ export const toPaymentResponseDto = (model: PaymentModel): PaymentResponseDto =>
   return {
     id: model.id,
     orderId: model.orderId,
+    paymentType: model.paymentType as PaymentType,
     amount: Number(model.amount),
     method: model.method as PaymentMethod,
     status: model.status as PaymentStatus,
@@ -42,6 +65,7 @@ export const toPaymentResponseDto = (model: PaymentModel): PaymentResponseDto =>
     vietqrData: parseVietQRData(model.vietqrData),
     paidAt: model.paidAt ? model.paidAt.toISOString() : null,
     notes: model.notes,
+    order: toPaymentOrderBasicDto(model),
     createdAt: model.createdAt.toISOString(),
     updatedAt: model.updatedAt.toISOString(),
   };
@@ -66,6 +90,7 @@ export const toPaymentCreationAttributes = (
 ): Partial<PaymentModel> => {
   return {
     orderId: dto.orderId,
+    paymentType: PaymentType.PAYMENT,
     amount: dto.amount,
     method: dto.method,
     status: PaymentStatus.PENDING,

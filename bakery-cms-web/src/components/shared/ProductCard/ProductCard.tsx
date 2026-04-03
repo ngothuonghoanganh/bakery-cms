@@ -4,6 +4,7 @@
 
 import { Card, Button } from '@/components/core';
 import type { Product } from '@/types/models/product.model';
+import { formatCurrency } from '@/utils/format.utils';
 
 export type ProductCardProps = {
   readonly product: Product;
@@ -14,7 +15,7 @@ export type ProductCardProps = {
 export const ProductCard = ({ product, onEdit, onDelete }: ProductCardProps): React.JSX.Element => (
   <Card
     title={product.name}
-    subtitle={`$${product.price.toFixed(2)} - ${product.status}`}
+    subtitle={`${formatCurrency(product.price)} - ${product.status}`}
     footer={
       <div className="flex gap-2">
         {onEdit && (

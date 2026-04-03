@@ -5,14 +5,25 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError, OrderStatus } from '@bakery-cms/common';
+import {
+  AppError,
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
+} from '@bakery-cms/common';
 import { OrderRepository } from '../repositories/orders.repositories';
+import { PaymentRepository } from '../../payments/repositories/payments.repositories';
+import { SettingsRepository } from '../../settings/repositories/settings.repositories';
 import {
   CreateOrderDto,
   UpdateOrderDto,
   OrderListQueryDto,
   OrderResponseDto,
   OrderListResponseDto,
+  ConfirmOrderDto,
+  ConfirmOrderResponseDto,
 } from '../dto/orders.dto';
 import {
   toOrderResponseDto,
@@ -23,14 +34,41 @@ import {
   validateAllItemsSubtotals,
 } from '../mappers/orders.mappers';
 import {
+  toPaymentResponseDto,
+  stringifyVietQRData,
+} from '../../payments/mappers/payments.mappers';
+import { VietQRData } from '../../payments/dto/payments.dto';
+import { getEnvConfig } from '../../../config/env';
+import { generateVietQRData } from '../../payments/utils/vietqr.utils';
+import {
   createNotFoundError,
   createDatabaseError,
   createInvalidInputError,
   createBusinessRuleError,
+  createConflictError,
 } from '../../../utils/error-factory';
 import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
+
+interface VietQRBankConfig {
+  bankBin: string;
+  accountNo: string;
+  accountName: string;
+}
+
+const BANK_RECEIVER_SETTING_KEY = 'vietqr.bank_receiver';
+
+const VIETQR_CONFIG: VietQRBankConfig = {
+  bankBin: '970436',
+  accountNo: '0123456789',
+  accountName: 'BAKERY CMS',
+};
+
+const formatVietQRAddInfo = (orderNumber: string): string => {
+  const normalizedOrder = orderNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return `DH${normalizedOrder}`.slice(0, 25);
+};
 
 /**
  * Order service interface
@@ -41,7 +79,7 @@ export interface OrderService {
   getOrderById(id: string): Promise<Result<OrderResponseDto, AppError>>;
   getAllOrders(query: OrderListQueryDto): Promise<Result<OrderListResponseDto, AppError>>;
   updateOrder(id: string, dto: UpdateOrderDto): Promise<Result<OrderResponseDto, AppError>>;
-  confirmOrder(id: string): Promise<Result<OrderResponseDto, AppError>>;
+  confirmOrder(id: string, dto: ConfirmOrderDto): Promise<Result<ConfirmOrderResponseDto, AppError>>;
   cancelOrder(id: string, reason?: string): Promise<Result<OrderResponseDto, AppError>>;
   deleteOrder(id: string): Promise<Result<void, AppError>>;
   restoreOrder(id: string): Promise<Result<OrderResponseDto, AppError>>;
@@ -75,7 +113,9 @@ const isValidStatusTransition = (
   const validTransitions: Record<OrderStatus, OrderStatus[]> = {
     [OrderStatus.DRAFT]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
     [OrderStatus.CONFIRMED]: [OrderStatus.PAID, OrderStatus.CANCELLED],
-    [OrderStatus.PAID]: [OrderStatus.CANCELLED],
+    [OrderStatus.PAID]: [OrderStatus.REFUND_PENDING, OrderStatus.CANCELLED],
+    [OrderStatus.REFUND_PENDING]: [OrderStatus.REFUNDED, OrderStatus.CANCELLED],
+    [OrderStatus.REFUNDED]: [],
     [OrderStatus.CANCELLED]: [], // Cannot transition from cancelled
   };
 
@@ -88,8 +128,44 @@ const isValidStatusTransition = (
  * Uses dependency injection for repository
  */
 export const createOrderService = (
-  repository: OrderRepository & { items: any }
+  repository: OrderRepository & { items: any },
+  paymentRepository: PaymentRepository,
+  settingsRepository: SettingsRepository
 ): OrderService => {
+  const envConfig = getEnvConfig();
+  const vietqrCredentials =
+    envConfig.VIETQR_CLIENT_ID && envConfig.VIETQR_API_KEY
+      ? {
+          clientId: envConfig.VIETQR_CLIENT_ID,
+          apiKey: envConfig.VIETQR_API_KEY,
+        }
+      : null;
+
+  const getVietQRBankConfig = async (): Promise<VietQRBankConfig> => {
+    const setting = await settingsRepository.findByKey(BANK_RECEIVER_SETTING_KEY);
+    if (!setting?.value) {
+      return VIETQR_CONFIG;
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value) as Partial<{
+        bankBin: string;
+        accountNo: string;
+        accountName: string;
+      }>;
+      const accountName =
+        typeof parsed.accountName === 'string' ? parsed.accountName.trim() : '';
+
+      return {
+        bankBin: parsed.bankBin || VIETQR_CONFIG.bankBin,
+        accountNo: parsed.accountNo || VIETQR_CONFIG.accountNo,
+        accountName: accountName || VIETQR_CONFIG.accountName,
+      };
+    } catch {
+      return VIETQR_CONFIG;
+    }
+  };
+
   /**
    * Create new order with items
    */
@@ -247,6 +323,8 @@ export const createOrderService = (
       // Check if order can be updated (not paid or cancelled)
       if (
         existingOrder.status === OrderStatus.PAID ||
+        existingOrder.status === OrderStatus.REFUND_PENDING ||
+        existingOrder.status === OrderStatus.REFUNDED ||
         existingOrder.status === OrderStatus.CANCELLED
       ) {
         return err(
@@ -310,10 +388,14 @@ export const createOrderService = (
    * Confirm order (change status to CONFIRMED)
    */
   const confirmOrder = async (
-    id: string
-  ): Promise<Result<OrderResponseDto, AppError>> => {
+    id: string,
+    dto: ConfirmOrderDto
+  ): Promise<Result<ConfirmOrderResponseDto, AppError>> => {
     try {
-      logger.info('Confirming order', { orderId: id });
+      logger.info('Confirming order', {
+        orderId: id,
+        paymentMethod: dto.paymentMethod,
+      });
 
       const order = await repository.findByIdWithItems(id);
 
@@ -331,24 +413,114 @@ export const createOrderService = (
         );
       }
 
+      const existingPayment = await paymentRepository.findByOrderId(id);
+      if (existingPayment) {
+        return err(
+          createConflictError(`Payment already exists for order: ${id}`)
+        );
+      }
+
+      const confirmedAt = dto.confirmedAt ? new Date(dto.confirmedAt) : new Date();
+
       // Update status and confirmation timestamp
+      // Business rule: temporary orders become official when confirmed.
       const updatedOrder = await repository.update(id, {
         status: OrderStatus.CONFIRMED,
-        confirmedAt: new Date(),
+        confirmedAt,
+        ...(order.orderType === OrderType.TEMPORARY
+          ? { orderType: OrderType.OFFICIAL }
+          : {}),
       });
 
       if (!updatedOrder) {
         return err(createDatabaseError('Failed to confirm order'));
       }
 
+      let payment = await paymentRepository.create({
+        orderId: id,
+        paymentType: PaymentType.PAYMENT,
+        amount: Number(order.totalAmount),
+        method: dto.paymentMethod,
+        status: PaymentStatus.PENDING,
+        transactionId: null,
+        paidAt: null,
+        notes: dto.paymentNotes ?? null,
+      });
+
+      let vietqr: ConfirmOrderResponseDto['vietqr'] = null;
+
+      if (dto.paymentMethod === PaymentMethod.VIETQR) {
+        const bankConfig = await getVietQRBankConfig();
+        const addInfo = formatVietQRAddInfo(order.orderNumber);
+        const amount = Number(order.totalAmount);
+        const generated = await generateVietQRData(
+          {
+            bankBin: bankConfig.bankBin,
+            accountNo: bankConfig.accountNo,
+            accountName: bankConfig.accountName,
+            amount,
+            addInfo,
+            template: 'compact',
+          },
+          vietqrCredentials
+        );
+
+        if (generated.warning) {
+          logger.warn('VietQR API unavailable, fallback to Quick Link', {
+            orderId: id,
+            paymentId: payment.id,
+            warning: generated.warning,
+          });
+        }
+
+        const vietqrData: VietQRData = {
+          bankId: bankConfig.bankBin,
+          accountNo: bankConfig.accountNo,
+          accountName: generated.accountName,
+          amount,
+          addInfo: generated.addInfo,
+          template: generated.template,
+          qrDataURL: generated.qrDataURL,
+          qrContent: generated.qrContent,
+        };
+
+        const updatedPaymentWithQR = await paymentRepository.update(payment.id, {
+          vietqrData: stringifyVietQRData(vietqrData),
+        });
+
+        if (!updatedPaymentWithQR) {
+          return err(createDatabaseError('Failed to store VietQR information'));
+        }
+
+        payment = updatedPaymentWithQR;
+        vietqr = {
+          qrDataURL: generated.qrDataURL,
+          qrContent: generated.qrContent,
+          bankId: bankConfig.bankBin,
+          accountNo: bankConfig.accountNo,
+          accountName: generated.accountName,
+          amount,
+          addInfo: generated.addInfo,
+        };
+      }
+
       // Fetch with items
       const orderWithItems = await repository.findByIdWithItems(id);
+      if (!orderWithItems) {
+        return err(createDatabaseError('Failed to retrieve confirmed order'));
+      }
 
-      logger.info('Order confirmed successfully', { orderId: id });
+      logger.info('Order confirmed successfully', {
+        orderId: id,
+        paymentId: payment.id,
+        paymentMethod: payment.method,
+      });
 
-      return ok(
-        toOrderResponseDto(orderWithItems!, (orderWithItems as any).items)
-      );
+      return ok({
+        order: toOrderResponseDto(orderWithItems, (orderWithItems as any).items),
+        payment: toPaymentResponseDto(payment),
+        vietqr,
+      });
     } catch (error) {
       logger.error('Failed to confirm order', { error, orderId: id });
       return err(createDatabaseError('Failed to confirm order', error));

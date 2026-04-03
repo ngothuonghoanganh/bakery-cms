@@ -28,7 +28,7 @@ export interface ProductStockItemResponseDto {
 export interface AddStockItemToProductDto {
   stockItemId: string;
   quantity: number;
-  preferredBrandId?: string;
+  preferredBrandId: string;
   notes?: string;
 }
 
@@ -38,7 +38,7 @@ export interface AddStockItemToProductDto {
  */
 export interface UpdateProductStockItemDto {
   quantity?: number;
-  preferredBrandId?: string;
+  preferredBrandId?: string | null;
   notes?: string;
 }
 

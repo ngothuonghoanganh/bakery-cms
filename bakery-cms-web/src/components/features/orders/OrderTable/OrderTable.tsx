@@ -26,6 +26,8 @@ const getStatusColor = (status: OrderStatus): string => {
     draft: 'default',
     confirmed: 'processing',
     paid: 'success',
+    refund_pending: 'warning',
+    refunded: 'geekblue',
     cancelled: 'error',
   };
   return colorMap[status] || 'default';
@@ -126,17 +128,9 @@ export const OrderTable: React.FC<OrderTableProps> = ({
               >
                 {t('orders.actions.edit')}
               </Button>
-              <Popconfirm
-                title={t('orders.confirm.confirmTitle')}
-                description={t('orders.confirm.confirmDescription')}
-                onConfirm={() => onConfirm(record.id)}
-                okText={t('orders.confirm.yes')}
-                cancelText={t('orders.confirm.no')}
-              >
-                <Button type="link" size="small" icon={<CheckOutlined />}>
-                  {t('orders.actions.confirm')}
-                </Button>
-              </Popconfirm>
+              <Button type="link" size="small" icon={<CheckOutlined />} onClick={() => onConfirm(record.id)}>
+                {t('orders.actions.confirm')}
+              </Button>
             </>
           )}
           {(record.status === 'draft' || record.status === 'confirmed') && (
@@ -152,17 +146,19 @@ export const OrderTable: React.FC<OrderTableProps> = ({
               </Button>
             </Popconfirm>
           )}
-          <Popconfirm
-            title={t('orders.confirm.deleteTitle')}
-            description={t('orders.confirm.deleteDescription')}
-            onConfirm={() => onDelete(record.id)}
-            okText={t('orders.confirm.yes')}
-            cancelText={t('orders.confirm.no')}
-          >
-            <Button type="link" danger size="small" icon={<DeleteOutlined />}>
-              {t('orders.actions.delete')}
-            </Button>
-          </Popconfirm>
+          {record.status === 'draft' && (
+            <Popconfirm
+              title={t('orders.confirm.deleteTitle')}
+              description={t('orders.confirm.deleteDescription')}
+              onConfirm={() => onDelete(record.id)}
+              okText={t('orders.confirm.yes')}
+              cancelText={t('orders.confirm.no')}
+            >
+              <Button type="link" danger size="small" icon={<DeleteOutlined />}>
+                {t('orders.actions.delete')}
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },

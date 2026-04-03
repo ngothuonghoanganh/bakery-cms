@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { PaymentList } from '../components/features/payments/PaymentList/PaymentList';
 import { usePayments } from '../hooks/usePayments';
 import {
@@ -20,10 +21,37 @@ import type { PaymentFiltersValue } from '../components/features/payments/Paymen
 export const PaymentsPage: React.FC = () => {
   const { t } = useTranslation();
   const { error } = useNotification();
+  const [searchParams] = useSearchParams();
+  const orderIdFromQuery = searchParams.get('orderId')?.trim() || undefined;
   // Filters state (immediate updates for UI)
-  const [filters, setFilters] = useState<PaymentFiltersValue>({});
+  const [filters, setFilters] = useState<PaymentFiltersValue>(() =>
+    orderIdFromQuery ? { orderId: orderIdFromQuery } : {}
+  );
   // Debounced filters state (delayed updates for API)
-  const [debouncedFilters, setDebouncedFilters] = useState<PaymentFiltersValue>({});
+  const [debouncedFilters, setDebouncedFilters] = useState<PaymentFiltersValue>(() =>
+    orderIdFromQuery ? { orderId: orderIdFromQuery } : {}
+  );
+
+  useEffect(() => {
+    setFilters((prev) => {
+      if (prev.orderId === orderIdFromQuery) {
+        return prev;
+      }
+      return {
+        ...prev,
+        orderId: orderIdFromQuery,
+      };
+    });
+    setDebouncedFilters((prev) => {
+      if (prev.orderId === orderIdFromQuery) {
+        return prev;
+      }
+      return {
+        ...prev,
+        orderId: orderIdFromQuery,
+      };
+    });
+  }, [orderIdFromQuery]);
 
   // Debounce search input - wait 2s after user stops typing
   useEffect(() => {
@@ -42,6 +70,8 @@ export const PaymentsPage: React.FC = () => {
       dateTo: debouncedFilters.dateTo ? new Date(debouncedFilters.dateTo) : undefined,
     }),
     [
+      debouncedFilters.orderId,
+      debouncedFilters.paymentType,
       debouncedFilters.status,
       debouncedFilters.method,
       debouncedFilters.search,

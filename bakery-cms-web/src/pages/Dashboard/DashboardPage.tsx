@@ -15,6 +15,7 @@ import { StatCard } from '../../components/features/dashboard/StatCard/StatCard'
 import { RecentActivity } from '../../components/features/dashboard/RecentActivity/RecentActivity';
 import { QuickActions } from '../../components/features/dashboard/QuickActions/QuickActions';
 import { LowStockDashboard } from '../../components/features/stock/LowStockDashboard/LowStockDashboard';
+import { formatCurrency } from '../../utils/format.utils';
 import type { QuickAction } from '../../components/features/dashboard/QuickActions/QuickActions.types';
 import type { ActivityItem } from '../../components/features/dashboard/RecentActivity/RecentActivity.types';
 
@@ -33,7 +34,7 @@ export const DashboardPage: React.FC = () => {
     },
     {
       title: t('dashboard.stats.totalRevenue', 'Total Revenue'),
-      value: '$45,678',
+      value: formatCurrency(45678),
       icon: <DollarOutlined />,
       trend: { value: 8.3, isPositive: true },
       color: '#52c41a',

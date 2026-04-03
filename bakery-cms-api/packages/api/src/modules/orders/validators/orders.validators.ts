@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { OrderStatus, OrderType, BusinessModel } from '@bakery-cms/common';
+import { OrderStatus, OrderType, BusinessModel, PaymentMethod } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -264,6 +264,21 @@ export const confirmOrderSchema = Joi.object({
     .optional()
     .messages({
       'date.format': 'Confirmed at must be in ISO format',
+    }),
+  paymentMethod: Joi.string()
+    .valid(...Object.values(PaymentMethod))
+    .required()
+    .messages({
+      'any.only': `Payment method must be one of: ${Object.values(PaymentMethod).join(', ')}`,
+      'any.required': 'Payment method is required',
+    }),
+  paymentNotes: Joi.string()
+    .trim()
+    .max(500)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Payment notes must not exceed 500 characters',
     }),
 });
 

@@ -3,7 +3,7 @@
  * Displays and manages product recipe (list of stock items required to make a product)
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, Table, Button, Space, Popconfirm, Typography, Spin, Alert, Modal, Form, InputNumber, Input, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ import { useStockItems } from '@/hooks/useStockItems';
 import { stockService } from '@/services/stock.service';
 import { useNotification } from '@/hooks/useNotification';
 import type { ProductRecipeProps, ProductStockItemFormValues } from './ProductRecipe.types';
-import type { ProductStockItem } from '@/types/models/stock.model';
+import type { ProductStockItem, StockItemBrand } from '@/types/models/stock.model';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -26,9 +26,26 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<ProductStockItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<readonly StockItemBrand[]>([]);
+  const [brandsLoading, setBrandsLoading] = useState(false);
+  const selectedStockItemId = Form.useWatch('stockItemId', form);
+  const linkedStockItemIds = useMemo(
+    () => new Set((recipe?.stockItems || []).map((item) => item.stockItemId)),
+    [recipe?.stockItems]
+  );
+  const selectableStockItems = useMemo(() => {
+    if (!stockItems) {
+      return [];
+    }
+    if (editingItem) {
+      return stockItems;
+    }
+    return stockItems.filter((item) => !linkedStockItemIds.has(item.id));
+  }, [stockItems, editingItem, linkedStockItemIds]);
 
   const handleAdd = useCallback(() => {
     setEditingItem(null);
+    setBrandOptions([]);
     form.resetFields();
     setModalVisible(true);
   }, [form]);
@@ -43,6 +60,44 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
     });
     setModalVisible(true);
   }, [form]);
+
+  useEffect(() => {
+    if (!modalVisible || !selectedStockItemId) {
+      setBrandOptions([]);
+      setBrandsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadBrands = async (): Promise<void> => {
+      setBrandsLoading(true);
+      const result = await stockService.getStockItemBrands(selectedStockItemId);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (result.success) {
+        setBrandOptions(result.data);
+        const selectedBrandId = form.getFieldValue('preferredBrandId');
+        if (selectedBrandId && !result.data.some((brand) => brand.brandId === selectedBrandId)) {
+          form.setFieldValue('preferredBrandId', undefined);
+        }
+      } else {
+        setBrandOptions([]);
+        showError(t('common.status.failed'), t('stock.recipe.loadBrandsError'));
+      }
+
+      setBrandsLoading(false);
+    };
+
+    loadBrands();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modalVisible, selectedStockItemId, form, showError, t]);
 
   const handleDelete = useCallback(async (stockItemId: string) => {
     try {
@@ -79,7 +134,17 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
         }
       } else {
         // Add new
-        const result = await stockService.addStockItemToProduct(productId, values);
+        if (!values.preferredBrandId) {
+          showError(t('common.status.failed'), t('stock.recipe.selectPreferredBrandRequired'));
+          return;
+        }
+
+        const result = await stockService.addStockItemToProduct(productId, {
+          stockItemId: values.stockItemId,
+          quantity: values.quantity,
+          preferredBrandId: values.preferredBrandId,
+          notes: values.notes,
+        });
         if (result.success) {
           success(t('stock.recipe.added'), t('stock.recipe.addedMessage'));
           setModalVisible(false);
@@ -218,8 +283,10 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
               showSearch
               optionFilterProp="children"
               disabled={!!editingItem}
+              onChange={() => form.setFieldValue('preferredBrandId', undefined)}
+              notFoundContent={t('stock.recipe.noAvailableStockItems')}
             >
-              {stockItems?.map((item) => (
+              {selectableStockItems.map((item) => (
                 <Select.Option key={item.id} value={item.id}>
                   {item.name} ({item.unitOfMeasure})
                 </Select.Option>
@@ -235,9 +302,32 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
             <InputNumber min={0.001} step={0.001} precision={3} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item name="preferredBrandId" label={t('stock.recipe.preferredBrand')}>
-            <Select placeholder={t('stock.recipe.selectPreferredBrand')} allowClear>
-              {/* Brands would be loaded based on selected stock item */}
+          <Form.Item
+            name="preferredBrandId"
+            label={t('stock.recipe.preferredBrand')}
+            rules={[
+              {
+                required: !editingItem,
+                message: t('stock.recipe.selectPreferredBrandRequired'),
+              },
+            ]}
+          >
+            <Select
+              placeholder={t('stock.recipe.selectPreferredBrand')}
+              allowClear={!!editingItem}
+              loading={brandsLoading}
+              disabled={!selectedStockItemId}
+              notFoundContent={
+                selectedStockItemId
+                  ? t('stock.recipe.noBrandsAvailable')
+                  : t('stock.recipe.selectStockItemFirst')
+              }
+            >
+              {brandOptions.map((brand) => (
+                <Select.Option key={brand.brandId} value={brand.brandId}>
+                  {brand.brandName}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
 

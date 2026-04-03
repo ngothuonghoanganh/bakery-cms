@@ -73,6 +73,13 @@ export const routesConfig: RouteConfig[] = [
     component: '@/pages/stock/StockMovementsPage',
   },
   {
+    path: '/settings',
+    title: 'Settings',
+    titleKey: 'settings.title',
+    icon: 'SettingOutlined',
+    component: '@/pages/SettingsPage',
+  },
+  {
     path: '/auth/oauth/callback',
     hideInMenu: true,
     component: '@/pages/OAuthCallback/OAuthCallback',

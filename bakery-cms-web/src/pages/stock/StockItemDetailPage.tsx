@@ -61,6 +61,7 @@ import {
 } from '@/services/stock.service';
 import { StockItemStatus } from '@/types/models/stock.model';
 import type { StockItem, StockItemBrand, Brand } from '@/types/models/stock.model';
+import { formatCurrency } from '@/utils/format.utils';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -394,13 +395,13 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       title: t('stock.detail.priceBeforeTax', 'Price Before Tax'),
       dataIndex: 'priceBeforeTax',
       key: 'priceBeforeTax',
-      render: (price: number) => `${price.toLocaleString()} VND`,
+      render: (price: number) => formatCurrency(price),
     },
     {
       title: t('stock.detail.priceAfterTax', 'Price After Tax'),
       dataIndex: 'priceAfterTax',
       key: 'priceAfterTax',
-      render: (price: number) => `${price.toLocaleString()} VND`,
+      render: (price: number) => formatCurrency(price),
     },
     {
       title: t('common.table.actions', 'Actions'),

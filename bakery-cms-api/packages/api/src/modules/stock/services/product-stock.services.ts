@@ -33,6 +33,32 @@ import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
 
+type SequelizeUniqueLikeError = Error & {
+  name?: string;
+  errors?: Array<{
+    path?: string;
+    message?: string;
+  }>;
+};
+
+const isProductStockUniqueConstraintError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const uniqueError = error as SequelizeUniqueLikeError;
+  if (uniqueError.name !== 'SequelizeUniqueConstraintError') {
+    return false;
+  }
+
+  return (
+    uniqueError.errors?.some((item) => {
+      const message = item.message?.toLowerCase() ?? '';
+      return item.path === 'idx_psi_unique' || message.includes('idx_psi_unique') || message.includes('must be unique');
+    }) ?? false
+  );
+};
+
 /**
  * Product stock service interface
  * Defines all business operations for product stock items
@@ -86,32 +112,61 @@ export const createProductStockService = (
         return err(createNotFoundError('Stock item', dto.stockItemId));
       }
 
-      // Verify preferred brand exists if provided
-      if (dto.preferredBrandId) {
-        const brand = await stockItemBrandRepository.findByStockItemAndBrand(
-          dto.stockItemId,
-          dto.preferredBrandId
-        );
-        if (!brand) {
-          logger.warn('Preferred brand not found for stock item', {
-            stockItemId: dto.stockItemId,
-            brandId: dto.preferredBrandId,
-          });
-          return err(createInvalidInputError('Preferred brand not associated with stock item'));
-        }
-      }
-
-      // Check if this stock item is already linked to the product
-      const existing = await productStockItemRepository.findByProductAndStockItem(
-        productId,
-        dto.stockItemId
-      );
-      if (existing) {
-        logger.warn('Stock item already linked to product', {
+      // Preferred brand is mandatory for adding new recipe ingredients
+      if (!dto.preferredBrandId) {
+        logger.warn('Preferred brand is required when adding stock item to product', {
           productId,
           stockItemId: dto.stockItemId,
         });
-        return err(createInvalidInputError('Stock item already linked to this product'));
+        return err(createInvalidInputError('Preferred brand is required'));
+      }
+
+      // Verify preferred brand exists for selected stock item
+      const brand = await stockItemBrandRepository.findByStockItemAndBrand(
+        dto.stockItemId,
+        dto.preferredBrandId
+      );
+      if (!brand) {
+        logger.warn('Preferred brand not found for stock item', {
+          stockItemId: dto.stockItemId,
+          brandId: dto.preferredBrandId,
+        });
+        return err(createInvalidInputError('Preferred brand not associated with stock item'));
+      }
+
+      // Check if this stock item is already linked to the product.
+      // Include soft-deleted records to support restore-on-readd (important on MySQL).
+      const existing = await productStockItemRepository.findByProductAndStockItem(
+        productId,
+        dto.stockItemId,
+        true
+      );
+      if (existing) {
+        if (!existing.deletedAt) {
+          logger.warn('Stock item already linked to product', {
+            productId,
+            stockItemId: dto.stockItemId,
+          });
+          return err(createInvalidInputError('Stock item already linked to this product'));
+        }
+
+        const restoreAttributes = toProductStockItemCreationAttributes(productId, dto);
+        const restored = await productStockItemRepository.restore(
+          productId,
+          dto.stockItemId,
+          restoreAttributes
+        );
+
+        if (!restored) {
+          return err(createDatabaseError('Failed to restore product stock item'));
+        }
+
+        logger.info('Soft-deleted stock item restored to product successfully', {
+          productId,
+          stockItemId: dto.stockItemId,
+        });
+
+        return ok(toProductStockItemResponseDto(restored));
       }
 
       const attributes = toProductStockItemCreationAttributes(productId, dto);
@@ -124,6 +179,14 @@ export const createProductStockService = (
 
       return ok(toProductStockItemResponseDto(link));
     } catch (error) {
+      if (isProductStockUniqueConstraintError(error)) {
+        logger.warn('Duplicate stock item link detected by database constraint', {
+          productId,
+          stockItemId: dto.stockItemId,
+        });
+        return err(createInvalidInputError('Stock item already linked to this product'));
+      }
+
       logger.error('Failed to add stock item to product', { error, productId, dto });
       return err(createDatabaseError('Failed to add stock item to product', error));
     }

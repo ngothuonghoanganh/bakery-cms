@@ -117,7 +117,7 @@ export const StockItemsPage = (): React.JSX.Element => {
 
         if (result.success) {
           success(t('stock.notifications.created', 'Stock Item Created'), t('stock.notifications.createdMessage', 'Stock item has been created successfully'));
-          refetch();
+          await refetch();
           close();
           setSelectedStockItem(null);
         } else {
@@ -145,7 +145,7 @@ export const StockItemsPage = (): React.JSX.Element => {
 
         if (result.success) {
           success(t('stock.notifications.updated', 'Stock Item Updated'), t('stock.notifications.updatedMessage', 'Stock item has been updated successfully'));
-          refetch();
+          await refetch();
           close();
           setSelectedStockItem(null);
         } else {
@@ -165,7 +165,7 @@ export const StockItemsPage = (): React.JSX.Element => {
       const result = await deleteStockItem(id);
 
       if (result.success) {
-        refetch();
+        await refetch();
       } else {
         throw new Error(result.error.message);
       }

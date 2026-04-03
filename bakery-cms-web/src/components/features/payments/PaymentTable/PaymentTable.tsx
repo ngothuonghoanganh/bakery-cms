@@ -4,15 +4,17 @@
  */
 
 import React, { useMemo } from 'react';
-import { Space, Button, Tag, Popconfirm } from 'antd';
+import { Space, Button, Tag, Popconfirm, Typography } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared/DataTable/DataTable';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
-import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
+import { PaymentMethod, PaymentStatus, PaymentType } from '../../../../types/models/payment.model';
 import type { Payment } from '../../../../types/models/payment.model';
 import type { PaymentTableProps } from './PaymentTable.types';
 import type { ColumnsType } from 'antd/es/table';
+
+const { Text } = Typography;
 
 const getStatusColor = (status: PaymentStatus): string => {
   const colorMap: Record<PaymentStatus, string> = {
@@ -59,6 +61,17 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
     [t]
   );
 
+  const getPaymentTypeLabel = useMemo(
+    () => (paymentType: PaymentType): string => {
+      const labelMap: Record<PaymentType, string> = {
+        [PaymentType.PAYMENT]: t('payments.type.payment'),
+        [PaymentType.REFUND]: t('payments.type.refund'),
+      };
+      return labelMap[paymentType] || paymentType;
+    },
+    [t]
+  );
+
   const columns: ColumnsType<Payment> = useMemo(
     () => [
       {
@@ -72,8 +85,29 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
         title: t('payments.table.orderId'),
         dataIndex: 'orderId',
         key: 'orderId',
-        width: 150,
-        ellipsis: true,
+        width: 220,
+        render: (_orderId: string, record: Payment) => (
+          <Space direction="vertical" size={0}>
+            <Text>{record.order?.orderNumber ?? record.orderId}</Text>
+            {record.order?.customerName && <Text type="secondary">{record.order.customerName}</Text>}
+          </Space>
+        ),
+      },
+      {
+        title: t('payments.table.paymentType'),
+        dataIndex: 'paymentType',
+        key: 'paymentType',
+        width: 120,
+        render: (paymentType: PaymentType) => (
+          <Tag color={paymentType === PaymentType.REFUND ? 'magenta' : 'blue'}>
+            {getPaymentTypeLabel(paymentType)}
+          </Tag>
+        ),
+        filters: [
+          { text: t('payments.type.payment'), value: PaymentType.PAYMENT },
+          { text: t('payments.type.refund'), value: PaymentType.REFUND },
+        ],
+        onFilter: (value, record) => record.paymentType === value,
       },
       {
         title: t('payments.table.amount'),
@@ -150,6 +184,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
         render: (_, record) => {
           const isPending = record.status === PaymentStatus.PENDING;
           const canMarkAsPaid = isPending && onMarkAsPaid;
+          const canDelete = record.status === PaymentStatus.PENDING && onDelete;
 
           return (
             <Space size="small">
@@ -186,7 +221,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
                   </Button>
                 </Popconfirm>
               )}
-              {onDelete && (
+              {canDelete && (
                 <Popconfirm
                   title={t('payments.delete')}
                   description={t('payments.deleteConfirm')}
@@ -204,7 +239,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
         },
       },
     ],
-    [t, getStatusLabel, getMethodLabel, onView, onEdit, onDelete, onMarkAsPaid]
+    [t, getStatusLabel, getMethodLabel, getPaymentTypeLabel, onView, onEdit, onDelete, onMarkAsPaid]
   );
 
   return (
@@ -218,7 +253,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({
         showSizeChanger: true,
         showTotal: (total) => t('payments.table.totalPayments', { total }),
       }}
-      scroll={{ x: 1400 }}
+      scroll={{ x: 1520 }}
     />
   );
 };

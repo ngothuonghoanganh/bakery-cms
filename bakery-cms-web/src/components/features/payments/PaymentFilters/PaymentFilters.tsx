@@ -8,7 +8,7 @@ import { Input, Select, DatePicker, Row, Col } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { FilterPanel } from '../../../shared';
-import { PaymentMethod, PaymentStatus } from '../../../../types/models/payment.model';
+import { PaymentMethod, PaymentStatus, PaymentType } from '../../../../types/models/payment.model';
 import type { PaymentFiltersProps, PaymentFiltersValue } from './PaymentFilters.types';
 
 const { RangePicker } = DatePicker;
@@ -38,6 +38,15 @@ export const PaymentFilters: React.FC<PaymentFiltersProps> = ({ value = {}, onCh
     [t]
   );
 
+  const paymentTypeOptions = useMemo(
+    () => [
+      { label: t('payments.filter.allTypes'), value: undefined },
+      { label: t('payments.type.payment'), value: PaymentType.PAYMENT },
+      { label: t('payments.type.refund'), value: PaymentType.REFUND },
+    ],
+    [t]
+  );
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFilters = { ...localFilters, search: e.target.value || undefined };
     setLocalFilters(newFilters);
@@ -52,6 +61,12 @@ export const PaymentFilters: React.FC<PaymentFiltersProps> = ({ value = {}, onCh
 
   const handleMethodChange = (method?: PaymentMethod) => {
     const newFilters = { ...localFilters, method };
+    setLocalFilters(newFilters);
+    onChange?.(newFilters);
+  };
+
+  const handlePaymentTypeChange = (paymentType?: PaymentType) => {
+    const newFilters = { ...localFilters, paymentType };
     setLocalFilters(newFilters);
     onChange?.(newFilters);
   };
@@ -95,6 +110,17 @@ export const PaymentFilters: React.FC<PaymentFiltersProps> = ({ value = {}, onCh
             value={localFilters.method}
             onChange={handleMethodChange}
             options={paymentMethodOptions}
+            style={{ width: '100%' }}
+            allowClear
+          />
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Select
+            placeholder={t('payments.filter.typePlaceholder')}
+            value={localFilters.paymentType}
+            onChange={handlePaymentTypeChange}
+            options={paymentTypeOptions}
             style={{ width: '100%' }}
             allowClear
           />

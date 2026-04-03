@@ -79,6 +79,8 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({ value, onChange, onR
             <Option value={OrderStatus.DRAFT}>{t('orders.status.draft')}</Option>
             <Option value={OrderStatus.CONFIRMED}>{t('orders.status.confirmed')}</Option>
             <Option value={OrderStatus.PAID}>{t('orders.status.paid')}</Option>
+            <Option value={OrderStatus.REFUND_PENDING}>{t('orders.status.refund_pending')}</Option>
+            <Option value={OrderStatus.REFUNDED}>{t('orders.status.refunded')}</Option>
             <Option value={OrderStatus.CANCELLED}>{t('orders.status.cancelled')}</Option>
           </Select>
         </Col>

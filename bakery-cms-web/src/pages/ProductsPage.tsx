@@ -55,21 +55,19 @@ export const ProductsPage = (): React.JSX.Element => {
   );
 
   // Use the enhanced useProducts hook with filters and pagination
-  const { products, loading, error, refetch } = useProducts({
+  const { products, loading, error, total, refetch } = useProducts({
     filters: memoizedFilters,
     pagination: memoizedPagination,
     autoFetch: true,
   });
 
-  // Update pagination total when products change
+  // Update pagination total from API metadata
   useEffect(() => {
-    if (products) {
-      setPagination((prev) => ({
-        ...prev,
-        total: products.length,
-      }));
-    }
-  }, [products]);
+    setPagination((prev) => ({
+      ...prev,
+      total,
+    }));
+  }, [total]);
 
   const handleFiltersChange = useCallback((newFilters: ProductFilters) => {
     setFilters(newFilters);
@@ -97,7 +95,7 @@ export const ProductsPage = (): React.JSX.Element => {
       });
 
       if (result.success) {
-        refetch();
+        await refetch();
       } else {
         throw new Error(result.error.message);
       }
@@ -118,7 +116,7 @@ export const ProductsPage = (): React.JSX.Element => {
       });
 
       if (result.success) {
-        refetch();
+        await refetch();
       } else {
         throw new Error(result.error.message);
       }
@@ -131,7 +129,7 @@ export const ProductsPage = (): React.JSX.Element => {
       const result = await deleteProduct(id);
 
       if (result.success) {
-        refetch();
+        await refetch();
       } else {
         throw new Error(result.error.message);
       }

@@ -4,6 +4,7 @@
 
 import { Card } from '@/components/core';
 import type { Order } from '@/types/models/order.model';
+import { formatCurrency } from '@/utils/format.utils';
 
 export type OrderSummaryProps = {
   readonly order: Order;
@@ -13,7 +14,7 @@ export const OrderSummary = ({ order }: OrderSummaryProps): React.JSX.Element =>
   <Card title={`Order #${order.orderNumber}`} subtitle={`Status: ${order.status}`}>
     <div className="space-y-2">
       <p>
-        <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
+        <strong>Total:</strong> {formatCurrency(order.totalAmount)}
       </p>
       <p>
         <strong>Customer:</strong> {order.customerName || 'N/A'}

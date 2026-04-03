@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { PaymentMethod } from '@bakery-cms/common';
 import { OrderList } from '../components/features/orders/OrderList/OrderList';
 import { useOrders } from '../hooks/useOrders';
 import {
@@ -84,7 +85,7 @@ export const OrdersPage: React.FC = () => {
     });
 
     if (result.success) {
-      refetch();
+      await refetch();
     } else {
       throw new Error(result.error.message);
     }
@@ -105,7 +106,7 @@ export const OrdersPage: React.FC = () => {
     });
 
     if (result.success) {
-      refetch();
+      await refetch();
     } else {
       throw new Error(result.error.message);
     }
@@ -116,18 +117,19 @@ export const OrdersPage: React.FC = () => {
     const result = await deleteOrder(id);
 
     if (result.success) {
-      refetch();
+      await refetch();
     } else {
       throw new Error(result.error.message);
     }
   };
 
   // Handle confirm order
-  const handleConfirm = async (id: string) => {
-    const result = await confirmOrder(id);
+  const handleConfirm = async (id: string, paymentMethod: PaymentMethod) => {
+    const result = await confirmOrder(id, paymentMethod);
 
     if (result.success) {
-      refetch();
+      await refetch();
+      return { vietqr: result.data.vietqr };
     } else {
       throw new Error(result.error.message);
     }
@@ -138,7 +140,7 @@ export const OrdersPage: React.FC = () => {
     const result = await cancelOrder(id);
 
     if (result.success) {
-      refetch();
+      await refetch();
     } else {
       throw new Error(result.error.message);
     }

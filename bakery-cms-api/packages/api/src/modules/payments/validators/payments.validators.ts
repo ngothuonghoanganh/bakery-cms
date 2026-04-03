@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { PaymentMethod, PaymentStatus } from '@bakery-cms/common';
+import { PaymentMethod, PaymentStatus, PaymentType } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -126,6 +126,54 @@ export const markAsPaidSchema = Joi.object({
 });
 
 /**
+ * Create refund payment validation schema
+ * Validates POST /payments/order/:orderId/refund request body
+ */
+export const createRefundPaymentSchema = Joi.object({
+  amount: Joi.number()
+    .positive()
+    .precision(2)
+    .required()
+    .messages({
+      'number.base': 'Amount must be a number',
+      'number.positive': 'Amount must be positive',
+      'any.required': 'Amount is required',
+    }),
+
+  method: Joi.string()
+    .valid(...Object.values(PaymentMethod))
+    .required()
+    .messages({
+      'any.only': `Payment method must be one of: ${Object.values(PaymentMethod).join(', ')}`,
+      'any.required': 'Payment method is required',
+    }),
+
+  transactionId: Joi.string()
+    .trim()
+    .max(255)
+    .optional()
+    .messages({
+      'string.max': 'Transaction ID must not exceed 255 characters',
+    }),
+
+  paidAt: Joi.date()
+    .iso()
+    .optional()
+    .messages({
+      'date.format': 'Paid at must be in ISO format',
+    }),
+
+  notes: Joi.string()
+    .trim()
+    .max(500)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Notes must not exceed 500 characters',
+    }),
+});
+
+/**
  * Payment ID parameter validation schema
  * Validates :id route parameter
  */
@@ -181,6 +229,13 @@ export const paymentListQuerySchema = Joi.object({
     .optional()
     .messages({
       'any.only': `Status must be one of: ${Object.values(PaymentStatus).join(', ')}`,
+    }),
+
+  paymentType: Joi.string()
+    .valid(...Object.values(PaymentType))
+    .optional()
+    .messages({
+      'any.only': `Payment type must be one of: ${Object.values(PaymentType).join(', ')}`,
     }),
 
   method: Joi.string()

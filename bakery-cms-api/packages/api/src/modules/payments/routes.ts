@@ -8,6 +8,8 @@ import { getDatabaseModels } from '../../config/database';
 import { createPaymentRepository } from './repositories/payments.repositories';
 import { createPaymentService } from './services/payments.services';
 import { createPaymentHandlers } from './handlers/payments.handlers';
+import { createSettingsRepository } from '../settings/repositories/settings.repositories';
+import { createOrderRepository } from '../orders/repositories/orders.repositories';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
 import { authenticateJWT } from '../../middleware';
 import { requireAuthenticated, requireStaff } from '../../middleware/rbac.middleware';
@@ -17,6 +19,7 @@ import {
   orderIdParamSchema,
   paymentListQuerySchema,
   markAsPaidSchema,
+  createRefundPaymentSchema,
 } from './validators/payments.validators';
 
 /**
@@ -31,7 +34,9 @@ export const createPaymentsRouter = (): Router => {
 
   // Create repository, service, and handlers (dependency injection)
   const repository = createPaymentRepository(models.Payment);
-  const service = createPaymentService(repository);
+  const settingsRepository = createSettingsRepository(models.SystemSetting);
+  const orderRepository = createOrderRepository(models.Order, models.OrderItem);
+  const service = createPaymentService(repository, settingsRepository, orderRepository);
   const handlers = createPaymentHandlers(service);
 
   /**
@@ -97,6 +102,20 @@ export const createPaymentsRouter = (): Router => {
     requireStaff as any,
     validateBody(createPaymentSchema),
     handlers.handleCreatePayment as any
+  );
+
+  /**
+   * POST /api/payments/order/:orderId/refund
+   * Create refund payment for a paid order
+   * Requires: Staff role or higher
+   */
+  router.post(
+    '/order/:orderId/refund',
+    authenticateJWT as any,
+    requireStaff as any,
+    validateParams(orderIdParamSchema),
+    validateBody(createRefundPaymentSchema),
+    handlers.handleCreateRefundPayment as any
   );
 
   /**

@@ -25,6 +25,7 @@ export type UseOrdersOptions = {
 export type UseOrdersReturn = {
   orders: Order[];
   loading: boolean;
+  refreshing: boolean;
   error: AppError | null;
   total: number;
   refetch: () => Promise<void>;
@@ -33,12 +34,15 @@ export type UseOrdersReturn = {
 export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   const { filters, autoFetch = true } = options;
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(autoFetch);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const [total, setTotal] = useState(0);
 
   // Use ref to store the latest filters without causing re-renders
   const filtersRef = useRef(filters);
+  const requestIdRef = useRef(0);
+  const hasLoadedOnceRef = useRef(false);
 
   // Update ref when props change
   useEffect(() => {
@@ -46,21 +50,32 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   }, [filters]);
 
   const fetchOrders = useCallback(async (): Promise<void> => {
-    setLoading(true);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
+    if (hasLoadedOnceRef.current) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     const result = await orderService.getAll(mapFiltersToRequest(filtersRef.current));
 
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
+
     if (result.success) {
       setOrders([...result.data.orders]);
       setTotal(result.data.total);
+      hasLoadedOnceRef.current = true;
     } else {
       setError(result.error);
-      setOrders([]);
-      setTotal(0);
     }
 
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   // Create a stable key from filters for dependency tracking
@@ -75,6 +90,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   return {
     orders,
     loading,
+    refreshing,
     error,
     total,
     refetch: fetchOrders,

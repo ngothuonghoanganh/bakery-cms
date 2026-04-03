@@ -14,3 +14,6 @@ export type { PaymentService } from './payment.service';
 
 export { fileService } from './file.service';
 export type { FileService } from './file.service';
+
+export { settingsService } from './settings.service';
+export type { SettingsService } from './settings.service';

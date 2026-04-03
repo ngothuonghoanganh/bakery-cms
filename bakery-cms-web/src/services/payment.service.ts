@@ -12,6 +12,7 @@ import type {
   PaginatedPaymentsAPIResponse,
   VietQRDataAPIResponse,
   CreatePaymentRequest,
+  CreateRefundPaymentRequest,
   UpdatePaymentRequest,
   PaymentFiltersRequest,
   MarkAsPaidRequest,
@@ -38,7 +39,11 @@ export type PaymentService = {
   readonly delete: (id: string) => Promise<Result<boolean, AppError>>;
   readonly getByOrderId: (orderId: string) => Promise<Result<Payment, AppError>>;
   readonly markAsPaid: (id: string, data?: MarkAsPaidRequest) => Promise<Result<Payment, AppError>>;
-  readonly getVietQR: (paymentId: string) => Promise<Result<VietQRData, AppError>>;
+  readonly refundOrder: (
+    orderId: string,
+    data: CreateRefundPaymentRequest
+  ) => Promise<Result<Payment, AppError>>;
+  readonly regenerateVietQR: (orderId: string) => Promise<Result<VietQRData, AppError>>;
 };
 
 /**
@@ -50,6 +55,10 @@ const getAll = async (
   try {
     const response = await apiClient.get<PaginatedPaymentsAPIResponse>('/payments', {
       params: filters,
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
     });
     console.log('API Response:', response.data);
     const paginatedPayments = mapPaginatedPaymentsFromAPI(response.data);
@@ -66,7 +75,12 @@ const getAll = async (
  */
 const getById = async (id: string): Promise<Result<Payment | null, AppError>> => {
   try {
-    const response = await apiClient.get<AxiosResponse<PaymentAPIResponse>>(`/payments/${id}`);
+    const response = await apiClient.get<AxiosResponse<PaymentAPIResponse>>(`/payments/${id}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    });
     const payment = mapPaymentFromAPI(response.data.data);
     return ok(payment);
   } catch (error) {
@@ -149,12 +163,34 @@ const markAsPaid = async (
 };
 
 /**
- * Get VietQR data for payment
+ * Create refund payment for paid order
  */
-const getVietQR = async (paymentId: string): Promise<Result<VietQRData, AppError>> => {
+const refundOrder = async (
+  orderId: string,
+  data: CreateRefundPaymentRequest
+): Promise<Result<Payment, AppError>> => {
   try {
-    const response = await apiClient.get<VietQRDataAPIResponse>(`/payments/${paymentId}/vietqr`);
-    const vietqrData = mapVietQRDataFromAPI(response.data);
+    const response = await apiClient.post<PaymentAPIResponse>(
+      `/payments/order/${orderId}/refund`,
+      data
+    );
+    const payment = mapPaymentFromAPI(response.data);
+    return ok(payment);
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
+ * Regenerate VietQR for order payment
+ */
+const regenerateVietQR = async (orderId: string): Promise<Result<VietQRData, AppError>> => {
+  try {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: VietQRDataAPIResponse;
+    }>(`/payments/order/${orderId}/vietqr`);
+    const vietqrData = mapVietQRDataFromAPI(response.data.data);
     return ok(vietqrData);
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
@@ -172,7 +208,8 @@ export const paymentService: PaymentService = {
   delete: deletePaymentFunc,
   getByOrderId,
   markAsPaid,
-  getVietQR,
+  refundOrder,
+  regenerateVietQR,
 };
 
 // Named exports for convenience
@@ -183,4 +220,5 @@ export const updatePayment = update;
 export const deletePayment = deletePaymentFunc;
 export const getPaymentByOrderId = getByOrderId;
 export const markPaymentAsPaid = markAsPaid;
-export const getPaymentVietQR = getVietQR;
+export const refundOrderPayment = refundOrder;
+export const regeneratePaymentVietQR = regenerateVietQR;

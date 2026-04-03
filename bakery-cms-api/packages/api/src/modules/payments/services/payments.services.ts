@@ -5,8 +5,16 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError, PaymentStatus, PaymentMethod } from '@bakery-cms/common';
+import {
+  AppError,
+  OrderStatus,
+  PaymentStatus,
+  PaymentMethod,
+  PaymentType,
+} from '@bakery-cms/common';
 import { PaymentRepository } from '../repositories/payments.repositories';
+import { SettingsRepository } from '../../settings/repositories/settings.repositories';
+import type { OrderRepository } from '../../orders/repositories/orders.repositories';
 import {
   CreatePaymentDto,
   PaymentResponseDto,
@@ -15,6 +23,7 @@ import {
   VietQRData,
   VietQRResponseDto,
   MarkAsPaidDto,
+  CreateRefundPaymentDto,
 } from '../dto/payments.dto';
 import {
   toPaymentResponseDto,
@@ -22,6 +31,8 @@ import {
   toPaymentCreationAttributes,
   stringifyVietQRData,
 } from '../mappers/payments.mappers';
+import { getEnvConfig } from '../../../config/env';
+import { generateVietQRData } from '../utils/vietqr.utils';
 import {
   createNotFoundError,
   createDatabaseError,
@@ -43,6 +54,10 @@ export interface PaymentService {
   getPaymentByOrderId(orderId: string): Promise<Result<PaymentResponseDto, AppError>>;
   getAllPayments(query: PaymentListQueryDto): Promise<Result<PaymentListResponseDto, AppError>>;
   markAsPaid(id: string, dto: MarkAsPaidDto): Promise<Result<PaymentResponseDto, AppError>>;
+  refundOrder(
+    orderId: string,
+    dto: CreateRefundPaymentDto
+  ): Promise<Result<PaymentResponseDto, AppError>>;
   generateVietQR(orderId: string): Promise<Result<VietQRResponseDto, AppError>>;
   deletePayment(id: string): Promise<Result<boolean, AppError>>;
   restorePayment(id: string): Promise<Result<PaymentResponseDto, AppError>>;
@@ -53,47 +68,17 @@ export interface PaymentService {
  * In production, this should come from environment variables
  */
 interface VietQRBankConfig {
-  bankId: string;
+  bankBin: string;
   accountNo: string;
   accountName: string;
 }
 
+const BANK_RECEIVER_SETTING_KEY = 'vietqr.bank_receiver';
+
 const VIETQR_CONFIG: VietQRBankConfig = {
-  bankId: 'VCB', // Vietcombank
+  bankBin: '970436',
   accountNo: '0123456789',
-  accountName: 'NGUYEN VAN A',
-};
-
-/**
- * Generate VietQR content string
- * Pure function that creates VietQR standard format
- * Format: https://www.vietqr.io/danh-sach-api
- */
-export const generateVietQRContent = (
-  bankId: string,
-  accountNo: string,
-  amount: number,
-  addInfo: string
-): string => {
-  // VietQR format follows EMVCo standard
-  // For simplicity, we'll use a basic format
-  // In production, use proper VietQR library or API
-  const amountStr = amount.toFixed(0);
-  const content = `${bankId}|${accountNo}|${amountStr}|${addInfo}`;
-  return content;
-};
-
-/**
- * Generate VietQR data URL (QR code image)
- * Pure function that creates QR code using third-party service
- * In production, consider using local QR generation library or VietQR API
- */
-export const generateVietQRDataURL = (content: string): string => {
-  // Using QuickChart API for QR code generation (free, no auth required)
-  // Alternative: Use VietQR.io API or a local library like 'qrcode'
-  const encodedContent = encodeURIComponent(content);
-  const size = 300;
-  return `https://quickchart.io/qr?text=${encodedContent}&size=${size}`;
+  accountName: 'BAKERY CMS',
 };
 
 /**
@@ -101,7 +86,8 @@ export const generateVietQRDataURL = (content: string): string => {
  * Pure function that creates payment description
  */
 const formatVietQRAddInfo = (orderNumber: string): string => {
-  return `Thanh toan don hang ${orderNumber}`;
+  const normalizedOrder = orderNumber.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return `DH${normalizedOrder}`.slice(0, 25);
 };
 
 /**
@@ -128,8 +114,138 @@ const isValidPaymentStatusTransition = (
  * Uses dependency injection for repository
  */
 export const createPaymentService = (
-  repository: PaymentRepository
+  repository: PaymentRepository,
+  settingsRepository: SettingsRepository,
+  orderRepository: OrderRepository
 ): PaymentService => {
+  const toMoney = (value: number): number => Math.round(value * 100) / 100;
+
+  const envConfig = getEnvConfig();
+  const vietqrCredentials =
+    envConfig.VIETQR_CLIENT_ID && envConfig.VIETQR_API_KEY
+      ? {
+          clientId: envConfig.VIETQR_CLIENT_ID,
+          apiKey: envConfig.VIETQR_API_KEY,
+        }
+      : null;
+
+  const getVietQRBankConfig = async (): Promise<VietQRBankConfig> => {
+    const setting = await settingsRepository.findByKey(BANK_RECEIVER_SETTING_KEY);
+    if (!setting?.value) {
+      return VIETQR_CONFIG;
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value) as Partial<{
+        bankBin: string;
+        accountNo: string;
+        accountName: string;
+      }>;
+      const accountName =
+        typeof parsed.accountName === 'string' ? parsed.accountName.trim() : '';
+
+      return {
+        bankBin: parsed.bankBin || VIETQR_CONFIG.bankBin,
+        accountNo: parsed.accountNo || VIETQR_CONFIG.accountNo,
+        accountName: accountName || VIETQR_CONFIG.accountName,
+      };
+    } catch {
+      return VIETQR_CONFIG;
+    }
+  };
+
+  const syncOrderPaidStatusIfNeeded = async (orderId: string): Promise<void> => {
+    const order = await orderRepository.findById(orderId);
+    if (!order) {
+      logger.warn('Order not found while syncing payment status', { orderId });
+      return;
+    }
+
+    const orderTotalAmount = Number(order.totalAmount);
+    const totalPaidAmount = await repository.sumAmountByOrderIdAndStatus(
+      orderId,
+      PaymentStatus.PAID,
+      PaymentType.PAYMENT
+    );
+    const isFullyPaid = Math.abs(orderTotalAmount - totalPaidAmount) < 0.01;
+
+    if (!isFullyPaid) {
+      logger.debug('Order is not fully paid yet', {
+        orderId,
+        orderTotalAmount,
+        totalPaidAmount,
+      });
+      return;
+    }
+
+    if (order.status === OrderStatus.PAID) {
+      return;
+    }
+
+    if (order.status !== OrderStatus.CONFIRMED) {
+      logger.warn('Order fully paid but status transition is not allowed', {
+        orderId,
+        currentStatus: order.status,
+        expectedStatus: OrderStatus.CONFIRMED,
+      });
+      return;
+    }
+
+    const updatedOrder = await orderRepository.updateStatus(orderId, OrderStatus.PAID);
+
+    if (!updatedOrder) {
+      throw createDatabaseError('Failed to update order status to paid');
+    }
+
+    logger.info('Order marked as paid based on confirmed payment totals', {
+      orderId,
+      totalPaidAmount,
+      orderTotalAmount,
+    });
+  };
+
+  const syncOrderRefundedStatusIfNeeded = async (orderId: string): Promise<void> => {
+    const order = await orderRepository.findById(orderId);
+    if (!order) {
+      logger.warn('Order not found while syncing refund status', { orderId });
+      return;
+    }
+
+    if (order.status === OrderStatus.REFUNDED) {
+      return;
+    }
+
+    if (order.status !== OrderStatus.REFUND_PENDING) {
+      logger.warn('Order status does not allow refund completion sync', {
+        orderId,
+        currentStatus: order.status,
+        expectedStatus: OrderStatus.REFUND_PENDING,
+      });
+      return;
+    }
+
+    const totalRefundedAmount = await repository.sumAmountByOrderIdAndStatus(
+      orderId,
+      PaymentStatus.PAID,
+      PaymentType.REFUND
+    );
+
+    if (totalRefundedAmount <= 0) {
+      logger.debug('No paid refund amount found yet', { orderId });
+      return;
+    }
+
+    const updatedOrder = await orderRepository.updateStatus(orderId, OrderStatus.REFUNDED);
+    if (!updatedOrder) {
+      throw createDatabaseError('Failed to update order status to refunded');
+    }
+
+    logger.info('Order marked as refunded based on confirmed refund payment', {
+      orderId,
+      totalRefundedAmount,
+    });
+  };
+
   /**
    * Create new payment
    */
@@ -294,22 +410,112 @@ export const createPaymentService = (
         return err(createDatabaseError('Failed to mark payment as paid'));
       }
 
+      let paymentToReturn = updatedPayment;
+
       // Update notes if provided
       if (dto.notes) {
-        await repository.update(id, { notes: dto.notes });
-        const finalPayment = await repository.findById(id);
-        if (finalPayment) {
-          logger.info('Payment marked as paid successfully', { paymentId: id });
-          return ok(toPaymentResponseDto(finalPayment));
+        const paymentWithNotes = await repository.update(id, { notes: dto.notes });
+        if (paymentWithNotes) {
+          paymentToReturn = paymentWithNotes;
         }
       }
 
+      if (paymentToReturn.paymentType === PaymentType.REFUND) {
+        await syncOrderRefundedStatusIfNeeded(paymentToReturn.orderId);
+      } else {
+        await syncOrderPaidStatusIfNeeded(paymentToReturn.orderId);
+      }
+
+      const finalPayment = await repository.findById(id);
       logger.info('Payment marked as paid successfully', { paymentId: id });
 
-      return ok(toPaymentResponseDto(updatedPayment));
+      return ok(toPaymentResponseDto(finalPayment ?? paymentToReturn));
     } catch (error) {
       logger.error('Failed to mark payment as paid', { error, paymentId: id });
       return err(createDatabaseError('Failed to mark payment as paid', error));
+    }
+  };
+
+  /**
+   * Create refund payment for a paid order
+   */
+  const refundOrder = async (
+    orderId: string,
+    dto: CreateRefundPaymentDto
+  ): Promise<Result<PaymentResponseDto, AppError>> => {
+    try {
+      logger.info('Creating refund payment', { orderId, amount: dto.amount });
+
+      const order = await orderRepository.findById(orderId);
+
+      if (!order) {
+        return err(createNotFoundError('Order', orderId));
+      }
+
+      if (order.status !== OrderStatus.PAID) {
+        return err(
+          createBusinessRuleError(
+            `Cannot refund order with status: ${order.status}. Only paid orders can be refunded.`
+          )
+        );
+      }
+
+      if (dto.amount <= 0) {
+        return err(createInvalidInputError('Refund amount must be greater than 0'));
+      }
+
+      const totalPaidAmount = await repository.sumAmountByOrderIdAndStatus(
+        orderId,
+        PaymentStatus.PAID,
+        PaymentType.PAYMENT
+      );
+      const totalRefundedAmount = await repository.sumAmountByOrderIdAndStatus(
+        orderId,
+        PaymentStatus.PAID,
+        PaymentType.REFUND
+      );
+
+      const refundableAmount = toMoney(totalPaidAmount - totalRefundedAmount);
+      const requestedAmount = toMoney(dto.amount);
+
+      if (requestedAmount > refundableAmount + 0.01) {
+        return err(
+          createBusinessRuleError(
+            `Refund amount exceeds refundable balance. Requested: ${requestedAmount}, refundable: ${refundableAmount}`
+          )
+        );
+      }
+
+      const refundPayment = await repository.create({
+        orderId,
+        paymentType: PaymentType.REFUND,
+        amount: requestedAmount,
+        method: dto.method,
+        status: PaymentStatus.PENDING,
+        transactionId: dto.transactionId ?? null,
+        paidAt: null,
+        notes: dto.notes ?? null,
+        vietqrData: null,
+      });
+
+      const updatedOrder = await orderRepository.updateStatus(
+        orderId,
+        OrderStatus.REFUND_PENDING
+      );
+      if (!updatedOrder) {
+        return err(createDatabaseError('Failed to update order status to refund pending'));
+      }
+
+      logger.info('Refund payment created successfully', {
+        orderId,
+        paymentId: refundPayment.id,
+        amount: requestedAmount,
+      });
+
+      return ok(toPaymentResponseDto(refundPayment));
+    } catch (error) {
+      logger.error('Failed to create refund payment', { error, orderId, dto });
+      return err(createDatabaseError('Failed to create refund payment', error));
     }
   };
 
@@ -345,25 +551,38 @@ export const createPaymentService = (
       // Note: In production, fetch order details to get order number
       const orderNumber = orderId.substring(0, 8); // Simplified
       const addInfo = formatVietQRAddInfo(orderNumber);
+      const bankConfig = await getVietQRBankConfig();
 
-      const vietqrData: VietQRData = {
-        bankId: VIETQR_CONFIG.bankId,
-        accountNo: VIETQR_CONFIG.accountNo,
-        accountName: VIETQR_CONFIG.accountName,
-        amount: Number(payment.amount),
-        addInfo,
-        template: 'compact',
-      };
-
-      // Generate QR content and data URL
-      const qrContent = generateVietQRContent(
-        vietqrData.bankId,
-        vietqrData.accountNo,
-        vietqrData.amount,
-        vietqrData.addInfo
+      const generated = await generateVietQRData(
+        {
+          bankBin: bankConfig.bankBin,
+          accountNo: bankConfig.accountNo,
+          accountName: bankConfig.accountName,
+          amount: Number(payment.amount),
+          addInfo,
+          template: 'compact',
+        },
+        vietqrCredentials
       );
 
-      const qrDataURL = generateVietQRDataURL(qrContent);
+      if (generated.warning) {
+        logger.warn('VietQR API unavailable, fallback to Quick Link', {
+          orderId,
+          paymentId: payment.id,
+          warning: generated.warning,
+        });
+      }
+
+      const vietqrData: VietQRData = {
+        bankId: bankConfig.bankBin,
+        accountNo: bankConfig.accountNo,
+        accountName: generated.accountName,
+        amount: Number(payment.amount),
+        addInfo: generated.addInfo,
+        template: generated.template,
+        qrDataURL: generated.qrDataURL,
+        qrContent: generated.qrContent,
+      };
 
       // Store VietQR data in payment
       await repository.update(payment.id, {
@@ -371,8 +590,8 @@ export const createPaymentService = (
       });
 
       const response: VietQRResponseDto = {
-        qrDataURL,
-        qrContent,
+        qrDataURL: generated.qrDataURL,
+        qrContent: generated.qrContent,
         bankId: vietqrData.bankId,
         accountNo: vietqrData.accountNo,
         accountName: vietqrData.accountName,
@@ -476,6 +695,7 @@ export const createPaymentService = (
     getPaymentByOrderId,
     getAllPayments,
     markAsPaid,
+    refundOrder,
     generateVietQR,
     deletePayment,
     restorePayment,
