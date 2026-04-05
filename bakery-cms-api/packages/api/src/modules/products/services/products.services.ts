@@ -27,10 +27,14 @@ import {
   createNotFoundError,
   createDatabaseError,
   createInvalidInputError,
+  createConflictError,
 } from '../../../utils/error-factory';
 import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
+const PRODUCT_CODE_PATTERN = /^[A-Z0-9-]{3,50}$/;
+const PRODUCT_CODE_PREFIX = 'SP';
+const PRODUCT_CODE_GENERATION_MAX_ATTEMPTS = 50;
 
 /**
  * Product service interface
@@ -61,6 +65,59 @@ export type ProductServiceDependencies = {
  */
 export const createProductService = (deps: ProductServiceDependencies): ProductService => {
   const { repository, fileService, productImageRepository } = deps;
+
+  const normalizeProductCode = (value: string): string => value.trim().toUpperCase();
+
+  const assertValidProductCode = (value: string): Result<string, AppError> => {
+    if (!PRODUCT_CODE_PATTERN.test(value)) {
+      return err(
+        createInvalidInputError(
+          'Product code must contain only uppercase letters, numbers, or hyphen (3-50 chars)'
+        )
+      );
+    }
+
+    return ok(value);
+  };
+
+  const ensureUniqueProductCode = async (
+    productCode: string,
+    currentProductId?: string
+  ): Promise<Result<string, AppError>> => {
+    const existing = await repository.findByProductCode(productCode);
+    if (existing && existing.id !== currentProductId) {
+      return err(createConflictError(`Product code "${productCode}" already exists`));
+    }
+
+    return ok(productCode);
+  };
+
+  const generateCandidateProductCode = (): string =>
+    `${PRODUCT_CODE_PREFIX}${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const resolveCreateProductCode = async (
+    input?: string
+  ): Promise<Result<string, AppError>> => {
+    if (input && input.trim()) {
+      const normalizedCode = normalizeProductCode(input);
+      const validCode = assertValidProductCode(normalizedCode);
+      if (validCode.isErr()) {
+        return validCode;
+      }
+
+      return await ensureUniqueProductCode(validCode.value);
+    }
+
+    for (let attempt = 0; attempt < PRODUCT_CODE_GENERATION_MAX_ATTEMPTS; attempt++) {
+      const candidate = generateCandidateProductCode();
+      const uniqueCandidate = await ensureUniqueProductCode(candidate);
+      if (uniqueCandidate.isOk()) {
+        return uniqueCandidate;
+      }
+    }
+
+    return err(createDatabaseError('Failed to generate unique product code'));
+  };
 
   /**
    * Helper function to sync product images
@@ -141,7 +198,15 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
     try {
       logger.info('Creating new product', { productName: dto.name });
 
-      const attributes = toProductCreationAttributes(dto);
+      const resolvedCodeResult = await resolveCreateProductCode(dto.productCode);
+      if (resolvedCodeResult.isErr()) {
+        return err(resolvedCodeResult.error);
+      }
+
+      const attributes = toProductCreationAttributes({
+        ...dto,
+        productCode: resolvedCodeResult.value,
+      });
       const product = await repository.create(attributes);
 
       // Handle product images if provided
@@ -238,7 +303,24 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
     try {
       logger.info('Updating product', { productId: id, updates: dto });
 
-      const attributes = toProductUpdateAttributes(dto);
+      let normalizedProductCode: string | undefined;
+      if (dto.productCode !== undefined) {
+        normalizedProductCode = normalizeProductCode(dto.productCode);
+        const validCode = assertValidProductCode(normalizedProductCode);
+        if (validCode.isErr()) {
+          return err(validCode.error);
+        }
+
+        const uniqueCode = await ensureUniqueProductCode(validCode.value, id);
+        if (uniqueCode.isErr()) {
+          return err(uniqueCode.error);
+        }
+      }
+
+      const attributes = toProductUpdateAttributes({
+        ...dto,
+        productCode: normalizedProductCode ?? dto.productCode,
+      });
 
       // Check if there are any attributes to update (excluding images which are handled separately)
       const hasAttributeUpdates = Object.keys(attributes).length > 0;

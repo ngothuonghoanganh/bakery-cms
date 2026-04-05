@@ -13,10 +13,29 @@ export interface BankReceiverConfigDto {
 }
 
 /**
+ * Order extra fee template in system settings
+ */
+export interface OrderExtraFeeTemplateDto {
+  id: string;
+  name: string;
+  defaultAmount: number;
+}
+
+export type InvoiceLanguageDto = 'vi' | 'en';
+
+export interface StoreProfileDto {
+  name: string;
+  logoUrl: string | null;
+}
+
+/**
  * System settings response DTO
  */
 export interface SystemSettingsResponseDto {
   bankReceiver: BankReceiverConfigDto | null;
+  orderExtraFees: OrderExtraFeeTemplateDto[];
+  invoiceLanguage: InvoiceLanguageDto;
+  storeProfile: StoreProfileDto;
 }
 
 /**
@@ -26,6 +45,28 @@ export interface UpdateBankReceiverDto {
   bankBin: string;
   accountNo: string;
   accountName: string;
+}
+
+/**
+ * Update order extra fee templates request DTO
+ */
+export interface UpdateOrderExtraFeesDto {
+  fees: OrderExtraFeeTemplateDto[];
+}
+
+/**
+ * Update invoice language request DTO
+ */
+export interface UpdateInvoiceLanguageDto {
+  language: InvoiceLanguageDto;
+}
+
+/**
+ * Update store profile request DTO
+ */
+export interface UpdateStoreProfileDto {
+  name: string;
+  logoUrl?: string | null;
 }
 
 /**

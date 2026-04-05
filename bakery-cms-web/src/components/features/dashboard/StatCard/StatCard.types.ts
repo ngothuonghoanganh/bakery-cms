@@ -8,6 +8,8 @@ export interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  trendLabel?: string;
   color?: string;
   loading?: boolean;
+  className?: string;
 }

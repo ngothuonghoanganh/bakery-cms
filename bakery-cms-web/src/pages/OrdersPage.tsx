@@ -75,12 +75,19 @@ export const OrdersPage: React.FC = () => {
       businessModel: values.businessModel,
       customerName: values.customerName || undefined,
       customerPhone: values.customerPhone || undefined,
+      customerAddress: values.customerAddress || undefined,
       notes: values.notes || undefined,
       items: values.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.quantity * item.unitPrice,
+        notes: item.notes || undefined,
+      })),
+      extraFees: (values.extraFees || []).map((fee) => ({
+        id: fee.id,
+        name: fee.name,
+        amount: fee.amount,
       })),
     });
 
@@ -96,12 +103,19 @@ export const OrdersPage: React.FC = () => {
     const result = await updateOrder(id, {
       customerName: values.customerName || undefined,
       customerPhone: values.customerPhone || undefined,
+      customerAddress: values.customerAddress || undefined,
       notes: values.notes || undefined,
       items: values.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.quantity * item.unitPrice,
+        notes: item.notes || undefined,
+      })),
+      extraFees: (values.extraFees || []).map((fee) => ({
+        id: fee.id,
+        name: fee.name,
+        amount: fee.amount,
       })),
     });
 

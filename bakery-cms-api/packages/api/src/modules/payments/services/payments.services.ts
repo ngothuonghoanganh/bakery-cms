@@ -170,6 +170,13 @@ export const createPaymentService = (
     const isFullyPaid = Math.abs(orderTotalAmount - totalPaidAmount) < 0.01;
 
     if (!isFullyPaid) {
+      if (
+        order.status === OrderStatus.PAID &&
+        !Boolean((order as any).hasPendingExtraPayment)
+      ) {
+        await orderRepository.update(orderId, { hasPendingExtraPayment: true } as any);
+      }
+
       logger.debug('Order is not fully paid yet', {
         orderId,
         orderTotalAmount,
@@ -179,6 +186,9 @@ export const createPaymentService = (
     }
 
     if (order.status === OrderStatus.PAID) {
+      if (Boolean((order as any).hasPendingExtraPayment)) {
+        await orderRepository.update(orderId, { hasPendingExtraPayment: false } as any);
+      }
       return;
     }
 
@@ -191,7 +201,10 @@ export const createPaymentService = (
       return;
     }
 
-    const updatedOrder = await orderRepository.updateStatus(orderId, OrderStatus.PAID);
+    const updatedOrder = await orderRepository.update(
+      orderId,
+      { status: OrderStatus.PAID, hasPendingExtraPayment: false } as any
+    );
 
     if (!updatedOrder) {
       throw createDatabaseError('Failed to update order status to paid');

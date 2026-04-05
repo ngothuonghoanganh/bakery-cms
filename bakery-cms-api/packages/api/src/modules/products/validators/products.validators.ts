@@ -11,11 +11,23 @@ import { BusinessType, ProductStatus } from '@bakery-cms/common';
  */
 const uuidSchema = Joi.string().uuid({ version: 'uuidv4' });
 
+const productCodeSchema = Joi.string()
+  .trim()
+  .uppercase()
+  .pattern(/^[A-Z0-9-]{3,50}$/)
+  .messages({
+    'string.empty': 'Product code cannot be empty',
+    'string.pattern.base':
+      'Product code must contain only uppercase letters, numbers, or hyphen (3-50 chars)',
+  });
+
 /**
  * Create product validation schema
  * Validates POST /products request body
  */
 export const createProductSchema = Joi.object({
+  productCode: productCodeSchema.optional(),
+
   name: Joi.string()
     .trim()
     .min(1)
@@ -116,6 +128,8 @@ export const createProductSchema = Joi.object({
  * Validates PATCH /products/:id request body
  */
 export const updateProductSchema = Joi.object({
+  productCode: productCodeSchema.optional(),
+
   name: Joi.string()
     .trim()
     .min(1)

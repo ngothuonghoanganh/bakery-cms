@@ -96,8 +96,13 @@ export const OrderTable: React.FC<OrderTableProps> = ({
       dataIndex: 'status',
       key: 'status',
       width: 120,
-      render: (status: OrderStatus) => (
-        <Tag color={getStatusColor(status)}>{t(`orders.status.${status}`)}</Tag>
+      render: (status: OrderStatus, record: Order) => (
+        <Space size={4} direction="vertical">
+          <Tag color={getStatusColor(status)}>{t(`orders.status.${status}`)}</Tag>
+          {record.hasPendingExtraPayment && (
+            <Tag color="red">{t('orders.table.pendingExtraPayment', 'Extra unpaid')}</Tag>
+          )}
+        </Space>
       ),
     },
     {

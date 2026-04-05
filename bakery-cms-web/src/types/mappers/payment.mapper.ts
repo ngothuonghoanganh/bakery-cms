@@ -22,7 +22,8 @@ export type PaginatedPayments = {
   readonly payments: readonly Payment[];
   readonly total: number;
   readonly page: number;
-  readonly pageSize: number;
+  readonly limit: number;
+  readonly totalPages: number;
 };
 
 const mapPaymentOrderFromAPI = (
@@ -62,10 +63,29 @@ export const mapPaymentFromAPI = (apiPayment: PaymentAPIResponse): Payment => ({
 export const mapPaginatedPaymentsFromAPI = (
   apiResponse: PaginatedPaymentsAPIResponse
 ): PaginatedPayments => ({
-  payments: apiResponse?.data?.map(mapPaymentFromAPI),
-  total: apiResponse.total,
-  page: apiResponse.page,
-  pageSize: apiResponse.pageSize,
+  payments: apiResponse?.data?.map(mapPaymentFromAPI) ?? [],
+  total: apiResponse.pagination?.total ?? apiResponse.total ?? 0,
+  page: apiResponse.pagination?.page ?? apiResponse.page ?? 1,
+  limit:
+    apiResponse.pagination?.limit ??
+    apiResponse.limit ??
+    apiResponse.pageSize ??
+    apiResponse.data.length,
+  totalPages:
+    apiResponse.pagination?.totalPages ??
+    Math.max(
+      1,
+      Math.ceil(
+        (apiResponse.pagination?.total ?? apiResponse.total ?? 0) /
+          Math.max(
+            1,
+            apiResponse.pagination?.limit ??
+              apiResponse.limit ??
+              apiResponse.pageSize ??
+              apiResponse.data.length
+          )
+      )
+    ),
 });
 
 /**

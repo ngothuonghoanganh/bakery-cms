@@ -29,6 +29,7 @@ type ProductWithAssociations = ProductModel & {
 export const toProductResponseDto = (model: ProductWithAssociations): ProductResponseDto => {
   return {
     id: model.id,
+    productCode: model.productCode,
     name: model.name,
     description: model.description,
     price: Number(model.price),
@@ -62,6 +63,7 @@ export const toProductCreationAttributes = (
   dto: CreateProductDto
 ): Partial<ProductModel> => {
   return {
+    productCode: dto.productCode,
     name: dto.name,
     description: dto.description ?? null,
     price: dto.price,
@@ -85,6 +87,9 @@ export const toProductUpdateAttributes = (
 
   if (dto.name !== undefined) {
     attributes.name = dto.name;
+  }
+  if (dto.productCode !== undefined) {
+    attributes.productCode = dto.productCode;
   }
   if (dto.description !== undefined) {
     attributes.description = dto.description ?? null;

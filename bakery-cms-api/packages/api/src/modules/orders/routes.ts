@@ -17,9 +17,13 @@ import {
   createOrderSchema,
   updateOrderSchema,
   orderIdParamSchema,
+  orderBillIdParamSchema,
   orderListQuerySchema,
   confirmOrderSchema,
+  addOrderExtrasSchema,
   cancelOrderSchema,
+  saveOrderBillSchema,
+  voidOrderBillSchema,
 } from './validators/orders.validators';
 
 /**
@@ -33,7 +37,12 @@ export const createOrdersRouter = (): Router => {
   const models = getDatabaseModels();
 
   // Create repository, service, and handlers (dependency injection)
-  const repository = createOrderRepository(models.Order, models.OrderItem);
+  const repository = createOrderRepository(
+    models.Order,
+    models.OrderItem,
+    models.OrderBill,
+    models.Product
+  );
   const paymentRepository = createPaymentRepository(models.Payment);
   const settingsRepository = createSettingsRepository(models.SystemSetting);
   const service = createOrderService(repository, paymentRepository, settingsRepository);
@@ -63,6 +72,47 @@ export const createOrdersRouter = (): Router => {
     requireAuthenticated as any,
     validateParams(orderIdParamSchema),
     handlers.handleGetOrder as any
+  );
+
+  /**
+   * GET /api/orders/:id/bills
+   * Get all bills for one order
+   * Requires: Authenticated user
+   */
+  router.get(
+    '/:id/bills',
+    authenticateJWT as any,
+    requireAuthenticated as any,
+    validateParams(orderIdParamSchema),
+    handlers.handleGetOrderBills as any
+  );
+
+  /**
+   * POST /api/orders/:id/bills
+   * Save a new bill snapshot for an order
+   * Requires: Staff role or higher
+   */
+  router.post(
+    '/:id/bills',
+    authenticateJWT as any,
+    requireStaff as any,
+    validateParams(orderIdParamSchema),
+    validateBody(saveOrderBillSchema),
+    handlers.handleSaveOrderBill as any
+  );
+
+  /**
+   * POST /api/orders/:id/bills/:billId/void
+   * Void an existing bill with a required reason
+   * Requires: Staff role or higher
+   */
+  router.post(
+    '/:id/bills/:billId/void',
+    authenticateJWT as any,
+    requireStaff as any,
+    validateParams(orderBillIdParamSchema),
+    validateBody(voidOrderBillSchema),
+    handlers.handleVoidOrderBill as any
   );
 
   /**
@@ -104,6 +154,20 @@ export const createOrdersRouter = (): Router => {
     validateParams(orderIdParamSchema),
     validateBody(confirmOrderSchema),
     handlers.handleConfirmOrder as any
+  );
+
+  /**
+   * POST /api/orders/:id/extras
+   * Add/update extra fees for an order
+   * Requires: Staff role or higher
+   */
+  router.post(
+    '/:id/extras',
+    authenticateJWT as any,
+    requireStaff as any,
+    validateParams(orderIdParamSchema),
+    validateBody(addOrderExtrasSchema),
+    handlers.handleAddOrderExtras as any
   );
 
   /**

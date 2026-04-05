@@ -13,6 +13,7 @@ import { ProductListQueryDto } from '../dto/products.dto';
  */
 export interface ProductRepository {
   findById(id: string): Promise<ProductModel | null>;
+  findByProductCode(productCode: string): Promise<ProductModel | null>;
   findAll(query: ProductListQueryDto): Promise<{ rows: ProductModel[]; count: number }>;
   create(attributes: Partial<ProductModel>): Promise<ProductModel>;
   update(id: string, attributes: Partial<ProductModel>): Promise<ProductModel | null>;
@@ -44,6 +45,16 @@ export const createProductRepository = (
           order: [['displayOrder', 'ASC']],
         },
       ],
+    });
+  };
+
+  /**
+   * Find product by human-readable product code
+   */
+  const findByProductCode = async (productCode: string): Promise<ProductModel | null> => {
+    return await model.scope('withDeleted').findOne({
+      where: { productCode },
+      paranoid: false,
     });
   };
 
@@ -201,6 +212,7 @@ export const createProductRepository = (
 
   return {
     findById,
+    findByProductCode,
     findAll,
     create,
     update,

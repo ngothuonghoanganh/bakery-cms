@@ -15,6 +15,9 @@ import { PaymentListQueryDto } from '../dto/payments.dto';
 export interface PaymentRepository {
   findById(id: string): Promise<PaymentModel | null>;
   findByOrderId(orderId: string): Promise<PaymentModel | null>;
+  findLatestByOrderId(orderId: string, paymentType?: PaymentType): Promise<PaymentModel | null>;
+  findAllByOrderId(orderId: string, paymentType?: PaymentType): Promise<PaymentModel[]>;
+  cancelPendingByOrderId(orderId: string, paymentType?: PaymentType): Promise<number>;
   findAll(query: PaymentListQueryDto): Promise<{ rows: PaymentModel[]; count: number }>;
   sumAmountByOrderIdAndStatus(
     orderId: string,
@@ -64,14 +67,68 @@ export const createPaymentRepository = (
    * Find payment by order ID
    */
   const findByOrderId = async (orderId: string): Promise<PaymentModel | null> => {
+    return await findLatestByOrderId(orderId, PaymentType.PAYMENT);
+  };
+
+  /**
+   * Find latest payment by order ID and payment type
+   */
+  const findLatestByOrderId = async (
+    orderId: string,
+    paymentType: PaymentType = PaymentType.PAYMENT
+  ): Promise<PaymentModel | null> => {
     return await model.findOne({
       where: {
         orderId,
-        paymentType: PaymentType.PAYMENT,
+        paymentType,
       },
       include: [orderBasicInclude],
       order: [['createdAt', 'DESC']],
     });
+  };
+
+  /**
+   * Find all payments by order ID and optional type
+   */
+  const findAllByOrderId = async (
+    orderId: string,
+    paymentType?: PaymentType
+  ): Promise<PaymentModel[]> => {
+    const where: Record<string, unknown> = { orderId };
+
+    if (paymentType) {
+      where['paymentType'] = paymentType;
+    }
+
+    return await model.findAll({
+      where,
+      include: [orderBasicInclude],
+      order: [['createdAt', 'DESC']],
+    });
+  };
+
+  /**
+   * Cancel pending payments by order ID
+   */
+  const cancelPendingByOrderId = async (
+    orderId: string,
+    paymentType?: PaymentType
+  ): Promise<number> => {
+    const where: Record<string, unknown> = {
+      orderId,
+      status: PaymentStatus.PENDING,
+    };
+
+    if (paymentType) {
+      where['paymentType'] = paymentType;
+    }
+
+    const [affectedRows] = await model.update(
+      { status: PaymentStatus.CANCELLED },
+      { where }
+    );
+
+    return affectedRows;
   };
 
   /**
@@ -280,6 +337,9 @@ export const createPaymentRepository = (
   return {
     findById,
     findByOrderId,
+    findLatestByOrderId,
+    findAllByOrderId,
+    cancelPendingByOrderId,
     findAll,
     sumAmountByOrderIdAndStatus,
     create,

@@ -16,9 +16,13 @@ export class OrderModel extends Model {
   declare orderType: string;
   declare businessModel: string;
   declare totalAmount: number;
+  declare extraAmount: number;
+  declare extraFees: string | null;
+  declare hasPendingExtraPayment: boolean;
   declare status: string;
   declare customerName: string | null;
   declare customerPhone: string | null;
+  declare customerAddress: string | null;
   declare notes: string | null;
   declare confirmedAt: Date | null;
   declare deletedAt: Date | null;
@@ -66,6 +70,28 @@ export const initOrderModel = (sequelize: Sequelize): typeof OrderModel => {
           isDecimal: true,
         },
       },
+      extraAmount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0,
+        field: 'extra_amount',
+        validate: {
+          min: 0,
+          isDecimal: true,
+        },
+      },
+      extraFees: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: '[]',
+        field: 'extra_fees',
+      },
+      hasPendingExtraPayment: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: 'has_pending_extra_payment',
+      },
       status: {
         type: DataTypes.ENUM(...Object.values(OrderStatus)),
         allowNull: false,
@@ -80,6 +106,11 @@ export const initOrderModel = (sequelize: Sequelize): typeof OrderModel => {
         type: DataTypes.STRING(20),
         allowNull: true,
         field: 'customer_phone',
+      },
+      customerAddress: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'customer_address',
       },
       notes: {
         type: DataTypes.TEXT,
@@ -144,6 +175,9 @@ export const initOrderModel = (sequelize: Sequelize): typeof OrderModel => {
         },
         {
           fields: ['business_model'],
+        },
+        {
+          fields: ['has_pending_extra_payment'],
         },
         {
           fields: ['customer_phone'],

@@ -10,10 +10,16 @@ import type { AppError } from '@/types/common/error.types';
 
 const mapFiltersToRequest = (filters?: OrderFilters): OrderFiltersRequest | undefined => {
   if (!filters) return undefined;
+  const startDate = filters.dateFrom?.toISOString();
+  const endDate = filters.dateTo?.toISOString();
+
   return {
     ...filters,
-    dateFrom: filters.dateFrom?.toISOString(),
-    dateTo: filters.dateTo?.toISOString(),
+    search: filters.customerPhone,
+    dateFrom: startDate,
+    dateTo: endDate,
+    startDate,
+    endDate,
   };
 };
 

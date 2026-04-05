@@ -31,11 +31,15 @@ const startServer = async (): Promise<void> => {
     
     // Create Express app
     const app = createApp();
+
+    // Avoid IPv4/IPv6 loopback mismatch in local dev when HOST=localhost
+    const listenHost = config.host === 'localhost' ? '0.0.0.0' : config.host;
     
     // Start listening
-    const server = app.listen(config.port, config.host, () => {
+    const server = app.listen(config.port, listenHost, () => {
       logger.info(`Server is running`, {
         url: `http://${config.host}:${config.port}`,
+        bindHost: listenHost,
         apiPrefix: config.apiPrefix,
         apiVersion: config.apiVersion,
       });

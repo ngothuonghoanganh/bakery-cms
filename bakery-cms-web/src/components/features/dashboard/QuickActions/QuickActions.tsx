@@ -1,25 +1,24 @@
 import React from 'react';
 import { Card, Row, Col, Space, Typography } from 'antd';
 import type { QuickActionsProps } from './QuickActions.types';
+import type { CSSProperties } from 'react';
 
 const { Title, Text } = Typography;
 
-export const QuickActions: React.FC<QuickActionsProps> = ({ actions }) => {
+export const QuickActions: React.FC<QuickActionsProps> = ({ actions, title = 'Quick Actions' }) => {
   return (
-    <Card title="Quick Actions" bordered={false}>
+    <Card title={title} bordered={false} className="dashboard-quick-actions-card">
       <Row gutter={[16, 16]}>
         {actions.map((action) => (
-          <Col xs={24} sm={12} md={8} lg={6} key={action.key}>
+          <Col xs={24} sm={12} md={8} lg={6} key={action.key} className="dashboard-quick-action-col">
             <Card
+              className="dashboard-quick-action-item"
               hoverable
               onClick={action.onClick}
-              style={{
-                textAlign: 'center',
-                borderColor: action.color,
-              }}
+              style={{ '--quick-action-color': action.color } as CSSProperties}
             >
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div style={{ fontSize: 32, color: action.color }}>{action.icon}</div>
+              <Space direction="vertical" size="middle" className="dashboard-quick-action-content">
+                <div className="dashboard-quick-action-icon">{action.icon}</div>
                 <div>
                   <Title level={5} style={{ margin: 0 }}>
                     {action.title}

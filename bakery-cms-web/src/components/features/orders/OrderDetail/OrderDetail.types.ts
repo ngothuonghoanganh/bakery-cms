@@ -12,6 +12,7 @@ export type OrderDetailProps = {
   onCancel: () => void;
   onViewPayments?: () => void;
   onRefund?: () => void;
+  onManageExtras?: () => void;
   onBack: () => void;
   loading?: boolean;
 };

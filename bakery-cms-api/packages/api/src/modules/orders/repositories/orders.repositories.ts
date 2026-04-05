@@ -4,9 +4,15 @@
  */
 
 import { Op } from 'sequelize';
-import { OrderModel, OrderItemModel, PaymentModel } from '@bakery-cms/database';
+import {
+  OrderModel,
+  OrderItemModel,
+  OrderBillModel,
+  PaymentModel,
+  ProductModel,
+} from '@bakery-cms/database';
 import { OrderStatus } from '@bakery-cms/common';
-import { OrderListQueryDto, OrderItemDto } from '../dto/orders.dto';
+import { OrderListQueryDto, OrderItemDto, OrderBillSnapshotDto } from '../dto/orders.dto';
 
 /**
  * Order repository interface
@@ -36,14 +42,34 @@ export interface OrderItemRepository {
 }
 
 /**
+ * Order bill repository interface
+ * Defines data access operations for versioned order bills
+ */
+export interface OrderBillRepository {
+  findByOrderId(orderId: string): Promise<OrderBillModel[]>;
+  findById(orderId: string, billId: string): Promise<OrderBillModel | null>;
+  findActiveByOrderId(orderId: string): Promise<OrderBillModel | null>;
+  getNextVersion(orderId: string): Promise<number>;
+  create(data: {
+    orderId: string;
+    billNumber: string;
+    version: number;
+    snapshot: OrderBillSnapshotDto;
+  }): Promise<OrderBillModel>;
+  voidBill(orderId: string, billId: string, reason: string, voidedAt: Date): Promise<OrderBillModel | null>;
+}
+
+/**
  * Create order repository
  * Factory function that returns repository implementation
  * Uses dependency injection for testability
  */
 export const createOrderRepository = (
   orderModel: typeof OrderModel,
-  orderItemModel: typeof OrderItemModel
-): OrderRepository & { items: OrderItemRepository } => {
+  orderItemModel: typeof OrderItemModel,
+  orderBillModel: typeof OrderBillModel,
+  productModel: typeof ProductModel
+): OrderRepository & { items: OrderItemRepository; bills: OrderBillRepository } => {
   /**
    * Find order by ID
    */
@@ -60,6 +86,14 @@ export const createOrderRepository = (
         {
           model: orderItemModel,
           as: 'items',
+          include: [
+            {
+              model: productModel,
+              as: 'product',
+              attributes: ['id', 'productCode', 'name', 'price', 'category'],
+              required: false,
+            },
+          ],
         },
       ],
     });
@@ -126,6 +160,14 @@ export const createOrderRepository = (
         {
           model: orderItemModel,
           as: 'items',
+          include: [
+            {
+              model: productModel,
+              as: 'product',
+              attributes: ['id', 'productCode', 'name', 'price', 'category'],
+              required: false,
+            },
+          ],
         },
       ],
       limit,
@@ -256,15 +298,17 @@ export const createOrderRepository = (
         }
       }
 
-      // Cascade restore associated payment if exists
-      const deletedPayment = await PaymentModel.scope('withDeleted').findOne({
+      // Cascade restore associated payments (order can have multiple payments)
+      const deletedPayments = await PaymentModel.scope('withDeleted').findAll({
         where: { orderId: id },
         paranoid: false,
         transaction,
       });
 
-      if (deletedPayment && deletedPayment.deletedAt) {
-        await deletedPayment.restore({ transaction });
+      for (const deletedPayment of deletedPayments) {
+        if (deletedPayment.deletedAt) {
+          await deletedPayment.restore({ transaction });
+        }
       }
 
       // Commit transaction
@@ -307,6 +351,14 @@ export const createOrderRepository = (
     findByOrderId: async (orderId: string): Promise<OrderItemModel[]> => {
       return await orderItemModel.findAll({
         where: { orderId },
+        include: [
+          {
+            model: productModel,
+            as: 'product',
+            attributes: ['id', 'productCode', 'name', 'price', 'category'],
+            required: false,
+          },
+        ],
         order: [['createdAt', 'ASC']],
       });
     },
@@ -318,9 +370,22 @@ export const createOrderRepository = (
       orderId: string,
       items: OrderItemDto[]
     ): Promise<OrderItemModel[]> => {
+      const uniqueProductIds = Array.from(new Set(items.map((item) => item.productId)));
+      const products = await productModel.findAll({
+        where: {
+          id: uniqueProductIds,
+        },
+        attributes: ['id', 'productCode', 'name'],
+      });
+
+      const productNameMap = new Map(products.map((product) => [product.id, product.name]));
+      const productCodeMap = new Map(products.map((product) => [product.id, product.productCode]));
+
       const itemAttributes = items.map((item) => ({
         orderId,
         productId: item.productId,
+        productCode: productCodeMap.get(item.productId) || 'UNKNOWN',
+        productName: productNameMap.get(item.productId) || 'Unknown Product',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
@@ -340,6 +405,84 @@ export const createOrderRepository = (
     },
   };
 
+  /**
+   * Order bill repository methods
+   */
+  const billRepository: OrderBillRepository = {
+    findByOrderId: async (orderId: string): Promise<OrderBillModel[]> => {
+      return await orderBillModel.findAll({
+        where: { orderId },
+        order: [['version', 'DESC']],
+      });
+    },
+
+    findById: async (orderId: string, billId: string): Promise<OrderBillModel | null> => {
+      return await orderBillModel.findOne({
+        where: {
+          id: billId,
+          orderId,
+        },
+      });
+    },
+
+    findActiveByOrderId: async (orderId: string): Promise<OrderBillModel | null> => {
+      return await orderBillModel.findOne({
+        where: {
+          orderId,
+          status: 'active',
+        },
+        order: [['version', 'DESC']],
+      });
+    },
+
+    getNextVersion: async (orderId: string): Promise<number> => {
+      const latest = await orderBillModel.findOne({
+        where: { orderId },
+        order: [['version', 'DESC']],
+      });
+
+      return latest ? latest.version + 1 : 1;
+    },
+
+    create: async (data): Promise<OrderBillModel> => {
+      return await orderBillModel.create({
+        orderId: data.orderId,
+        billNumber: data.billNumber,
+        version: data.version,
+        status: 'active',
+        snapshot: data.snapshot,
+        voidReason: null,
+        voidedAt: null,
+      });
+    },
+
+    voidBill: async (
+      orderId: string,
+      billId: string,
+      reason: string,
+      voidedAt: Date
+    ): Promise<OrderBillModel | null> => {
+      const bill = await orderBillModel.findOne({
+        where: {
+          id: billId,
+          orderId,
+        },
+      });
+
+      if (!bill) {
+        return null;
+      }
+
+      await bill.update({
+        status: 'voided',
+        voidReason: reason,
+        voidedAt,
+      });
+
+      return bill;
+    },
+  };
+
   return {
     findById,
     findByIdWithItems,
@@ -352,5 +495,6 @@ export const createOrderRepository = (
     count,
     findByOrderNumber,
     items: itemRepository,
+    bills: billRepository,
   };
 };

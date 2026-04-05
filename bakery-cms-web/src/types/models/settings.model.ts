@@ -8,8 +8,24 @@ export type BankReceiverConfig = {
   readonly accountName: string;
 };
 
+export type InvoiceLanguage = 'vi' | 'en';
+
+export type StoreProfile = {
+  readonly name: string;
+  readonly logoUrl: string | null;
+};
+
 export type SystemSettings = {
   readonly bankReceiver: BankReceiverConfig | null;
+  readonly orderExtraFees: readonly OrderExtraFeeTemplate[];
+  readonly invoiceLanguage: InvoiceLanguage;
+  readonly storeProfile: StoreProfile;
+};
+
+export type OrderExtraFeeTemplate = {
+  readonly id: string;
+  readonly name: string;
+  readonly defaultAmount: number;
 };
 
 export type VietQRBank = {

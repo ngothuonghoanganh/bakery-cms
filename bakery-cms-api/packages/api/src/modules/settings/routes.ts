@@ -11,7 +11,12 @@ import { createSettingsHandlers } from './handlers/settings.handlers';
 import { validateBody } from '../../middleware/validation';
 import { authenticateJWT } from '../../middleware';
 import { requireAdmin, requireManager } from '../../middleware/rbac.middleware';
-import { updateBankReceiverSchema } from './validators/settings.validators';
+import {
+  updateBankReceiverSchema,
+  updateInvoiceLanguageSchema,
+  updateOrderExtraFeesSchema,
+  updateStoreProfileSchema,
+} from './validators/settings.validators';
 
 /**
  * Create settings router
@@ -48,6 +53,45 @@ export const createSettingsRouter = (): Router => {
     requireAdmin as any,
     validateBody(updateBankReceiverSchema),
     handlers.handleUpdateBankReceiver as any
+  );
+
+  /**
+   * PUT /api/settings/system/order-extra-fees
+   * Update order extra fee templates
+   * Requires: Admin role
+   */
+  router.put(
+    '/system/order-extra-fees',
+    authenticateJWT as any,
+    requireAdmin as any,
+    validateBody(updateOrderExtraFeesSchema),
+    handlers.handleUpdateOrderExtraFees as any
+  );
+
+  /**
+   * PUT /api/settings/system/invoice-language
+   * Update invoice language setting
+   * Requires: Admin role
+   */
+  router.put(
+    '/system/invoice-language',
+    authenticateJWT as any,
+    requireAdmin as any,
+    validateBody(updateInvoiceLanguageSchema),
+    handlers.handleUpdateInvoiceLanguage as any
+  );
+
+  /**
+   * PUT /api/settings/system/store-profile
+   * Update store profile setting
+   * Requires: Admin role
+   */
+  router.put(
+    '/system/store-profile',
+    authenticateJWT as any,
+    requireAdmin as any,
+    validateBody(updateStoreProfileSchema),
+    handlers.handleUpdateStoreProfile as any
   );
 
   /**

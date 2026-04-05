@@ -35,7 +35,12 @@ export const createPaymentsRouter = (): Router => {
   // Create repository, service, and handlers (dependency injection)
   const repository = createPaymentRepository(models.Payment);
   const settingsRepository = createSettingsRepository(models.SystemSetting);
-  const orderRepository = createOrderRepository(models.Order, models.OrderItem);
+  const orderRepository = createOrderRepository(
+    models.Order,
+    models.OrderItem,
+    models.OrderBill,
+    models.Product
+  );
   const service = createPaymentService(repository, settingsRepository, orderRepository);
   const handlers = createPaymentHandlers(service);
 

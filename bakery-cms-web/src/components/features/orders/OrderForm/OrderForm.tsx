@@ -3,7 +3,7 @@
  * Modal form for creating and editing orders with items management
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Form,
   Input,
@@ -22,7 +22,13 @@ import { AntModal } from '../../../core';
 import { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
 import { useProducts } from '../../../../hooks/useProducts';
 import { formatCurrency } from '../../../../utils/format.utils';
-import type { OrderFormProps, OrderFormValues } from './OrderForm.types';
+import { settingsService } from '../../../../services/settings.service';
+import type {
+  OrderExtraFeeFormValue,
+  OrderFormProps,
+  OrderFormValues,
+} from './OrderForm.types';
+import type { OrderExtraFeeTemplate } from '../../../../types/models/settings.model';
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -41,12 +47,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
   // Fetch products for selection
   const { products, loading: productsLoading } = useProducts({ autoFetch: true });
+  const [loadingDefaultExtras, setLoadingDefaultExtras] = useState(false);
+  const [extraFeeTemplates, setExtraFeeTemplates] = useState<OrderExtraFeeTemplate[]>([]);
 
   // Watch items for total calculation
   const items = Form.useWatch('items', form) || [];
+  const extraFees = Form.useWatch('extraFees', form) || [];
 
-  // Calculate total amount
-  const totalAmount = useMemo(() => {
+  // Calculate item total amount
+  const itemsTotalAmount = useMemo(() => {
     return items.reduce((sum: number, item: any) => {
       if (!item) return sum;
       const quantity = item.quantity || 0;
@@ -55,20 +64,146 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     }, 0);
   }, [items]);
 
+  // Calculate extra fees total amount
+  const extraFeesTotalAmount = useMemo(() => {
+    return extraFees.reduce((sum: number, fee: any) => {
+      if (!fee) return sum;
+      return sum + (Number(fee.amount) || 0);
+    }, 0);
+  }, [extraFees]);
+
+  const totalAmount = useMemo(
+    () => itemsTotalAmount + extraFeesTotalAmount,
+    [itemsTotalAmount, extraFeesTotalAmount]
+  );
+
+  const templateById = useMemo(
+    () => new Map(extraFeeTemplates.map((template) => [template.id, template])),
+    [extraFeeTemplates]
+  );
+
   // Reset form when modal opens/closes or initial values change
   useEffect(() => {
-    if (open) {
-      if (initialValues) {
-        form.setFieldsValue(initialValues);
+    let isMounted = true;
+
+    const syncFormValues = async () => {
+      if (!open) {
+        return;
+      }
+
+      setLoadingDefaultExtras(true);
+
+      const settingsResult = await settingsService.getSystemSettings();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (settingsResult.success) {
+        const templates = [...(settingsResult.data.orderExtraFees || [])];
+
+        if (initialValues) {
+          const mappedInitialFees = (initialValues.extraFees || [])
+            .map((fee) => {
+              const byId = fee.id ? templates.find((template) => template.id === fee.id) : undefined;
+              const byName = !byId
+                ? templates.find((template) => template.name === fee.name)
+                : undefined;
+              const matched = byId || byName;
+              if (!matched) {
+                return null;
+              }
+              return {
+                id: matched.id,
+                name: matched.name,
+                amount: Number(fee.amount) || 0,
+              };
+            })
+            .filter(
+              (fee): fee is { id: string; name: string; amount: number } => fee !== null
+            );
+
+          setExtraFeeTemplates(templates);
+          form.setFieldsValue({
+            ...initialValues,
+            extraFees: mappedInitialFees,
+          });
+        } else {
+          form.resetFields();
+          setExtraFeeTemplates(templates);
+          form.setFieldsValue({
+            extraFees: templates.map((fee) => ({
+              id: fee.id,
+              name: fee.name,
+              amount: fee.defaultAmount,
+            })),
+          });
+        }
+      } else if (initialValues) {
+        const fallbackTemplateMap = new Map<string, OrderExtraFeeTemplate>();
+        (initialValues.extraFees || []).forEach((fee) => {
+          const id = String(fee.id || '').trim();
+          const name = String(fee.name || '').trim();
+          if (!id || !name || fallbackTemplateMap.has(id)) {
+            return;
+          }
+          fallbackTemplateMap.set(id, {
+            id,
+            name,
+            defaultAmount: Number(fee.amount) || 0,
+          });
+        });
+
+        setExtraFeeTemplates(Array.from(fallbackTemplateMap.values()));
+        form.setFieldsValue({
+          ...initialValues,
+          extraFees: initialValues.extraFees || [],
+        });
       } else {
         form.resetFields();
+        setExtraFeeTemplates([]);
       }
-    }
+
+      setLoadingDefaultExtras(false);
+    };
+
+    void syncFormValues();
+
+    return () => {
+      isMounted = false;
+    };
   }, [open, initialValues, form]);
 
   const handleFormSubmit = async (values: OrderFormValues) => {
     try {
-      await onSubmit(values);
+      const normalizedExtras = (values.extraFees || [])
+        .map((fee): OrderExtraFeeFormValue | null => {
+          const template = templateById.get(fee.id || '');
+          const amount = Number(fee.amount) || 0;
+
+          if (!template && fee.id) {
+            const fallbackName = fee.name?.trim();
+            return {
+              id: fee.id,
+              amount,
+              ...(fallbackName ? { name: fallbackName } : {}),
+            };
+          }
+          if (!template) {
+            return null;
+          }
+          return {
+            id: template.id,
+            name: template.name,
+            amount,
+          };
+        })
+        .filter((fee): fee is OrderExtraFeeFormValue => fee !== null);
+
+      await onSubmit({
+        ...values,
+        extraFees: normalizedExtras,
+      });
       form.resetFields();
     } catch (error) {
       // Error is handled by parent component
@@ -93,6 +228,25 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     }
   };
 
+  const handleExtraTemplateSelect = (templateId: string, index: number) => {
+    const template = templateById.get(templateId);
+    if (!template) {
+      return;
+    }
+
+    const currentExtraFees = form.getFieldValue('extraFees') || [];
+    currentExtraFees[index] = {
+      ...currentExtraFees[index],
+      id: template.id,
+      name: template.name,
+      amount:
+        typeof currentExtraFees[index]?.amount === 'number'
+          ? currentExtraFees[index].amount
+          : template.defaultAmount,
+    };
+    form.setFieldsValue({ extraFees: currentExtraFees });
+  };
+
   return (
     <AntModal
       title={isEditMode ? t('orders.form.editTitle') : t('orders.form.createTitle')}
@@ -110,8 +264,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           businessModel: BusinessModel.READY_TO_SELL,
           customerName: '',
           customerPhone: '',
+          customerAddress: '',
           notes: '',
-          items: [{ productId: '', quantity: 1, unitPrice: 0 }],
+          items: [{ productId: '', quantity: 1, unitPrice: 0, notes: '' }],
+          extraFees: [],
           status: OrderStatus.DRAFT,
         }}
       >
@@ -172,6 +328,20 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           </Col>
         </Row>
 
+        <Form.Item
+          name="customerAddress"
+          label={t('orders.form.shippingAddress')}
+          rules={[{ max: 1000, message: t('orders.form.validation.customerAddressMax') }]}
+        >
+          <TextArea
+            rows={2}
+            placeholder={t(
+              'orders.form.shippingAddressPlaceholder',
+              'Enter receiving address (optional)'
+            )}
+          />
+        </Form.Item>
+
         {/* Notes */}
         <Form.Item
           name="notes"
@@ -204,88 +374,104 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           {(fields, { add, remove }, { errors: listErrors }) => (
             <>
               {fields.map((field, index) => (
-                <Space
-                  key={field.key}
-                  style={{ display: 'flex', marginBottom: 8 }}
-                  align="baseline"
-                >
-                  {/* Product Selection */}
-                  <Form.Item
-                    {...field}
-                    name={[field.name, 'productId']}
-                    rules={[{ required: true, message: t('orders.form.validation.productRequired') }]}
-                    style={{ marginBottom: 0, width: 250 }}
+                <div key={field.key} style={{ marginBottom: 12 }}>
+                  <Space
+                    style={{ display: 'flex', marginBottom: 8 }}
+                    align="baseline"
+                    wrap
                   >
-                    <Select
-                      placeholder={t('orders.form.selectProduct')}
-                      loading={productsLoading}
-                      onChange={(value) => handleProductSelect(value, index)}
-                      showSearch
-                      optionFilterProp="children"
+                    {/* Product Selection */}
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'productId']}
+                      rules={[{ required: true, message: t('orders.form.validation.productRequired') }]}
+                      style={{ marginBottom: 0, width: 250 }}
                     >
-                      {products?.map((product) => (
-                        <Option key={product.id} value={product.id}>
-                          {product.name} ({formatCurrency(product.price)})
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
+                      <Select
+                        placeholder={t('orders.form.selectProduct')}
+                        loading={productsLoading}
+                        onChange={(value) => handleProductSelect(value, index)}
+                        showSearch
+                        optionFilterProp="children"
+                      >
+                        {products?.map((product) => (
+                          <Option key={product.id} value={product.id}>
+                            {product.name} ({formatCurrency(product.price)})
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
 
-                  {/* Quantity */}
+                    {/* Quantity */}
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'quantity']}
+                      rules={[
+                        { required: true, message: t('orders.form.validation.quantityRequired') },
+                        { type: 'number', min: 1, message: t('orders.form.validation.quantityMin') },
+                        { type: 'number', max: 9999, message: t('orders.form.validation.quantityMax') },
+                      ]}
+                      style={{ marginBottom: 0, width: 100 }}
+                    >
+                      <InputNumber placeholder={t('orders.form.quantityShort')} min={1} max={9999} style={{ width: '100%' }} />
+                    </Form.Item>
+
+                    {/* Unit Price */}
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'unitPrice']}
+                      rules={[
+                        { required: true, message: t('orders.form.validation.priceRequired') },
+                        { type: 'number', min: 0, message: t('orders.form.validation.priceMin') },
+                      ]}
+                      style={{ marginBottom: 0, width: 150 }}
+                    >
+                      <InputNumber
+                        placeholder={t('orders.form.price')}
+                        min={0}
+                        formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+
+                    {/* Subtotal Display */}
+                    <Text strong style={{ width: 140, textAlign: 'right' }}>
+                      {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unitPrice || 0))}
+                    </Text>
+
+                    {/* Remove Button */}
+                    {fields.length > 1 && (
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => remove(field.name)}
+                      />
+                    )}
+                  </Space>
+
                   <Form.Item
                     {...field}
-                    name={[field.name, 'quantity']}
-                    rules={[
-                      { required: true, message: t('orders.form.validation.quantityRequired') },
-                      { type: 'number', min: 1, message: t('orders.form.validation.quantityMin') },
-                      { type: 'number', max: 9999, message: t('orders.form.validation.quantityMax') },
-                    ]}
-                    style={{ marginBottom: 0, width: 100 }}
+                    name={[field.name, 'notes']}
+                    rules={[{ max: 500, message: t('orders.form.validation.itemNotesMax') }]}
+                    style={{ marginBottom: 0 }}
                   >
-                    <InputNumber placeholder={t('orders.form.quantityShort')} min={1} max={9999} style={{ width: '100%' }} />
-                  </Form.Item>
-
-                  {/* Unit Price */}
-                  <Form.Item
-                    {...field}
-                    name={[field.name, 'unitPrice']}
-                    rules={[
-                      { required: true, message: t('orders.form.validation.priceRequired') },
-                      { type: 'number', min: 0, message: t('orders.form.validation.priceMin') },
-                    ]}
-                    style={{ marginBottom: 0, width: 150 }}
-                  >
-                    <InputNumber
-                      placeholder={t('orders.form.price')}
-                      min={0}
-                      formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
-                      style={{ width: '100%' }}
+                    <Input
+                      placeholder={t(
+                        'orders.form.itemNotesPlaceholder',
+                        'Item note (optional)'
+                      )}
                     />
                   </Form.Item>
-
-                  {/* Subtotal Display */}
-                  <Text strong style={{ width: 120, textAlign: 'right' }}>
-                    {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unitPrice || 0))}
-                  </Text>
-
-                  {/* Remove Button */}
-                  {fields.length > 1 && (
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => remove(field.name)}
-                    />
-                  )}
-                </Space>
+                </div>
               ))}
 
               {/* Add Item Button */}
               <Form.Item>
                 <Button
                   type="dashed"
-                  onClick={() => add({ productId: '', quantity: 1, unitPrice: 0 })}
+                  onClick={() => add({ productId: '', quantity: 1, unitPrice: 0, notes: '' })}
                   block
                   icon={<PlusOutlined />}
                 >
@@ -301,11 +487,163 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
         <Divider />
 
+        {/* Extra Fees */}
+        <div style={{ marginBottom: 16 }}>
+          <Title level={5}>{t('orders.form.extraFees', 'Extra Fees')}</Title>
+          <Text type="secondary">
+            {loadingDefaultExtras
+              ? t('orders.form.loadingExtraFees', 'Loading default extra fees...')
+              : t(
+                  'orders.form.extraFeesHint',
+                  'Shipping fee, packaging fee, and other custom fees can be added here.'
+                )}
+          </Text>
+        </div>
+
+        <Form.List name="extraFees">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field, index) => (
+                <Space
+                  key={field.key}
+                  style={{ display: 'flex', marginBottom: 8 }}
+                  align="baseline"
+                >
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'id']}
+                    rules={[
+                      {
+                        required: true,
+                        message: t('orders.form.validation.extraFeeNameRequired', 'Required'),
+                      },
+                    ]}
+                    style={{ marginBottom: 0, width: 360 }}
+                  >
+                    <Select
+                      placeholder={t(
+                        'orders.form.extraFeeNamePlaceholder',
+                        'Fee name'
+                      )}
+                      options={extraFeeTemplates.map((template) => ({
+                        value: template.id,
+                        label: template.name,
+                      }))}
+                      disabled={loadingDefaultExtras || extraFeeTemplates.length === 0}
+                      onChange={(value) => handleExtraTemplateSelect(value, index)}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'name']}
+                    style={{ marginBottom: 0, display: 'none' }}
+                  >
+                    <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'amount']}
+                    rules={[
+                      {
+                        required: true,
+                        message: t(
+                          'orders.form.validation.extraFeeAmountRequired',
+                          'Required'
+                        ),
+                      },
+                      {
+                        type: 'number',
+                        min: 0,
+                        message: t(
+                          'orders.form.validation.extraFeeAmountMin',
+                          'Must be at least 0'
+                        ),
+                      },
+                    ]}
+                    style={{ marginBottom: 0, width: 180 }}
+                  >
+                    <InputNumber
+                      placeholder={t('orders.form.extraFeeAmountPlaceholder', 'Amount')}
+                      min={0}
+                      style={{ width: '100%' }}
+                      formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
+                    />
+                  </Form.Item>
+
+                  <Text strong style={{ width: 120, textAlign: 'right' }}>
+                    {formatCurrency(Number(extraFees[field.name]?.amount || 0))}
+                  </Text>
+
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => remove(field.name)}
+                  />
+                </Space>
+              ))}
+
+              <Form.Item>
+                <Button
+                  type="dashed"
+                  onClick={() => {
+                    if (loadingDefaultExtras || extraFeeTemplates.length === 0) {
+                      return;
+                    }
+
+                    const currentExtraFees = form.getFieldValue('extraFees') || [];
+                    const usedIds = new Set(
+                      currentExtraFees
+                        .map((fee: { id?: string }) => fee.id)
+                        .filter(Boolean)
+                    );
+                    const templateToAdd =
+                      extraFeeTemplates.find((template) => !usedIds.has(template.id)) ||
+                      extraFeeTemplates[0];
+
+                    add({
+                      id: templateToAdd?.id || '',
+                      name: templateToAdd?.name || '',
+                      amount: templateToAdd?.defaultAmount || 0,
+                    });
+                  }}
+                  disabled={loadingDefaultExtras || extraFeeTemplates.length === 0}
+                  block
+                  icon={<PlusOutlined />}
+                >
+                  {t('orders.form.addExtraFee', 'Add Extra Fee')}
+                </Button>
+              </Form.Item>
+              {!loadingDefaultExtras && extraFeeTemplates.length === 0 && (
+                <Text type="secondary">
+                  {t(
+                    'orders.form.noExtraFeeTemplates',
+                    'No extra fee templates configured in settings.'
+                  )}
+                </Text>
+              )}
+            </>
+          )}
+        </Form.List>
+
+        <Divider />
+
         {/* Total Amount */}
         <div style={{ marginBottom: 24, textAlign: 'right' }}>
-          <Title level={4}>
-            {t('orders.form.total')}: <Text type="success">{formatCurrency(totalAmount)}</Text>
-          </Title>
+          <Space direction="vertical" size={2} style={{ textAlign: 'right' }}>
+            <Text type="secondary">
+              {t('orders.form.itemsTotal', 'Items Total')}: {formatCurrency(itemsTotalAmount)}
+            </Text>
+            <Text type="secondary">
+              {t('orders.form.extraFeesTotal', 'Extra Fees Total')}: {formatCurrency(extraFeesTotalAmount)}
+            </Text>
+            <Title level={4} style={{ margin: 0 }}>
+              {t('orders.form.total')}: <Text type="success">{formatCurrency(totalAmount)}</Text>
+            </Title>
+          </Space>
         </div>
 
         {/* Status (only visible in edit mode) */}

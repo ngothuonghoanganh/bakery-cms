@@ -13,6 +13,7 @@ import {
   CloseOutlined,
   CreditCardOutlined,
   RollbackOutlined,
+  PlusCircleOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
@@ -42,6 +43,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   onCancel,
   onViewPayments,
   onRefund,
+  onManageExtras,
   onBack,
   loading = false,
 }) => {
@@ -50,10 +52,17 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   // Table columns for order items
   const itemsColumns = [
     {
-      title: t('orders.detail.productId'),
-      dataIndex: 'productId',
-      key: 'productId',
-      width: 200,
+      title: t('orders.detail.productCode', 'Product Code'),
+      dataIndex: 'productCode',
+      key: 'productCode',
+      width: 170,
+      render: (value: string | null) => <Text code>{value || 'UNKNOWN'}</Text>,
+    },
+    {
+      title: t('orders.detail.productName', 'Product Name'),
+      dataIndex: 'productName',
+      key: 'productName',
+      render: (value: string | null) => <Text strong>{value || t('orders.detail.na')}</Text>,
     },
     {
       title: t('orders.detail.quantity'),
@@ -78,6 +87,14 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       align: 'right' as const,
       render: (subtotal: number) => <Text strong>{formatCurrency(subtotal)}</Text>,
     },
+    {
+      title: t('orders.detail.itemNotes', 'Item Notes'),
+      dataIndex: 'notes',
+      key: 'notes',
+      width: 220,
+      render: (value: string | null) =>
+        value?.trim() ? value : <Text type="secondary">{t('orders.detail.na')}</Text>,
+    },
   ];
 
   // Show action buttons based on order status
@@ -86,19 +103,38 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   const canCancel = order.status === 'draft' || order.status === 'confirmed';
   const canRefund = order.status === 'paid';
   const canDelete = order.status === 'draft';
+  const canManageExtras =
+    order.status !== 'cancelled' &&
+    order.status !== 'refunded' &&
+    order.status !== 'refund_pending';
 
   return (
     <div>
       {/* Header with actions */}
-      <Space style={{ marginBottom: 24, width: '100%', justifyContent: 'space-between' }}>
+      <div
+        style={{
+          marginBottom: 24,
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
         <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
           {t('orders.detail.backToOrders')}
         </Button>
 
-        <Space>
+        <Space wrap>
           {onViewPayments && (
             <Button icon={<CreditCardOutlined />} onClick={onViewPayments}>
               {t('orders.actions.viewPayments')}
+            </Button>
+          )}
+          {canManageExtras && onManageExtras && (
+            <Button icon={<PlusCircleOutlined />} onClick={onManageExtras}>
+              {t('orders.actions.manageExtras', 'Manage Extras')}
             </Button>
           )}
           {canEdit && (
@@ -143,11 +179,11 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             </Popconfirm>
           )}
         </Space>
-      </Space>
+      </div>
 
       {/* Order information card */}
       <Card title={<Title level={3}>{t('orders.detail.orderNumber')} #{order.orderNumber}</Title>} loading={loading}>
-        <Descriptions column={2} bordered>
+        <Descriptions column={{ xs: 1, sm: 1, md: 2 }} bordered>
           <Descriptions.Item label={t('orders.detail.orderNumber')}>
             <Text strong>{order.orderNumber}</Text>
           </Descriptions.Item>
@@ -166,10 +202,38 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           <Descriptions.Item label={t('orders.detail.customerPhone')}>
             {order.customerPhone || <Text type="secondary">{t('orders.detail.na')}</Text>}
           </Descriptions.Item>
+          <Descriptions.Item label={t('orders.detail.customerAddress')} span={2}>
+            {order.customerAddress || <Text type="secondary">{t('orders.detail.na')}</Text>}
+          </Descriptions.Item>
           <Descriptions.Item label={t('orders.detail.totalAmount')} span={2}>
             <Text strong style={{ fontSize: 18 }}>
               {formatCurrency(order.totalAmount)}
             </Text>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('orders.detail.extraAmount')}>
+            <Text>{formatCurrency(order.extraAmount || 0)}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('orders.detail.extraPaymentStatus')}>
+            {order.hasPendingExtraPayment ? (
+              <Tag color="red">
+                {t('orders.detail.pendingExtraPayment', 'Extra payment pending')}
+              </Tag>
+            ) : (
+              <Tag color="green">{t('orders.detail.noPendingExtraPayment', 'No pending extra')}</Tag>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('orders.detail.extraFees')} span={2}>
+            {order.extraFees.length > 0 ? (
+              <Space wrap>
+                {order.extraFees.map((fee) => (
+                  <Tag key={fee.id}>
+                    {fee.name}: {formatCurrency(fee.amount)}
+                  </Tag>
+                ))}
+              </Space>
+            ) : (
+              <Text type="secondary">{t('orders.detail.noExtraFees', 'No extra fee')}</Text>
+            )}
           </Descriptions.Item>
           <Descriptions.Item label={t('orders.detail.createdAt')}>
             {formatDateTime(order.createdAt)}
@@ -201,10 +265,11 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           dataSource={order.items || []}
           rowKey="id"
           pagination={false}
+          scroll={{ x: 1040 }}
           summary={() => (
             <Table.Summary fixed>
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={3} align="right">
+                <Table.Summary.Cell index={0} colSpan={5} align="right">
                   <Text strong>{t('orders.detail.total')}:</Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1} align="right">

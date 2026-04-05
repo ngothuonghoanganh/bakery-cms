@@ -170,12 +170,20 @@ export const OrderList: React.FC<OrderListProps> = ({
       businessModel: selectedOrder.businessModel,
       customerName: selectedOrder.customerName || '',
       customerPhone: selectedOrder.customerPhone || '',
+      customerAddress: selectedOrder.customerAddress || '',
       notes: selectedOrder.notes || '',
       items:
         selectedOrder.items?.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          notes: item.notes || '',
+        })) || [],
+      extraFees:
+        selectedOrder.extraFees?.map((fee) => ({
+          id: fee.id,
+          name: fee.name,
+          amount: fee.amount,
         })) || [],
       status: selectedOrder.status,
     };

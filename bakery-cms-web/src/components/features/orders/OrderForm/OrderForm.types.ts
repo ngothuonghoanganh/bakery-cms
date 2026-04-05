@@ -8,7 +8,14 @@ export type OrderItemFormValue = {
   productId: string;
   quantity: number;
   unitPrice: number;
+  notes?: string;
   subtotal?: number; // Calculated field
+};
+
+export type OrderExtraFeeFormValue = {
+  id: string;
+  name?: string;
+  amount: number;
 };
 
 export type OrderFormValues = {
@@ -16,8 +23,10 @@ export type OrderFormValues = {
   businessModel: BusinessModel;
   customerName?: string;
   customerPhone?: string;
+  customerAddress?: string;
   notes?: string;
   items: OrderItemFormValue[];
+  extraFees?: OrderExtraFeeFormValue[];
   status: OrderStatus;
 };
 

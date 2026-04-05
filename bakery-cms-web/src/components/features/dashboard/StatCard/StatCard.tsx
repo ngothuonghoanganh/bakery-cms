@@ -10,15 +10,19 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   icon,
   trend,
+  trendLabel = 'vs last month',
   color = '#1890ff',
   loading = false,
+  className,
 }) => {
   return (
-    <Card loading={loading} bordered={false}>
+    <Card loading={loading} bordered={false} className={className}>
       <Space direction="vertical" size="small" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="dashboard-stat-card__header">
           <Text type="secondary">{title}</Text>
-          <div style={{ fontSize: 24, color }}>{icon}</div>
+          <div className="dashboard-stat-card__icon" style={{ color }}>
+            {icon}
+          </div>
         </div>
 
         <Statistic value={value} valueStyle={{ fontSize: 24, fontWeight: 600 }} />
@@ -39,7 +43,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               {Math.abs(trend.value)}%
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              vs last month
+              {trendLabel}
             </Text>
           </Space>
         )}

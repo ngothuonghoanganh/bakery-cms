@@ -16,6 +16,7 @@ export {
   ProductModel,
   OrderModel,
   OrderItemModel,
+  OrderBillModel,
   PaymentModel,
   UserModel,
   AuthSessionModel,

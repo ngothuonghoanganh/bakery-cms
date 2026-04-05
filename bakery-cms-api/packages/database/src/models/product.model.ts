@@ -12,6 +12,7 @@ import { BusinessType, ProductStatus } from '@bakery-cms/common';
  */
 export class ProductModel extends Model {
   declare id: string;
+  declare productCode: string;
   declare name: string;
   declare description: string | null;
   declare price: number;
@@ -44,6 +45,16 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         validate: {
           notEmpty: true,
           len: [1, 255],
+        },
+      },
+      productCode: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        unique: true,
+        field: 'product_code',
+        validate: {
+          notEmpty: true,
+          len: [3, 50],
         },
       },
       description: {
@@ -131,6 +142,10 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         },
       },
       indexes: [
+        {
+          unique: true,
+          fields: ['product_code'],
+        },
         {
           fields: ['category'],
         },

@@ -68,6 +68,37 @@ const orderItemSchema = Joi.object({
 });
 
 /**
+ * Order extra fee validation schema
+ */
+const orderExtraFeeSchema = Joi.object({
+  id: Joi.string()
+    .trim()
+    .max(80)
+    .required()
+    .messages({
+      'string.empty': 'Extra fee id is required',
+      'any.required': 'Extra fee id is required',
+    }),
+  name: Joi.string()
+    .trim()
+    .max(120)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Extra fee name must not exceed 120 characters',
+    }),
+  amount: Joi.number()
+    .min(0)
+    .precision(2)
+    .required()
+    .messages({
+      'number.base': 'Extra fee amount must be a number',
+      'number.min': 'Extra fee amount must be at least 0',
+      'any.required': 'Extra fee amount is required',
+    }),
+});
+
+/**
  * Create order validation schema
  * Validates POST /orders request body
  */
@@ -99,6 +130,15 @@ export const createOrderSchema = Joi.object({
 
   customerPhone: phoneSchema.allow('', null).optional(),
 
+  customerAddress: Joi.string()
+    .trim()
+    .max(1000)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Customer address must not exceed 1000 characters',
+    }),
+
   notes: Joi.string()
     .trim()
     .max(1000)
@@ -116,6 +156,10 @@ export const createOrderSchema = Joi.object({
       'array.min': 'At least one order item is required',
       'any.required': 'Order items are required',
     }),
+
+  extraFees: Joi.array()
+    .items(orderExtraFeeSchema)
+    .optional(),
 });
 
 /**
@@ -148,6 +192,15 @@ export const updateOrderSchema = Joi.object({
 
   customerPhone: phoneSchema.allow('', null).optional(),
 
+  customerAddress: Joi.string()
+    .trim()
+    .max(1000)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Customer address must not exceed 1000 characters',
+    }),
+
   notes: Joi.string()
     .trim()
     .max(1000)
@@ -164,6 +217,10 @@ export const updateOrderSchema = Joi.object({
     .messages({
       'array.min': 'At least one order item is required if items are provided',
     }),
+
+  extraFees: Joi.array()
+    .items(orderExtraFeeSchema)
+    .optional(),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',
 });
@@ -293,5 +350,78 @@ export const cancelOrderSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'Cancellation reason must not exceed 500 characters',
+    }),
+});
+
+/**
+ * Order bill ID parameters validation schema
+ * Validates :id and :billId route parameters
+ */
+export const orderBillIdParamSchema = Joi.object({
+  id: uuidSchema.required().messages({
+    'string.guid': 'Order ID must be a valid UUID',
+    'any.required': 'Order ID is required',
+  }),
+  billId: uuidSchema.required().messages({
+    'string.guid': 'Bill ID must be a valid UUID',
+    'any.required': 'Bill ID is required',
+  }),
+});
+
+/**
+ * Save order bill validation schema
+ * Validates POST /orders/:id/bills request body
+ */
+export const saveOrderBillSchema = Joi.object({
+  confirmSave: Joi.boolean()
+    .valid(true)
+    .required()
+    .messages({
+      'any.only': 'confirmSave must be true',
+      'any.required': 'confirmSave is required',
+    }),
+});
+
+/**
+ * Void order bill validation schema
+ * Validates POST /orders/:id/bills/:billId/void request body
+ */
+export const voidOrderBillSchema = Joi.object({
+  reason: Joi.string()
+    .trim()
+    .min(3)
+    .max(1000)
+    .required()
+    .messages({
+      'string.min': 'Void reason must be at least 3 characters',
+      'string.max': 'Void reason must not exceed 1000 characters',
+      'any.required': 'Void reason is required',
+    }),
+});
+
+/**
+ * Add/update order extras validation schema
+ * Validates POST /orders/:id/extras request body
+ */
+export const addOrderExtrasSchema = Joi.object({
+  extraFees: Joi.array()
+    .items(orderExtraFeeSchema)
+    .required()
+    .messages({
+      'any.required': 'extraFees is required',
+    }),
+  paymentMethod: Joi.string()
+    .valid(...Object.values(PaymentMethod))
+    .optional()
+    .messages({
+      'any.only': `Payment method must be one of: ${Object.values(PaymentMethod).join(', ')}`,
+    }),
+  paymentNotes: Joi.string()
+    .trim()
+    .max(500)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.max': 'Payment notes must not exceed 500 characters',
     }),
 });

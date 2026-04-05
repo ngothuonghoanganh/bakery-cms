@@ -13,6 +13,7 @@ import { ProductImageResponseDto } from './product-images.dto';
  */
 export interface ProductResponseDto {
   id: string;
+  productCode: string;
   name: string;
   description: string | null;
   price: number;
@@ -42,6 +43,7 @@ export interface ProductImageInputDto {
  * Expected in POST /products
  */
 export interface CreateProductDto {
+  productCode?: string;
   name: string;
   description?: string;
   price: number;
@@ -58,6 +60,7 @@ export interface CreateProductDto {
  * Expected in PATCH /products/:id
  */
 export interface UpdateProductDto {
+  productCode?: string;
   name?: string;
   description?: string;
   price?: number;

@@ -11,4 +11,5 @@ export interface QuickAction {
 
 export interface QuickActionsProps {
   actions: QuickAction[];
+  title?: string;
 }

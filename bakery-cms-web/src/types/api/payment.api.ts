@@ -41,9 +41,17 @@ export type PaymentAPIResponse = {
 
 export type PaginatedPaymentsAPIResponse = {
   readonly data: readonly PaymentAPIResponse[];
-  readonly total: number;
-  readonly page: number;
-  readonly pageSize: number;
+  readonly pagination?: {
+    readonly total: number;
+    readonly page: number;
+    readonly limit: number;
+    readonly totalPages: number;
+  };
+  // Backward compatibility for legacy response shape
+  readonly total?: number;
+  readonly page?: number;
+  readonly limit?: number;
+  readonly pageSize?: number;
 };
 
 export type VietQRDataAPIResponse = {
@@ -77,9 +85,13 @@ export type PaymentFiltersRequest = {
   readonly paymentType?: string;
   readonly status?: string;
   readonly method?: string;
+  readonly startDate?: string;
+  readonly endDate?: string;
+  // Backward compatibility for legacy filter keys
   readonly dateFrom?: string;
   readonly dateTo?: string;
   readonly page?: number;
+  readonly limit?: number;
   readonly pageSize?: number;
 };
 

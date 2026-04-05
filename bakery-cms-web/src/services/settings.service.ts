@@ -8,15 +8,26 @@ import type { Result } from '@/types/common/result.types';
 import { ok, err } from '@/types/common/result.types';
 import type { AppError } from '@/types/common/error.types';
 import type {
+  InvoiceLanguageAPIResponse,
   SystemSettingsAPIResponse,
+  StoreProfileAPIResponse,
   VietQRBankAPIResponse,
   UpdateBankReceiverRequest,
   BankReceiverConfigAPIResponse,
+  OrderExtraFeeTemplateAPIResponse,
+  UpdateInvoiceLanguageRequest,
+  UpdateInvoiceLanguageResponse,
+  UpdateOrderExtraFeesRequest,
+  UpdateStoreProfileRequest,
+  UpdateStoreProfileResponse,
 } from '@/types/api/settings.api';
 import type {
   SystemSettings,
   VietQRBank,
   BankReceiverConfig,
+  InvoiceLanguage,
+  OrderExtraFeeTemplate,
+  StoreProfile,
 } from '@/types/models/settings.model';
 
 const mapBankReceiverConfig = (
@@ -33,8 +44,30 @@ const mapBankReceiverConfig = (
   };
 };
 
+const mapStoreProfile = (
+  profile: StoreProfileAPIResponse | null | undefined
+): StoreProfile => {
+  const name = String(profile?.name ?? '').trim();
+  const logoUrl = String(profile?.logoUrl ?? '').trim();
+
+  return {
+    name: name || 'BAKERY CMS',
+    logoUrl: logoUrl.length > 0 ? logoUrl : null,
+  };
+};
+
 const mapSystemSettings = (response: SystemSettingsAPIResponse): SystemSettings => ({
   bankReceiver: mapBankReceiverConfig(response.bankReceiver),
+  orderExtraFees: (response.orderExtraFees || []).map((fee) => ({
+    id: fee.id,
+    name: fee.name,
+    defaultAmount: fee.defaultAmount,
+  })),
+  invoiceLanguage:
+    response.invoiceLanguage === 'vi' || response.invoiceLanguage === 'en'
+      ? response.invoiceLanguage
+      : 'en',
+  storeProfile: mapStoreProfile(response.storeProfile),
 });
 
 const mapVietQRBank = (bank: VietQRBankAPIResponse): VietQRBank => ({
@@ -48,11 +81,38 @@ const mapVietQRBank = (bank: VietQRBankAPIResponse): VietQRBank => ({
   lookupSupported: bank.lookupSupported,
 });
 
+const mapOrderExtraFeeTemplate = (
+  fee: OrderExtraFeeTemplateAPIResponse
+): OrderExtraFeeTemplate => ({
+  id: fee.id,
+  name: fee.name,
+  defaultAmount: fee.defaultAmount,
+});
+
+const mapInvoiceLanguage = (
+  value: InvoiceLanguageAPIResponse | string | null | undefined
+): InvoiceLanguage => {
+  if (value === 'vi' || value === 'en') {
+    return value;
+  }
+
+  return 'en';
+};
+
 export type SettingsService = {
   readonly getSystemSettings: () => Promise<Result<SystemSettings, AppError>>;
   readonly updateBankReceiver: (
     payload: UpdateBankReceiverRequest
   ) => Promise<Result<BankReceiverConfig, AppError>>;
+  readonly updateOrderExtraFees: (
+    payload: UpdateOrderExtraFeesRequest
+  ) => Promise<Result<OrderExtraFeeTemplate[], AppError>>;
+  readonly updateInvoiceLanguage: (
+    payload: UpdateInvoiceLanguageRequest
+  ) => Promise<Result<InvoiceLanguage, AppError>>;
+  readonly updateStoreProfile: (
+    payload: UpdateStoreProfileRequest
+  ) => Promise<Result<StoreProfile, AppError>>;
   readonly getVietQRBanks: () => Promise<Result<VietQRBank[], AppError>>;
 };
 
@@ -101,8 +161,56 @@ const getVietQRBanks = async (): Promise<Result<VietQRBank[], AppError>> => {
   }
 };
 
+const updateOrderExtraFees = async (
+  payload: UpdateOrderExtraFeesRequest
+): Promise<Result<OrderExtraFeeTemplate[], AppError>> => {
+  try {
+    const response = await apiClient.put<{
+      success: boolean;
+      data: OrderExtraFeeTemplateAPIResponse[];
+    }>('/settings/system/order-extra-fees', payload);
+
+    return ok(response.data.data.map(mapOrderExtraFeeTemplate));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const updateInvoiceLanguage = async (
+  payload: UpdateInvoiceLanguageRequest
+): Promise<Result<InvoiceLanguage, AppError>> => {
+  try {
+    const response = await apiClient.put<{
+      success: boolean;
+      data: UpdateInvoiceLanguageResponse;
+    }>('/settings/system/invoice-language', payload);
+
+    return ok(mapInvoiceLanguage(response.data.data.language));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const updateStoreProfile = async (
+  payload: UpdateStoreProfileRequest
+): Promise<Result<StoreProfile, AppError>> => {
+  try {
+    const response = await apiClient.put<{
+      success: boolean;
+      data: UpdateStoreProfileResponse;
+    }>('/settings/system/store-profile', payload);
+
+    return ok(mapStoreProfile(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
 export const settingsService: SettingsService = {
   getSystemSettings,
   updateBankReceiver,
+  updateOrderExtraFees,
+  updateInvoiceLanguage,
+  updateStoreProfile,
   getVietQRBanks,
 };

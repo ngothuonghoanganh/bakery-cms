@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, List, Space, Typography, Avatar } from 'antd';
+import { Card, List, Space, Typography, Avatar, Empty } from 'antd';
 import { ShoppingCartOutlined, DollarOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { StatusBadge } from '../../../shared';
 import { formatRelativeTime } from '../../../../utils/format.utils';
@@ -29,12 +29,17 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
   items,
   loading = false,
   onItemClick,
+  title = 'Recent Activity',
+  emptyText,
 }) => {
   return (
-    <Card title="Recent Activity" bordered={false} style={{ height: '100%' }}>
+    <Card title={title} bordered={false} style={{ height: '100%' }}>
       <List
         loading={loading}
         dataSource={items}
+        locale={{
+          emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText} />,
+        }}
         renderItem={(item) => (
           <List.Item
             style={{ cursor: onItemClick ? 'pointer' : 'default' }}

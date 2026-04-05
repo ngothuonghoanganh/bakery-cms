@@ -25,12 +25,34 @@ export interface OrderItemDto {
  */
 export interface OrderItemResponseDto {
   id: string;
+  orderId: string;
   productId: string;
-  productName?: string;
+  productCode: string | null;
+  productName: string | null;
   quantity: number;
   unitPrice: number;
   subtotal: number;
   notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Extra fee line for an order
+ */
+export interface OrderExtraFeeDto {
+  id?: string;
+  name: string;
+  amount: number;
+}
+
+/**
+ * Extra fee response DTO
+ */
+export interface OrderExtraFeeResponseDto {
+  id: string;
+  name: string;
+  amount: number;
 }
 
 /**
@@ -43,9 +65,13 @@ export interface OrderResponseDto {
   orderType: OrderType;
   businessModel: BusinessModel;
   totalAmount: number;
+  extraAmount: number;
+  extraFees: OrderExtraFeeResponseDto[];
+  hasPendingExtraPayment: boolean;
   status: OrderStatus;
   customerName: string | null;
   customerPhone: string | null;
+  customerAddress: string | null;
   notes: string | null;
   confirmedAt: string | null;
   items: OrderItemResponseDto[];
@@ -62,8 +88,10 @@ export interface CreateOrderDto {
   businessModel: BusinessModel;
   customerName?: string;
   customerPhone?: string;
+  customerAddress?: string;
   notes?: string;
   items: OrderItemDto[];
+  extraFees?: OrderExtraFeeDto[];
 }
 
 /**
@@ -75,8 +103,10 @@ export interface UpdateOrderDto {
   businessModel?: BusinessModel;
   customerName?: string;
   customerPhone?: string;
+  customerAddress?: string;
   notes?: string;
   items?: OrderItemDto[];
+  extraFees?: OrderExtraFeeDto[];
 }
 
 /**
@@ -128,9 +158,80 @@ export interface ConfirmOrderResponseDto {
 }
 
 /**
+ * Add/update order extras request DTO
+ * Expected in POST /orders/:id/extras
+ */
+export interface AddOrderExtrasDto {
+  extraFees: OrderExtraFeeDto[];
+  paymentMethod?: PaymentMethod;
+  paymentNotes?: string;
+}
+
+/**
+ * Add/update order extras response DTO
+ */
+export interface AddOrderExtrasResponseDto {
+  order: OrderResponseDto;
+  payment: PaymentResponseDto | null;
+  vietqr: VietQRResponseDto | null;
+}
+
+/**
  * Cancel order request DTO
  * Expected in POST /orders/:id/cancel
  */
 export interface CancelOrderDto {
   reason?: string;
+}
+
+export interface OrderBillSnapshotItemDto {
+  productId: string;
+  productCode: string | null;
+  productName: string | null;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  notes: string | null;
+}
+
+export interface OrderBillSnapshotDto {
+  orderId: string;
+  orderNumber: string;
+  orderType: OrderType;
+  businessModel: BusinessModel;
+  totalAmount: number;
+  extraAmount: number;
+  extraFees: OrderExtraFeeResponseDto[];
+  hasPendingExtraPayment: boolean;
+  status: OrderStatus;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerAddress: string | null;
+  notes: string | null;
+  confirmedAt: string | null;
+  createdAt: string;
+  items: OrderBillSnapshotItemDto[];
+}
+
+export type OrderBillStatusDto = 'active' | 'voided';
+
+export interface OrderBillResponseDto {
+  id: string;
+  orderId: string;
+  billNumber: string;
+  version: number;
+  status: OrderBillStatusDto;
+  snapshot: OrderBillSnapshotDto;
+  voidReason: string | null;
+  voidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveOrderBillDto {
+  confirmSave: true;
+}
+
+export interface VoidOrderBillDto {
+  reason: string;
 }

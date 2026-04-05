@@ -7,6 +7,7 @@ import { Sequelize } from 'sequelize';
 import { ProductModel, initProductModel } from './product.model';
 import { OrderModel, initOrderModel } from './order.model';
 import { OrderItemModel, initOrderItemModel } from './order-item.model';
+import { OrderBillModel, initOrderBillModel } from './order-bill.model';
 import { PaymentModel, initPaymentModel } from './payment.model';
 import { UserModel, initUserModel } from './user.model';
 import { AuthSessionModel, initAuthSessionModel } from './auth-session.model';
@@ -30,6 +31,7 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly Product: typeof ProductModel;
   readonly Order: typeof OrderModel;
   readonly OrderItem: typeof OrderItemModel;
+  readonly OrderBill: typeof OrderBillModel;
   readonly Payment: typeof PaymentModel;
   readonly User: typeof UserModel;
   readonly AuthSession: typeof AuthSessionModel;
@@ -46,6 +48,7 @@ export const initializeModels = (sequelize: Sequelize): {
   const Product = initProductModel(sequelize);
   const Order = initOrderModel(sequelize);
   const OrderItem = initOrderItemModel(sequelize);
+  const OrderBill = initOrderBillModel(sequelize);
   const Payment = initPaymentModel(sequelize);
   const User = initUserModel(sequelize);
   const AuthSession = initAuthSessionModel(sequelize);
@@ -76,9 +79,16 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
-  Order.hasOne(Payment, {
+  Order.hasMany(OrderBill, {
     foreignKey: 'orderId',
-    as: 'payment',
+    as: 'bills',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  Order.hasMany(Payment, {
+    foreignKey: 'orderId',
+    as: 'payments',
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   });
@@ -92,6 +102,14 @@ export const initializeModels = (sequelize: Sequelize): {
   });
 
   OrderItem.belongsTo(Order, {
+    foreignKey: 'orderId',
+    as: 'order',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  // OrderBill associations
+  OrderBill.belongsTo(Order, {
     foreignKey: 'orderId',
     as: 'order',
     onDelete: 'CASCADE',
@@ -307,6 +325,7 @@ export const initializeModels = (sequelize: Sequelize): {
     Product,
     Order,
     OrderItem,
+    OrderBill,
     Payment,
     User,
     AuthSession,
@@ -326,6 +345,7 @@ export {
   ProductModel,
   OrderModel,
   OrderItemModel,
+  OrderBillModel,
   PaymentModel,
   UserModel,
   AuthSessionModel,

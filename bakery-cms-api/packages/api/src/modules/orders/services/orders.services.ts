@@ -13,7 +13,10 @@ import {
   PaymentStatus,
   PaymentType,
 } from '@bakery-cms/common';
-import { OrderRepository } from '../repositories/orders.repositories';
+import {
+  OrderRepository,
+  OrderBillRepository,
+} from '../repositories/orders.repositories';
 import { PaymentRepository } from '../../payments/repositories/payments.repositories';
 import { SettingsRepository } from '../../settings/repositories/settings.repositories';
 import {
@@ -24,20 +27,35 @@ import {
   OrderListResponseDto,
   ConfirmOrderDto,
   ConfirmOrderResponseDto,
+  AddOrderExtrasDto,
+  AddOrderExtrasResponseDto,
+  OrderExtraFeeDto,
+  OrderExtraFeeResponseDto,
+  SaveOrderBillDto,
+  OrderBillResponseDto,
+  VoidOrderBillDto,
 } from '../dto/orders.dto';
 import {
   toOrderResponseDto,
   toOrderResponseDtoList,
   toOrderCreationAttributes,
   toOrderUpdateAttributes,
-  calculateOrderTotal,
+  calculateOrderTotalWithExtraFees,
+  calculateOrderExtraFeesTotal,
+  parseOrderExtraFees,
   validateAllItemsSubtotals,
+  toOrderBillSnapshotDto,
+  toOrderBillResponseDto,
 } from '../mappers/orders.mappers';
 import {
   toPaymentResponseDto,
   stringifyVietQRData,
 } from '../../payments/mappers/payments.mappers';
-import { VietQRData } from '../../payments/dto/payments.dto';
+import {
+  VietQRData,
+  PaymentResponseDto,
+  VietQRResponseDto,
+} from '../../payments/dto/payments.dto';
 import { getEnvConfig } from '../../../config/env';
 import { generateVietQRData } from '../../payments/utils/vietqr.utils';
 import {
@@ -58,6 +76,7 @@ interface VietQRBankConfig {
 }
 
 const BANK_RECEIVER_SETTING_KEY = 'vietqr.bank_receiver';
+const ORDER_EXTRA_FEES_SETTING_KEY = 'orders.extra_fee_templates';
 
 const VIETQR_CONFIG: VietQRBankConfig = {
   bankBin: '970436',
@@ -70,6 +89,8 @@ const formatVietQRAddInfo = (orderNumber: string): string => {
   return `DH${normalizedOrder}`.slice(0, 25);
 };
 
+const toMoney = (value: number): number => Math.round(value * 100) / 100;
+
 /**
  * Order service interface
  * Defines all business operations for orders
@@ -80,9 +101,20 @@ export interface OrderService {
   getAllOrders(query: OrderListQueryDto): Promise<Result<OrderListResponseDto, AppError>>;
   updateOrder(id: string, dto: UpdateOrderDto): Promise<Result<OrderResponseDto, AppError>>;
   confirmOrder(id: string, dto: ConfirmOrderDto): Promise<Result<ConfirmOrderResponseDto, AppError>>;
+  addOrderExtras(
+    id: string,
+    dto: AddOrderExtrasDto
+  ): Promise<Result<AddOrderExtrasResponseDto, AppError>>;
   cancelOrder(id: string, reason?: string): Promise<Result<OrderResponseDto, AppError>>;
   deleteOrder(id: string): Promise<Result<void, AppError>>;
   restoreOrder(id: string): Promise<Result<OrderResponseDto, AppError>>;
+  getOrderBills(orderId: string): Promise<Result<OrderBillResponseDto[], AppError>>;
+  saveOrderBill(orderId: string, dto: SaveOrderBillDto): Promise<Result<OrderBillResponseDto, AppError>>;
+  voidOrderBill(
+    orderId: string,
+    billId: string,
+    dto: VoidOrderBillDto
+  ): Promise<Result<OrderBillResponseDto, AppError>>;
 }
 
 /**
@@ -128,7 +160,7 @@ const isValidStatusTransition = (
  * Uses dependency injection for repository
  */
 export const createOrderService = (
-  repository: OrderRepository & { items: any },
+  repository: OrderRepository & { items: any; bills: OrderBillRepository },
   paymentRepository: PaymentRepository,
   settingsRepository: SettingsRepository
 ): OrderService => {
@@ -166,6 +198,253 @@ export const createOrderService = (
     }
   };
 
+  const normalizeTemplateName = (value: string): string =>
+    value.trim().toLowerCase();
+
+  const getOrderExtraFeeTemplates = async (): Promise<
+    Array<{ id: string; name: string; defaultAmount: number }>
+  > => {
+    const setting = await settingsRepository.findByKey(ORDER_EXTRA_FEES_SETTING_KEY);
+    if (!setting?.value) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value) as unknown;
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      const seenIds = new Set<string>();
+
+      return parsed
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const value = item as Record<string, unknown>;
+          const id = String(value['id'] ?? '').trim();
+          const name = String(value['name'] ?? '').trim();
+          const defaultAmount = Number(value['defaultAmount'] ?? 0);
+
+          if (!id || !name || !Number.isFinite(defaultAmount) || defaultAmount < 0) {
+            return null;
+          }
+
+          if (seenIds.has(id)) {
+            return null;
+          }
+          seenIds.add(id);
+
+          return {
+            id,
+            name,
+            defaultAmount: toMoney(defaultAmount),
+          };
+        })
+        .filter(
+          (
+            template
+          ): template is { id: string; name: string; defaultAmount: number } =>
+            template !== null
+        );
+    } catch {
+      return [];
+    }
+  };
+
+  const getDefaultOrderExtraFees = (
+    templates: readonly { id: string; name: string; defaultAmount: number }[]
+  ): OrderExtraFeeResponseDto[] => {
+    return templates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      amount: toMoney(Math.max(template.defaultAmount, 0)),
+    }));
+  };
+
+  const resolveOrderExtraFeesFromTemplates = (
+    fees: readonly OrderExtraFeeDto[],
+    templates: readonly { id: string; name: string; defaultAmount: number }[]
+  ): Result<OrderExtraFeeResponseDto[], AppError> => {
+    if (fees.length === 0) {
+      return ok([]);
+    }
+
+    if (templates.length === 0) {
+      return err(
+        createInvalidInputError(
+          'Order extra fee templates are not configured in Settings'
+        )
+      );
+    }
+
+    const templateById = new Map(templates.map((template) => [template.id, template]));
+    const templateByName = new Map(
+      templates.map((template) => [normalizeTemplateName(template.name), template])
+    );
+    const seenTemplateIds = new Set<string>();
+    const normalizedFees: OrderExtraFeeResponseDto[] = [];
+
+    for (const fee of fees) {
+      const id = String(fee.id ?? '').trim();
+      const name = String(fee.name ?? '').trim();
+      const template =
+        (id ? templateById.get(id) : undefined) ||
+        (name ? templateByName.get(normalizeTemplateName(name)) : undefined);
+
+      if (!template) {
+        return err(
+          createInvalidInputError(
+            'Each extra fee must reference a valid fee template from Settings'
+          )
+        );
+      }
+
+      if (seenTemplateIds.has(template.id)) {
+        return err(
+          createInvalidInputError(
+            `Duplicate extra fee template is not allowed: ${template.name}`
+          )
+        );
+      }
+      seenTemplateIds.add(template.id);
+
+      const amount = Number(fee.amount ?? 0);
+
+      normalizedFees.push({
+        id: template.id,
+        name: template.name,
+        amount: toMoney(Number.isFinite(amount) ? Math.max(amount, 0) : 0),
+      });
+    }
+
+    return ok(normalizedFees);
+  };
+
+  const toOrderResponseFromOrderId = async (
+    orderId: string
+  ): Promise<Result<OrderResponseDto, AppError>> => {
+    const orderWithItems = await repository.findByIdWithItems(orderId);
+    if (!orderWithItems) {
+      return err(createDatabaseError('Failed to retrieve order'));
+    }
+
+    return ok(toOrderResponseDto(orderWithItems, (orderWithItems as any).items));
+  };
+
+  const createVietQRForPayment = async (
+    paymentId: string,
+    orderNumber: string,
+    amount: number
+  ): Promise<Result<VietQRResponseDto, AppError>> => {
+    const bankConfig = await getVietQRBankConfig();
+    const addInfo = formatVietQRAddInfo(orderNumber);
+    const generated = await generateVietQRData(
+      {
+        bankBin: bankConfig.bankBin,
+        accountNo: bankConfig.accountNo,
+        accountName: bankConfig.accountName,
+        amount,
+        addInfo,
+        template: 'compact',
+      },
+      vietqrCredentials
+    );
+
+    if (generated.warning) {
+      logger.warn('VietQR API unavailable, fallback to Quick Link', {
+        paymentId,
+        warning: generated.warning,
+      });
+    }
+
+    const vietqrData: VietQRData = {
+      bankId: bankConfig.bankBin,
+      accountNo: bankConfig.accountNo,
+      accountName: generated.accountName,
+      amount,
+      addInfo: generated.addInfo,
+      template: generated.template,
+      qrDataURL: generated.qrDataURL,
+      qrContent: generated.qrContent,
+    };
+
+    const paymentWithQR = await paymentRepository.update(paymentId, {
+      vietqrData: stringifyVietQRData(vietqrData),
+    });
+
+    if (!paymentWithQR) {
+      return err(createDatabaseError('Failed to store VietQR information'));
+    }
+
+    return ok({
+      qrDataURL: generated.qrDataURL,
+      qrContent: generated.qrContent,
+      bankId: bankConfig.bankBin,
+      accountNo: bankConfig.accountNo,
+      accountName: generated.accountName,
+      amount,
+      addInfo: generated.addInfo,
+    });
+  };
+
+  const createPendingPaymentForOrder = async (params: {
+    orderId: string;
+    orderNumber: string;
+    amount: number;
+    method: PaymentMethod;
+    notes?: string | null;
+  }): Promise<
+    Result<
+      {
+        payment: PaymentResponseDto;
+        vietqr: VietQRResponseDto | null;
+      },
+      AppError
+    >
+  > => {
+    const createdPayment = await paymentRepository.create({
+      orderId: params.orderId,
+      paymentType: PaymentType.PAYMENT,
+      amount: params.amount,
+      method: params.method,
+      status: PaymentStatus.PENDING,
+      transactionId: null,
+      paidAt: null,
+      notes: params.notes ?? null,
+      vietqrData: null,
+    });
+
+    let paymentToReturn = createdPayment;
+    let vietqr: VietQRResponseDto | null = null;
+
+    if (params.method === PaymentMethod.VIETQR) {
+      const qrResult = await createVietQRForPayment(
+        createdPayment.id,
+        params.orderNumber,
+        params.amount
+      );
+
+      if (qrResult.isErr()) {
+        return err(qrResult.error);
+      }
+
+      const paymentWithQR = await paymentRepository.findById(createdPayment.id);
+      if (paymentWithQR) {
+        paymentToReturn = paymentWithQR;
+      }
+
+      vietqr = qrResult.value;
+    }
+
+    return ok({
+      payment: toPaymentResponseDto(paymentToReturn),
+      vietqr,
+    });
+  };
+
   /**
    * Create new order with items
    */
@@ -200,12 +479,31 @@ export const createOrderService = (
         return err(createDatabaseError('Failed to generate unique order number'));
       }
 
-      // Calculate total amount
-      const totalAmount = calculateOrderTotal(dto.items);
+      const templates = await getOrderExtraFeeTemplates();
+      let normalizedExtraFees: OrderExtraFeeResponseDto[];
+
+      if (dto.extraFees !== undefined) {
+        const resolved = resolveOrderExtraFeesFromTemplates(dto.extraFees, templates);
+        if (resolved.isErr()) {
+          return err(resolved.error);
+        }
+        normalizedExtraFees = resolved.value;
+      } else {
+        normalizedExtraFees = getDefaultOrderExtraFees(templates);
+      }
+
+      // Calculate total amount (items + extras)
+      const totalAmount = calculateOrderTotalWithExtraFees(
+        dto.items,
+        normalizedExtraFees
+      );
 
       // Create order
       const orderAttributes = toOrderCreationAttributes(dto, orderNumber);
       orderAttributes.totalAmount = totalAmount;
+      orderAttributes.extraAmount = calculateOrderExtraFeesTotal(normalizedExtraFees);
+      orderAttributes.extraFees = JSON.stringify(normalizedExtraFees);
+      orderAttributes.hasPendingExtraPayment = false;
 
       const order = await repository.create(orderAttributes);
 
@@ -335,6 +633,31 @@ export const createOrderService = (
       }
 
       const attributes = toOrderUpdateAttributes(dto);
+      const existingOrderItems = ((existingOrder as any).items || []).map(
+        (item: any) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          subtotal: Number(item.subtotal),
+          notes: item.notes ?? undefined,
+        })
+      );
+      const nextItems = dto.items ?? existingOrderItems;
+      let nextExtraFees: OrderExtraFeeResponseDto[];
+
+      if (dto.extraFees !== undefined) {
+        const templates = await getOrderExtraFeeTemplates();
+        const resolved = resolveOrderExtraFeesFromTemplates(
+          dto.extraFees,
+          templates
+        );
+        if (resolved.isErr()) {
+          return err(resolved.error);
+        }
+        nextExtraFees = resolved.value;
+      } else {
+        nextExtraFees = parseOrderExtraFees(existingOrder.extraFees ?? null);
+      }
 
       // Update order items if provided
       if (dto.items) {
@@ -345,17 +668,20 @@ export const createOrderService = (
           );
         }
 
-        // Calculate new total
-        const totalAmount = calculateOrderTotal(dto.items);
-        attributes.totalAmount = totalAmount;
-
         // Delete existing items and create new ones
         await repository.items.deleteByOrderId(id);
         await repository.items.createMany(id, dto.items);
       }
 
+      if (dto.items || dto.extraFees !== undefined) {
+        const totalAmount = calculateOrderTotalWithExtraFees(nextItems, nextExtraFees);
+        attributes.totalAmount = totalAmount;
+        attributes.extraAmount = calculateOrderExtraFeesTotal(nextExtraFees);
+        attributes.extraFees = JSON.stringify(nextExtraFees);
+      }
+
       // Check if there are any attributes to update
-      if (Object.keys(attributes).length === 0 && !dto.items) {
+      if (Object.keys(attributes).length === 0) {
         return err(createInvalidInputError('No valid fields provided for update'));
       }
 
@@ -436,73 +762,20 @@ export const createOrderService = (
         return err(createDatabaseError('Failed to confirm order'));
       }
 
-      let payment = await paymentRepository.create({
+      const paymentResult = await createPendingPaymentForOrder({
         orderId: id,
-        paymentType: PaymentType.PAYMENT,
+        orderNumber: order.orderNumber,
         amount: Number(order.totalAmount),
         method: dto.paymentMethod,
-        status: PaymentStatus.PENDING,
-        transactionId: null,
-        paidAt: null,
         notes: dto.paymentNotes ?? null,
       });
 
-      let vietqr: ConfirmOrderResponseDto['vietqr'] = null;
-
-      if (dto.paymentMethod === PaymentMethod.VIETQR) {
-        const bankConfig = await getVietQRBankConfig();
-        const addInfo = formatVietQRAddInfo(order.orderNumber);
-        const amount = Number(order.totalAmount);
-        const generated = await generateVietQRData(
-          {
-            bankBin: bankConfig.bankBin,
-            accountNo: bankConfig.accountNo,
-            accountName: bankConfig.accountName,
-            amount,
-            addInfo,
-            template: 'compact',
-          },
-          vietqrCredentials
-        );
-
-        if (generated.warning) {
-          logger.warn('VietQR API unavailable, fallback to Quick Link', {
-            orderId: id,
-            paymentId: payment.id,
-            warning: generated.warning,
-          });
-        }
-
-        const vietqrData: VietQRData = {
-          bankId: bankConfig.bankBin,
-          accountNo: bankConfig.accountNo,
-          accountName: generated.accountName,
-          amount,
-          addInfo: generated.addInfo,
-          template: generated.template,
-          qrDataURL: generated.qrDataURL,
-          qrContent: generated.qrContent,
-        };
-
-        const updatedPaymentWithQR = await paymentRepository.update(payment.id, {
-          vietqrData: stringifyVietQRData(vietqrData),
-        });
-
-        if (!updatedPaymentWithQR) {
-          return err(createDatabaseError('Failed to store VietQR information'));
-        }
-
-        payment = updatedPaymentWithQR;
-        vietqr = {
-          qrDataURL: generated.qrDataURL,
-          qrContent: generated.qrContent,
-          bankId: bankConfig.bankBin,
-          accountNo: bankConfig.accountNo,
-          accountName: generated.accountName,
-          amount,
-          addInfo: generated.addInfo,
-        };
+      if (paymentResult.isErr()) {
+        return err(paymentResult.error);
       }
+
+      const payment = paymentResult.value.payment;
+      const vietqr = paymentResult.value.vietqr;
 
       // Fetch with items
       const orderWithItems = await repository.findByIdWithItems(id);
@@ -518,12 +791,180 @@ export const createOrderService = (
 
       return ok({
         order: toOrderResponseDto(orderWithItems, (orderWithItems as any).items),
-        payment: toPaymentResponseDto(payment),
+        payment,
         vietqr,
       });
     } catch (error) {
       logger.error('Failed to confirm order', { error, orderId: id });
       return err(createDatabaseError('Failed to confirm order', error));
+    }
+  };
+
+  /**
+   * Add or replace extra fees for an order
+   * Handles payment recreation / new payment generation based on current order status
+   */
+  const addOrderExtras = async (
+    id: string,
+    dto: AddOrderExtrasDto
+  ): Promise<Result<AddOrderExtrasResponseDto, AppError>> => {
+    try {
+      logger.info('Updating order extras', {
+        orderId: id,
+        extraCount: dto.extraFees.length,
+      });
+
+      const order = await repository.findByIdWithItems(id);
+
+      if (!order) {
+        return err(createNotFoundError('Order', id));
+      }
+
+      if (
+        order.status === OrderStatus.CANCELLED ||
+        order.status === OrderStatus.REFUND_PENDING ||
+        order.status === OrderStatus.REFUNDED
+      ) {
+        return err(
+          createBusinessRuleError(
+            `Cannot update extras for order with status: ${order.status}`
+          )
+        );
+      }
+
+      const templates = await getOrderExtraFeeTemplates();
+      const normalizedExtraFeesResult = resolveOrderExtraFeesFromTemplates(
+        dto.extraFees,
+        templates
+      );
+      if (normalizedExtraFeesResult.isErr()) {
+        return err(normalizedExtraFeesResult.error);
+      }
+
+      const normalizedExtraFees = normalizedExtraFeesResult.value;
+      const previousExtraFees = parseOrderExtraFees(order.extraFees ?? null);
+      const previousExtraAmount = calculateOrderExtraFeesTotal(previousExtraFees);
+      const nextExtraAmount = calculateOrderExtraFeesTotal(normalizedExtraFees);
+      const extraDelta = toMoney(nextExtraAmount - previousExtraAmount);
+
+      const orderItems = ((order as any).items || []).map((item: any) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        subtotal: Number(item.subtotal),
+        notes: item.notes ?? undefined,
+      }));
+
+      const nextTotalAmount = calculateOrderTotalWithExtraFees(
+        orderItems,
+        normalizedExtraFees
+      );
+
+      const totalPaidAmount = await paymentRepository.sumAmountByOrderIdAndStatus(
+        id,
+        PaymentStatus.PAID,
+        PaymentType.PAYMENT
+      );
+
+      const hasPendingExtraPayment =
+        order.status === OrderStatus.PAID &&
+        totalPaidAmount + 0.01 < nextTotalAmount;
+
+      const updatedOrder = await repository.update(id, {
+        totalAmount: nextTotalAmount,
+        extraAmount: nextExtraAmount,
+        extraFees: JSON.stringify(normalizedExtraFees),
+        hasPendingExtraPayment,
+      });
+
+      if (!updatedOrder) {
+        return err(createDatabaseError('Failed to update order extras'));
+      }
+
+      let payment: PaymentResponseDto | null = null;
+      let vietqr: VietQRResponseDto | null = null;
+
+      if (extraDelta > 0.01) {
+        if (order.status === OrderStatus.PAID) {
+          const method = dto.paymentMethod ?? PaymentMethod.CASH;
+          const paymentResult = await createPendingPaymentForOrder({
+            orderId: id,
+            orderNumber: order.orderNumber,
+            amount: extraDelta,
+            method,
+            notes: dto.paymentNotes ?? 'Additional payment for order extras',
+          });
+
+          if (paymentResult.isErr()) {
+            return err(paymentResult.error);
+          }
+
+          payment = paymentResult.value.payment;
+          vietqr = paymentResult.value.vietqr;
+
+          await repository.update(id, { hasPendingExtraPayment: true });
+        } else if (order.status === OrderStatus.CONFIRMED) {
+          const latestPayment = await paymentRepository.findLatestByOrderId(
+            id,
+            PaymentType.PAYMENT
+          );
+          const method =
+            dto.paymentMethod ??
+            ((latestPayment?.method as PaymentMethod | undefined) ??
+              PaymentMethod.CASH);
+
+          await paymentRepository.cancelPendingByOrderId(id, PaymentType.PAYMENT);
+
+          const outstandingAmount = toMoney(
+            Math.max(nextTotalAmount - totalPaidAmount, 0)
+          );
+
+          if (outstandingAmount > 0.01) {
+            const paymentResult = await createPendingPaymentForOrder({
+              orderId: id,
+              orderNumber: order.orderNumber,
+              amount: outstandingAmount,
+              method,
+              notes:
+                dto.paymentNotes ??
+                'Updated payment after adding order extras',
+            });
+
+            if (paymentResult.isErr()) {
+              return err(paymentResult.error);
+            }
+
+            payment = paymentResult.value.payment;
+            vietqr = paymentResult.value.vietqr;
+          } else {
+            await repository.updateStatus(id, OrderStatus.PAID);
+          }
+        }
+      } else if (
+        order.status === OrderStatus.PAID &&
+        totalPaidAmount + 0.01 >= nextTotalAmount
+      ) {
+        await repository.update(id, { hasPendingExtraPayment: false });
+      } else if (
+        order.status === OrderStatus.CONFIRMED &&
+        totalPaidAmount + 0.01 >= nextTotalAmount
+      ) {
+        await repository.update(id, { status: OrderStatus.PAID });
+      }
+
+      const orderResult = await toOrderResponseFromOrderId(id);
+      if (orderResult.isErr()) {
+        return err(orderResult.error);
+      }
+
+      return ok({
+        order: orderResult.value,
+        payment,
+        vietqr,
+      });
+    } catch (error) {
+      logger.error('Failed to update order extras', { error, orderId: id, dto });
+      return err(createDatabaseError('Failed to update order extras', error));
     }
   };
 
@@ -671,14 +1112,145 @@ export const createOrderService = (
     }
   };
 
+  /**
+   * Get all bills for one order
+   */
+  const getOrderBills = async (
+    orderId: string
+  ): Promise<Result<OrderBillResponseDto[], AppError>> => {
+    try {
+      const order = await repository.findById(orderId);
+
+      if (!order) {
+        return err(createNotFoundError('Order', orderId));
+      }
+
+      const bills = await repository.bills.findByOrderId(orderId);
+      return ok(bills.map(toOrderBillResponseDto));
+    } catch (error) {
+      logger.error('Failed to get order bills', { error, orderId });
+      return err(createDatabaseError('Failed to get order bills', error));
+    }
+  };
+
+  /**
+   * Save order bill snapshot
+   */
+  const saveOrderBill = async (
+    orderId: string,
+    dto: SaveOrderBillDto
+  ): Promise<Result<OrderBillResponseDto, AppError>> => {
+    try {
+      if (!dto.confirmSave) {
+        return err(createInvalidInputError('Bill save confirmation is required'));
+      }
+
+      const order = await repository.findByIdWithItems(orderId);
+
+      if (!order) {
+        return err(createNotFoundError('Order', orderId));
+      }
+
+      const activeBill = await repository.bills.findActiveByOrderId(orderId);
+      if (activeBill) {
+        return err(
+          createBusinessRuleError(
+            'An active bill already exists for this order. Void it before creating a new bill.'
+          )
+        );
+      }
+
+      const version = await repository.bills.getNextVersion(orderId);
+      const billNumber = `${order.orderNumber}-B${String(version).padStart(2, '0')}`;
+      const snapshot = toOrderBillSnapshotDto(order, (order as any).items);
+
+      const createdBill = await repository.bills.create({
+        orderId,
+        billNumber,
+        version,
+        snapshot,
+      });
+
+      logger.info('Order bill saved', {
+        orderId,
+        billId: createdBill.id,
+        billNumber: createdBill.billNumber,
+        version: createdBill.version,
+      });
+
+      return ok(toOrderBillResponseDto(createdBill));
+    } catch (error) {
+      logger.error('Failed to save order bill', { error, orderId });
+      return err(createDatabaseError('Failed to save order bill', error));
+    }
+  };
+
+  /**
+   * Void an existing bill while keeping full history
+   */
+  const voidOrderBill = async (
+    orderId: string,
+    billId: string,
+    dto: VoidOrderBillDto
+  ): Promise<Result<OrderBillResponseDto, AppError>> => {
+    try {
+      const order = await repository.findById(orderId);
+
+      if (!order) {
+        return err(createNotFoundError('Order', orderId));
+      }
+
+      const existingBill = await repository.bills.findById(orderId, billId);
+      if (!existingBill) {
+        return err(createNotFoundError('Order bill', billId));
+      }
+
+      if (existingBill.status === 'voided') {
+        return err(
+          createBusinessRuleError('This bill has already been voided')
+        );
+      }
+
+      const reason = dto.reason.trim();
+      if (!reason) {
+        return err(createInvalidInputError('Void reason is required'));
+      }
+
+      const voidedBill = await repository.bills.voidBill(
+        orderId,
+        billId,
+        reason,
+        new Date()
+      );
+
+      if (!voidedBill) {
+        return err(createDatabaseError('Failed to void order bill'));
+      }
+
+      logger.info('Order bill voided', {
+        orderId,
+        billId,
+      });
+
+      return ok(toOrderBillResponseDto(voidedBill));
+    } catch (error) {
+      logger.error('Failed to void order bill', { error, orderId, billId });
+      return err(createDatabaseError('Failed to void order bill', error));
+    }
+  };
+
   return {
     createOrder,
     getOrderById,
     getAllOrders,
     updateOrder,
     confirmOrder,
+    addOrderExtras,
     cancelOrder,
     deleteOrder,
     restoreOrder,
+    getOrderBills,
+    saveOrderBill,
+    voidOrderBill,
   };
 };

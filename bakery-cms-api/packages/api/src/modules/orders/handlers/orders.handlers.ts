@@ -11,6 +11,9 @@ import {
   UpdateOrderDto,
   OrderListQueryDto,
   ConfirmOrderDto,
+  AddOrderExtrasDto,
+  SaveOrderBillDto,
+  VoidOrderBillDto,
 } from '../dto/orders.dto';
 import { getLogger } from '../../../utils/logger';
 
@@ -26,8 +29,12 @@ export interface OrderHandlers {
   handleGetAllOrders(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleUpdateOrder(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleConfirmOrder(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleAddOrderExtras(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleCancelOrder(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleDeleteOrder(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleGetOrderBills(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleSaveOrderBill(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleVoidOrderBill(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 /**
@@ -206,6 +213,41 @@ export const createOrderHandlers = (service: OrderService): OrderHandlers => {
   };
 
   /**
+   * Handle add/update extras request
+   * POST /api/orders/:id/extras
+   */
+  const handleAddOrderExtras = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const dto: AddOrderExtrasDto = req.body;
+
+      if (!id) {
+        return next(new Error('Order ID is required'));
+      }
+
+      const result = await service.addOrderExtras(id, dto);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Order extras updated', { orderId: id });
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleAddOrderExtras', { error });
+      next(error);
+    }
+  };
+
+  /**
    * Handle cancel order request
    * POST /api/orders/:id/cancel
    */
@@ -271,13 +313,130 @@ export const createOrderHandlers = (service: OrderService): OrderHandlers => {
     }
   };
 
+  /**
+   * Handle get order bills request
+   * GET /api/orders/:id/bills
+   */
+  const handleGetOrderBills = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return next(new Error('Order ID is required'));
+      }
+
+      const result = await service.getOrderBills(id);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleGetOrderBills', { error });
+      next(error);
+    }
+  };
+
+  /**
+   * Handle save order bill request
+   * POST /api/orders/:id/bills
+   */
+  const handleSaveOrderBill = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const dto: SaveOrderBillDto = req.body;
+
+      if (!id) {
+        return next(new Error('Order ID is required'));
+      }
+
+      const result = await service.saveOrderBill(id, dto);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Order bill saved', {
+        orderId: id,
+        billId: result.value.id,
+        billNumber: result.value.billNumber,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleSaveOrderBill', { error });
+      next(error);
+    }
+  };
+
+  /**
+   * Handle void order bill request
+   * POST /api/orders/:id/bills/:billId/void
+   */
+  const handleVoidOrderBill = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id, billId } = req.params;
+      const dto: VoidOrderBillDto = req.body;
+
+      if (!id) {
+        return next(new Error('Order ID is required'));
+      }
+
+      if (!billId) {
+        return next(new Error('Bill ID is required'));
+      }
+
+      const result = await service.voidOrderBill(id, billId, dto);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Order bill voided', {
+        orderId: id,
+        billId,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleVoidOrderBill', { error });
+      next(error);
+    }
+  };
+
   return {
     handleCreateOrder,
     handleGetOrder,
     handleGetAllOrders,
     handleUpdateOrder,
     handleConfirmOrder,
+    handleAddOrderExtras,
     handleCancelOrder,
     handleDeleteOrder,
+    handleGetOrderBills,
+    handleSaveOrderBill,
+    handleVoidOrderBill,
   };
 };

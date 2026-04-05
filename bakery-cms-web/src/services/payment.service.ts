@@ -53,19 +53,25 @@ const getAll = async (
   filters?: PaymentFiltersRequest
 ): Promise<Result<PaginatedPayments, AppError>> => {
   try {
+    const normalizedFilters: PaymentFiltersRequest | undefined = filters
+      ? {
+          ...filters,
+          startDate: filters.startDate ?? filters.dateFrom,
+          endDate: filters.endDate ?? filters.dateTo,
+          limit: filters.limit ?? filters.pageSize,
+        }
+      : undefined;
+
     const response = await apiClient.get<PaginatedPaymentsAPIResponse>('/payments', {
-      params: filters,
+      params: normalizedFilters,
       headers: {
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
       },
     });
-    console.log('API Response:', response.data);
     const paginatedPayments = mapPaginatedPaymentsFromAPI(response.data);
-    console.log('Fetched payments:', paginatedPayments);
     return ok(paginatedPayments);
   } catch (error) {
-    console.error('Error fetching payments:', error);
     return err(extractErrorFromAxiosError(error));
   }
 };

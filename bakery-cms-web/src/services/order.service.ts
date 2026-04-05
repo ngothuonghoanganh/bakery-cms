@@ -14,9 +14,16 @@ import type {
   UpdateOrderRequest,
   OrderFiltersRequest,
   ConfirmOrderAPIResponse,
+  AddOrderExtrasRequest,
+  AddOrderExtrasAPIResponse,
+  OrderBillAPIResponse,
 } from '@/types/api/order.api';
-import type { Order, PaginatedOrders } from '@/types/models/order.model';
-import { mapOrderFromAPI, mapPaginatedOrdersFromAPI } from '@/types/mappers/order.mapper';
+import type { Order, PaginatedOrders, OrderBill } from '@/types/models/order.model';
+import {
+  mapOrderFromAPI,
+  mapPaginatedOrdersFromAPI,
+  mapOrderBillFromAPI,
+} from '@/types/mappers/order.mapper';
 import { PaymentMethod } from '@bakery-cms/common';
 import type { VietQRData } from '@/types/models/payment.model';
 import { mapVietQRDataFromAPI } from '@/types/mappers/payment.mapper';
@@ -25,6 +32,13 @@ export type ConfirmOrderResult = {
   readonly order: Order;
   readonly paymentId: string;
   readonly paymentMethod: PaymentMethod;
+  readonly vietqr: VietQRData | null;
+};
+
+export type UpdateOrderExtrasResult = {
+  readonly order: Order;
+  readonly paymentId: string | null;
+  readonly paymentMethod: PaymentMethod | null;
   readonly vietqr: VietQRData | null;
 };
 
@@ -41,7 +55,14 @@ export type OrderService = {
     id: string,
     paymentMethod: PaymentMethod
   ) => Promise<Result<ConfirmOrderResult, AppError>>;
+  readonly updateExtras: (
+    id: string,
+    data: AddOrderExtrasRequest
+  ) => Promise<Result<UpdateOrderExtrasResult, AppError>>;
   readonly cancel: (id: string) => Promise<Result<Order, AppError>>;
+  readonly getBills: (orderId: string) => Promise<Result<OrderBill[], AppError>>;
+  readonly saveBill: (orderId: string) => Promise<Result<OrderBill, AppError>>;
+  readonly voidBill: (orderId: string, billId: string, reason: string) => Promise<Result<OrderBill, AppError>>;
 };
 
 /**
@@ -126,6 +147,33 @@ const confirm = async (
 };
 
 /**
+ * Update order extras and return optional payment/qr if generated
+ */
+const updateExtras = async (
+  id: string,
+  data: AddOrderExtrasRequest
+): Promise<Result<UpdateOrderExtrasResult, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: AddOrderExtrasAPIResponse }>(
+      `/orders/${id}/extras`,
+      data
+    );
+    const payload = response.data.data;
+
+    return ok({
+      order: mapOrderFromAPI(payload.order),
+      paymentId: payload.payment?.id ?? null,
+      paymentMethod: payload.payment?.method
+        ? (payload.payment.method as PaymentMethod)
+        : null,
+      vietqr: payload.vietqr ? mapVietQRDataFromAPI(payload.vietqr) : null,
+    });
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
  * Cancel an order
  */
 const cancel = async (id: string): Promise<Result<Order, AppError>> => {
@@ -151,6 +199,54 @@ const deleteOrder = async (id: string): Promise<Result<void, AppError>> => {
 };
 
 /**
+ * Get all order bills
+ */
+const getBills = async (orderId: string): Promise<Result<OrderBill[], AppError>> => {
+  try {
+    const response = await apiClient.get<{ success: boolean; data: OrderBillAPIResponse[] }>(
+      `/orders/${orderId}/bills`
+    );
+    return ok(response.data.data.map(mapOrderBillFromAPI));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
+ * Save order bill snapshot
+ */
+const saveBill = async (orderId: string): Promise<Result<OrderBill, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: OrderBillAPIResponse }>(
+      `/orders/${orderId}/bills`,
+      { confirmSave: true as const }
+    );
+    return ok(mapOrderBillFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
+ * Void an existing bill (requires reason)
+ */
+const voidBill = async (
+  orderId: string,
+  billId: string,
+  reason: string
+): Promise<Result<OrderBill, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: OrderBillAPIResponse }>(
+      `/orders/${orderId}/bills/${billId}/void`,
+      { reason }
+    );
+    return ok(mapOrderBillFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
  * Order service instance
  */
 export const orderService: OrderService = {
@@ -160,7 +256,11 @@ export const orderService: OrderService = {
   update,
   delete: deleteOrder,
   confirm,
+  updateExtras,
   cancel,
+  getBills,
+  saveBill,
+  voidBill,
 };
 
 // Named exports for convenience
@@ -170,4 +270,8 @@ export const createOrder = create;
 export const updateOrder = update;
 export { deleteOrder };
 export const confirmOrder = confirm;
+export const updateOrderExtras = updateExtras;
 export const cancelOrder = cancel;
+export const getOrderBills = getBills;
+export const saveOrderBill = saveBill;
+export const voidOrderBill = voidBill;

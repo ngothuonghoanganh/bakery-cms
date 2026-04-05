@@ -11,4 +11,6 @@ export interface RecentActivityProps {
   items: ActivityItem[];
   loading?: boolean;
   onItemClick?: (item: ActivityItem) => void;
+  title?: string;
+  emptyText?: string;
 }

@@ -13,6 +13,8 @@ export class OrderItemModel extends Model {
   declare id: string;
   declare orderId: string;
   declare productId: string;
+  declare productCode: string;
+  declare productName: string;
   declare quantity: number;
   declare unitPrice: number;
   declare subtotal: number;
@@ -56,6 +58,24 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         },
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
+      },
+      productName: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        field: 'product_name',
+        validate: {
+          notEmpty: true,
+          len: [1, 255],
+        },
+      },
+      productCode: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        field: 'product_code',
+        validate: {
+          notEmpty: true,
+          len: [3, 50],
+        },
       },
       quantity: {
         type: DataTypes.INTEGER,
@@ -133,6 +153,12 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         },
         {
           fields: ['product_id'],
+        },
+        {
+          fields: ['product_name'],
+        },
+        {
+          fields: ['product_code'],
         },
         {
           unique: true,

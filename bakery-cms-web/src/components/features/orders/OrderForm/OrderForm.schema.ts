@@ -13,6 +13,7 @@ export const orderItemSchema = z.object({
     .min(1, 'Quantity must be at least 1')
     .max(9999, 'Quantity cannot exceed 9999'),
   unitPrice: z.number().min(0, 'Price must be non-negative').max(999999999, 'Price is too large'),
+  notes: z.string().max(500, 'Item notes cannot exceed 500 characters').optional().or(z.literal('')),
 });
 
 // Order form validation schema
@@ -32,6 +33,11 @@ export const orderFormSchema = z.object({
     .string()
     .regex(/^[0-9+\-() ]*$/, 'Phone number can only contain digits and +, -, (, ), space')
     .max(20, 'Phone number cannot exceed 20 characters')
+    .optional()
+    .or(z.literal('')),
+  customerAddress: z
+    .string()
+    .max(1000, 'Address cannot exceed 1000 characters')
     .optional()
     .or(z.literal('')),
   notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional().or(z.literal('')),
