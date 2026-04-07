@@ -95,8 +95,12 @@ export const validatePassword = (password: string): PasswordValidationResult => 
   }
 
   // Additional scoring for length and complexity
-  if (password.length >= 12) score += 10;
-  if (password.length >= 16) score += 10;
+  if (password.length >= 12) {
+score += 10;
+}
+  if (password.length >= 16) {
+score += 10;
+}
 
   // Determine strength
   let strength: PasswordStrength;
@@ -138,7 +142,9 @@ export const calculateLockoutExpiration = (): Date => {
  * Check if account is currently locked
  */
 export const isAccountLocked = (lockedUntil: Date | null | undefined): boolean => {
-  if (!lockedUntil) return false;
+  if (!lockedUntil) {
+return false;
+}
   return new Date() < new Date(lockedUntil);
 };
 
@@ -154,7 +160,7 @@ export const shouldResetAttempts = (lastAttempt: Date): boolean => {
 /**
  * Generate a secure random token
  */
-export const generateSecureToken = (length: number = 32): string => {
+export const generateSecureToken = (length = 32): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let token = '';
   const randomValues = randomBytes(length);

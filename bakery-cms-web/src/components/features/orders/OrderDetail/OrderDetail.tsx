@@ -18,7 +18,15 @@ import {
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import type { OrderDetailProps } from './OrderDetail.types';
-import type { OrderStatus } from '../../../../types/models/order.model';
+import {
+  SaleUnitType,
+  type OrderStatus,
+  type OrderItem,
+} from '../../../../types/models/order.model';
+import {
+  formatSaleQuantity,
+  getSaleUnitPriceSuffix,
+} from '../../../../utils/sale-unit.utils';
 
 const { Title, Text } = Typography;
 
@@ -70,6 +78,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       key: 'quantity',
       width: 100,
       align: 'center' as const,
+      render: (value: number, record: OrderItem) =>
+        formatSaleQuantity(value, record?.saleUnitType || SaleUnitType.PIECE),
     },
     {
       title: t('orders.detail.unitPrice'),
@@ -77,7 +87,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       key: 'unitPrice',
       width: 120,
       align: 'right' as const,
-      render: (price: number) => formatCurrency(price),
+      render: (price: number, record: OrderItem) =>
+        `${formatCurrency(price)} ${getSaleUnitPriceSuffix(record?.saleUnitType || SaleUnitType.PIECE)}`,
     },
     {
       title: t('orders.detail.subtotal'),

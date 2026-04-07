@@ -104,9 +104,15 @@ export const validateOAuthExchangeBody = (
 
   const missingFields: string[] = [];
 
-  if (!code) missingFields.push('code');
-  if (!codeVerifier) missingFields.push('codeVerifier');
-  if (!redirectUri) missingFields.push('redirectUri');
+  if (!code) {
+missingFields.push('code');
+}
+  if (!codeVerifier) {
+missingFields.push('codeVerifier');
+}
+  if (!redirectUri) {
+missingFields.push('redirectUri');
+}
 
   if (missingFields.length > 0) {
     res.status(400).json({

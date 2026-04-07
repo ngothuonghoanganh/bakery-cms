@@ -224,12 +224,17 @@ export const createOrderHandlers = (service: OrderService): OrderHandlers => {
     try {
       const { id } = req.params;
       const dto: AddOrderExtrasDto = req.body;
+      const actorUserId = (req as any).user?.id as string | undefined;
 
       if (!id) {
         return next(new Error('Order ID is required'));
       }
 
-      const result = await service.addOrderExtras(id, dto);
+      if (!actorUserId) {
+        return next(new Error('User authentication required'));
+      }
+
+      const result = await service.addOrderExtras(id, dto, actorUserId);
 
       if (result.isErr()) {
         return next(result.error);

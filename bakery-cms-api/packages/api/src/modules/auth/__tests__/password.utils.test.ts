@@ -286,12 +286,14 @@ describe('PasswordUtils', () => {
     it('should generate passwords with required character types', () => {
       // Act
       const password = generateSecurePassword(16);
+      const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+      const hasSpecialChar = [...password].some((char) => specialChars.includes(char));
 
       // Assert
       expect(/[A-Z]/.test(password)).toBe(true); // Contains uppercase
       expect(/[a-z]/.test(password)).toBe(true); // Contains lowercase
       expect(/\d/.test(password)).toBe(true); // Contains numbers
-      expect(/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)).toBe(true); // Contains special chars
+      expect(hasSpecialChar).toBe(true); // Contains special chars
     });
 
     it('should generate different passwords on multiple calls', () => {

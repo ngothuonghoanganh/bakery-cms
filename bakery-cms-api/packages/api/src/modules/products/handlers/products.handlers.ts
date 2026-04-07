@@ -138,6 +138,7 @@ export const createProductHandlers = (
         businessType: req.query['businessType'] as any,
         status: req.query['status'] as any,
         productType: req.query['productType'] as any,
+        saleUnitType: req.query['saleUnitType'] as any,
         isPublished: parseBooleanQueryParam(req.query['isPublished']),
         category: req.query['category'] as string,
         search: req.query['search'] as string,

@@ -19,10 +19,21 @@ import {
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
-import { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
+import {
+  OrderType,
+  BusinessModel,
+  OrderStatus,
+  SaleUnitType,
+} from '../../../../types/models/order.model';
 import { useProducts } from '../../../../hooks/useProducts';
 import { formatCurrency } from '../../../../utils/format.utils';
 import { settingsService } from '../../../../services/settings.service';
+import {
+  calculateOrderItemSubtotal,
+  getQuantityRuleBySaleUnit,
+  getSaleUnitPriceSuffix,
+  isValidQuantityBySaleUnit,
+} from '../../../../utils/sale-unit.utils';
 import type {
   OrderExtraFeeFormValue,
   OrderFormProps,
@@ -49,6 +60,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const { products, loading: productsLoading } = useProducts({ autoFetch: true });
   const [loadingDefaultExtras, setLoadingDefaultExtras] = useState(false);
   const [extraFeeTemplates, setExtraFeeTemplates] = useState<OrderExtraFeeTemplate[]>([]);
+  const productById = useMemo(
+    () => new Map((products || []).map((product) => [product.id, product])),
+    [products]
+  );
 
   // Watch items for total calculation
   const items = Form.useWatch('items', form) || [];
@@ -60,7 +75,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       if (!item) return sum;
       const quantity = item.quantity || 0;
       const unitPrice = item.unitPrice || 0;
-      return sum + quantity * unitPrice;
+      const saleUnitType = item.saleUnitType || SaleUnitType.PIECE;
+      return sum + calculateOrderItemSubtotal(quantity, unitPrice, saleUnitType);
     }, 0);
   }, [items]);
 
@@ -126,6 +142,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           setExtraFeeTemplates(templates);
           form.setFieldsValue({
             ...initialValues,
+            items: (initialValues.items || []).map((item) => ({
+              ...item,
+              saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+            })),
             extraFees: mappedInitialFees,
           });
         } else {
@@ -157,6 +177,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         setExtraFeeTemplates(Array.from(fallbackTemplateMap.values()));
         form.setFieldsValue({
           ...initialValues,
+          items: (initialValues.items || []).map((item) => ({
+            ...item,
+            saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+          })),
           extraFees: initialValues.extraFees || [],
         });
       } else {
@@ -199,13 +223,18 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           };
         })
         .filter((fee): fee is OrderExtraFeeFormValue => fee !== null);
+      const normalizedItems = (values.items || []).map((item) => ({
+        ...item,
+        saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+      }));
 
       await onSubmit({
         ...values,
+        items: normalizedItems,
         extraFees: normalizedExtras,
       });
       form.resetFields();
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by parent component
     }
   };
@@ -219,12 +248,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const handleProductSelect = (productId: string, index: number) => {
     const product = products?.find((p) => p.id === productId);
     if (product) {
-      const items = form.getFieldValue('items') || [];
-      items[index] = {
-        ...items[index],
+      const currentItems = form.getFieldValue('items') || [];
+      const currentItem = currentItems[index] || {};
+      const saleUnitType = product.saleUnitType || SaleUnitType.PIECE;
+      const quantityRules = getQuantityRuleBySaleUnit(saleUnitType);
+      const currentQuantity = Number(currentItem.quantity ?? 0);
+      const normalizedQuantity = isValidQuantityBySaleUnit(currentQuantity, saleUnitType)
+        ? currentQuantity
+        : quantityRules.min;
+
+      currentItems[index] = {
+        ...currentItem,
         unitPrice: product.price,
+        saleUnitType,
+        quantity: normalizedQuantity,
       };
-      form.setFieldsValue({ items });
+      form.setFieldsValue({ items: currentItems });
     }
   };
 
@@ -266,7 +305,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           customerPhone: '',
           customerAddress: '',
           notes: '',
-          items: [{ productId: '', quantity: 1, unitPrice: 0, notes: '' }],
+          items: [
+            {
+              productId: '',
+              saleUnitType: SaleUnitType.PIECE,
+              quantity: 1,
+              unitPrice: 0,
+              notes: '',
+            },
+          ],
           extraFees: [],
           status: OrderStatus.DRAFT,
         }}
@@ -373,105 +420,173 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         >
           {(fields, { add, remove }, { errors: listErrors }) => (
             <>
-              {fields.map((field, index) => (
-                <div key={field.key} style={{ marginBottom: 12 }}>
-                  <Space
-                    style={{ display: 'flex', marginBottom: 8 }}
-                    align="baseline"
-                    wrap
-                  >
-                    {/* Product Selection */}
-                    <Form.Item
-                      {...field}
-                      name={[field.name, 'productId']}
-                      rules={[{ required: true, message: t('orders.form.validation.productRequired') }]}
-                      style={{ marginBottom: 0, width: 250 }}
+              {fields.map((field, index) => {
+                const selectedProductId = items[index]?.productId;
+                const selectedProduct = selectedProductId
+                  ? productById.get(selectedProductId)
+                  : undefined;
+                const saleUnitType =
+                  items[index]?.saleUnitType ||
+                  selectedProduct?.saleUnitType ||
+                  SaleUnitType.PIECE;
+                const quantityRule = getQuantityRuleBySaleUnit(saleUnitType);
+                const subtotal = calculateOrderItemSubtotal(
+                  Number(items[index]?.quantity || 0),
+                  Number(items[index]?.unitPrice || 0),
+                  saleUnitType
+                );
+                const isWeight = saleUnitType === SaleUnitType.WEIGHT;
+
+                return (
+                  <div key={field.key} style={{ marginBottom: 12 }}>
+                    <Space
+                      style={{ display: 'flex', marginBottom: 8 }}
+                      align="baseline"
+                      wrap
                     >
-                      <Select
-                        placeholder={t('orders.form.selectProduct')}
-                        loading={productsLoading}
-                        onChange={(value) => handleProductSelect(value, index)}
-                        showSearch
-                        optionFilterProp="children"
+                      {/* Product Selection */}
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'productId']}
+                        rules={[{ required: true, message: t('orders.form.validation.productRequired') }]}
+                        style={{ marginBottom: 0, width: 250 }}
                       >
-                        {products?.map((product) => (
-                          <Option key={product.id} value={product.id}>
-                            {product.name} ({formatCurrency(product.price)})
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
+                        <Select
+                          placeholder={t('orders.form.selectProduct')}
+                          loading={productsLoading}
+                          onChange={(value) => handleProductSelect(value, index)}
+                          showSearch
+                          optionFilterProp="children"
+                        >
+                          {products?.map((product) => (
+                            <Option key={product.id} value={product.id}>
+                              {product.name} (
+                              {`${formatCurrency(product.price)} ${getSaleUnitPriceSuffix(product.saleUnitType)}`}
+                              )
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
 
-                    {/* Quantity */}
-                    <Form.Item
-                      {...field}
-                      name={[field.name, 'quantity']}
-                      rules={[
-                        { required: true, message: t('orders.form.validation.quantityRequired') },
-                        { type: 'number', min: 1, message: t('orders.form.validation.quantityMin') },
-                        { type: 'number', max: 9999, message: t('orders.form.validation.quantityMax') },
-                      ]}
-                      style={{ marginBottom: 0, width: 100 }}
-                    >
-                      <InputNumber placeholder={t('orders.form.quantityShort')} min={1} max={9999} style={{ width: '100%' }} />
-                    </Form.Item>
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'saleUnitType']}
+                        style={{ marginBottom: 0, display: 'none' }}
+                      >
+                        <Input />
+                      </Form.Item>
 
-                    {/* Unit Price */}
-                    <Form.Item
-                      {...field}
-                      name={[field.name, 'unitPrice']}
-                      rules={[
-                        { required: true, message: t('orders.form.validation.priceRequired') },
-                        { type: 'number', min: 0, message: t('orders.form.validation.priceMin') },
-                      ]}
-                      style={{ marginBottom: 0, width: 150 }}
-                    >
-                      <InputNumber
-                        placeholder={t('orders.form.price')}
-                        min={0}
-                        formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
-                        style={{ width: '100%' }}
-                      />
-                    </Form.Item>
+                      {/* Quantity */}
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'quantity']}
+                        rules={[
+                          { required: true, message: t('orders.form.validation.quantityRequired') },
+                          { type: 'number', message: t('validation.number', 'Please enter a valid number') },
+                          {
+                            validator: async (_, value) => {
+                              const quantity = Number(value);
+                              if (!isValidQuantityBySaleUnit(quantity, saleUnitType)) {
+                                if (saleUnitType === SaleUnitType.WEIGHT) {
+                                  throw new Error(
+                                    t(
+                                      'orders.form.validation.weightQuantityRule',
+                                      'Khối lượng phải là số gram nguyên, tối thiểu 100g và bội số của 100g.'
+                                    )
+                                  );
+                                }
 
-                    {/* Subtotal Display */}
-                    <Text strong style={{ width: 140, textAlign: 'right' }}>
-                      {formatCurrency((items[index]?.quantity || 0) * (items[index]?.unitPrice || 0))}
-                    </Text>
+                                throw new Error(
+                                  t(
+                                    'orders.form.validation.quantityMin',
+                                    'Quantity must be at least 1'
+                                  )
+                                );
+                              }
+                            },
+                          },
+                        ]}
+                        style={{ marginBottom: 0, width: 130 }}
+                      >
+                        <InputNumber
+                          placeholder={
+                            isWeight
+                              ? t('orders.form.quantityWeightPlaceholder', 'Gram (100g step)')
+                              : t('orders.form.quantityShort')
+                          }
+                          min={quantityRule.min}
+                          step={quantityRule.step}
+                          precision={0}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
 
-                    {/* Remove Button */}
-                    {fields.length > 1 && (
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => remove(field.name)}
-                      />
-                    )}
-                  </Space>
+                      {/* Unit Price */}
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'unitPrice']}
+                        rules={[
+                          { required: true, message: t('orders.form.validation.priceRequired') },
+                          { type: 'number', min: 0, message: t('orders.form.validation.priceMin') },
+                        ]}
+                        style={{ marginBottom: 0, width: 170 }}
+                      >
+                        <InputNumber
+                          placeholder={`${t('orders.form.price')} ${getSaleUnitPriceSuffix(saleUnitType)}`}
+                          min={0}
+                          precision={0}
+                          formatter={(value) => `₫ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                          parser={(value) => value?.replace(/₫\s?|(,*)/g, '') as any}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
 
-                  <Form.Item
-                    {...field}
-                    name={[field.name, 'notes']}
-                    rules={[{ max: 500, message: t('orders.form.validation.itemNotesMax') }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Input
-                      placeholder={t(
-                        'orders.form.itemNotesPlaceholder',
-                        'Item note (optional)'
+                      {/* Subtotal Display */}
+                      <Text strong style={{ width: 170, textAlign: 'right' }}>
+                        {formatCurrency(subtotal)}
+                      </Text>
+
+                      {/* Remove Button */}
+                      {fields.length > 1 && (
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(field.name)}
+                        />
                       )}
-                    />
-                  </Form.Item>
-                </div>
-              ))}
+                    </Space>
+
+                    <Form.Item
+                      {...field}
+                      name={[field.name, 'notes']}
+                      rules={[{ max: 500, message: t('orders.form.validation.itemNotesMax') }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input
+                        placeholder={t(
+                          'orders.form.itemNotesPlaceholder',
+                          'Item note (optional)'
+                        )}
+                      />
+                    </Form.Item>
+                  </div>
+                );
+              })}
 
               {/* Add Item Button */}
               <Form.Item>
                 <Button
                   type="dashed"
-                  onClick={() => add({ productId: '', quantity: 1, unitPrice: 0, notes: '' })}
+                  onClick={() =>
+                    add({
+                      productId: '',
+                      saleUnitType: SaleUnitType.PIECE,
+                      quantity: 1,
+                      unitPrice: 0,
+                      notes: '',
+                    })
+                  }
                   block
                   icon={<PlusOutlined />}
                 >

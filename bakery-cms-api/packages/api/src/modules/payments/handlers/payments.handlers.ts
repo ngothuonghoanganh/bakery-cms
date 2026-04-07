@@ -216,12 +216,17 @@ export const createPaymentHandlers = (
     try {
       const { id } = req.params;
       const dto: MarkAsPaidDto = req.body;
+      const actorUserId = (req as any).user?.id as string | undefined;
 
       if (!id) {
         return next(new Error('Payment ID is required'));
       }
 
-      const result = await service.markAsPaid(id, dto);
+      if (!actorUserId) {
+        return next(new Error('User authentication required'));
+      }
+
+      const result = await service.markAsPaid(id, dto, actorUserId);
 
       if (result.isErr()) {
         return next(result.error);

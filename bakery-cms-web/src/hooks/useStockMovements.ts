@@ -42,6 +42,7 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
 
   // Use ref to store the latest filters without causing re-renders
   const filtersRef = useRef(initialFilters);
+  const requestIdRef = useRef(0);
 
   // Update ref when props change
   useEffect(() => {
@@ -52,29 +53,48 @@ export const useStockMovements = (initialFilters?: StockMovementFiltersRequest):
    * Fetch stock movements with filters
    */
   const fetchStockMovements = useCallback(async (filters?: StockMovementFiltersRequest) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     setLoading(true);
     setError(null);
 
-    // Use provided filters or fall back to ref
-    const filtersToUse = filters ?? filtersRef.current;
-    const result = await stockService.getStockMovements(filtersToUse);
+    try {
+      // Use provided filters or fall back to ref
+      const filtersToUse = filters ?? filtersRef.current;
+      const result = await stockService.getStockMovements(filtersToUse);
 
-    if (result.success) {
-      const data = result.data;
-      setStockMovements([...data.stockMovements]);
-      setPagination({
-        current: data.page,
-        pageSize: data.limit,
-        total: data.total,
-        totalPages: data.totalPages,
-      });
-    } else {
-      const errorMessage = result.error.message || 'Failed to fetch stock movements';
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (result.success) {
+        const data = result.data;
+        setStockMovements([...data.stockMovements]);
+        setPagination({
+          current: data.page,
+          pageSize: data.limit,
+          total: data.total,
+          totalPages: data.totalPages,
+        });
+      } else {
+        const errorMessage = result.error.message || 'Failed to fetch stock movements';
+        setError(errorMessage);
+        message.error(errorMessage);
+      }
+    } catch (err) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch stock movements';
       setError(errorMessage);
       message.error(errorMessage);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
-
-    setLoading(false);
   }, []);
 
   /**

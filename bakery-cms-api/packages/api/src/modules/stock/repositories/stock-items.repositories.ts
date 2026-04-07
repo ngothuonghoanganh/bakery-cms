@@ -14,6 +14,8 @@ import { StockItemListQueryDto } from '../dto/stock-items.dto';
  */
 export interface StockItemRepository {
   findById(id: string): Promise<StockItemModel | null>;
+  findByIdIncludingDeleted(id: string): Promise<StockItemModel | null>;
+  findByName(name: string): Promise<StockItemModel | null>;
   findAll(query: StockItemListQueryDto): Promise<{ rows: StockItemModel[]; count: number }>;
   create(attributes: Partial<StockItemModel>): Promise<StockItemModel>;
   update(id: string, attributes: Partial<StockItemModel>): Promise<StockItemModel | null>;
@@ -37,6 +39,24 @@ export const createStockItemRepository = (
    */
   const findById = async (id: string): Promise<StockItemModel | null> => {
     return await model.findByPk(id);
+  };
+
+  /**
+   * Find stock item by ID including soft-deleted records
+   */
+  const findByIdIncludingDeleted = async (
+    id: string
+  ): Promise<StockItemModel | null> => {
+    return await model.findByPk(id, { paranoid: false });
+  };
+
+  /**
+   * Find active stock item by exact name
+   */
+  const findByName = async (name: string): Promise<StockItemModel | null> => {
+    return await model.findOne({
+      where: { name },
+    });
   };
 
   /**
@@ -142,7 +162,7 @@ export const createStockItemRepository = (
    * Returns restored stock item or null if not found
    */
   const restore = async (id: string): Promise<StockItemModel | null> => {
-    const stockItem = await model.scope('withDeleted').findByPk(id);
+    const stockItem = await model.findByPk(id, { paranoid: false });
 
     if (!stockItem || !stockItem.deletedAt) {
       return null;
@@ -194,6 +214,8 @@ export const createStockItemRepository = (
 
   return {
     findById,
+    findByIdIncludingDeleted,
+    findByName,
     findAll,
     create,
     update,

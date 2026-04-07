@@ -88,6 +88,7 @@ export const createProductRepository = (
       businessType,
       status,
       productType,
+      saleUnitType,
       isPublished,
       category,
       search,
@@ -106,6 +107,10 @@ export const createProductRepository = (
 
     if (productType) {
       where['productType'] = productType;
+    }
+
+    if (saleUnitType) {
+      where['saleUnitType'] = saleUnitType;
     }
 
     if (isPublished !== undefined) {

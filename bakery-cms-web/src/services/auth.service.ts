@@ -212,7 +212,9 @@ export const validatePassword = (password: string): PasswordValidationResult => 
   }
 
   // Special character
-  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+  const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const hasSpecialChar = [...password].some((char) => specialChars.includes(char));
+  if (!hasSpecialChar) {
     errors.push('One special character');
   } else {
     score += 20;

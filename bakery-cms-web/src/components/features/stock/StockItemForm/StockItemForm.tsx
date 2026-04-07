@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { Form, Input, InputNumber, Row, Col } from 'antd';
+import { Form, Input, InputNumber, Row, Col, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
+import { StockUnitType } from '../../../../types/models/stock.model';
 import type { StockItemFormProps, StockItemFormValues } from './StockItemForm.types';
 
 const { TextArea } = Input;
@@ -22,12 +23,13 @@ export const StockItemForm: React.FC<StockItemFormProps> = ({
       form.setFieldsValue({
         name: stockItem.name,
         description: stockItem.description || undefined,
-        unitOfMeasure: stockItem.unitOfMeasure,
+        unitType: stockItem.unitType,
         reorderThreshold: stockItem.reorderThreshold || undefined,
       });
     } else if (visible && !stockItem) {
       form.resetFields();
       form.setFieldsValue({
+        unitType: StockUnitType.PIECE,
         currentQuantity: 0,
       });
     }
@@ -86,15 +88,20 @@ export const StockItemForm: React.FC<StockItemFormProps> = ({
 
           <Col span={12}>
             <Form.Item
-              name="unitOfMeasure"
-              label={t('stock.form.unitOfMeasure')}
+              name="unitType"
+              label={t('stock.form.unitType', 'Loại đơn vị')}
               rules={[
                 { required: true, message: t('stock.form.validation.unitRequired') },
-                { min: 1, message: t('stock.form.validation.unitMin') },
-                { max: 50, message: t('stock.form.validation.unitMax') },
               ]}
             >
-              <Input placeholder={t('stock.form.unitPlaceholder')} />
+              <Select>
+                <Select.Option value={StockUnitType.PIECE}>
+                  {t('stock.unitType.piece', 'Cái')}
+                </Select.Option>
+                <Select.Option value={StockUnitType.WEIGHT}>
+                  {t('stock.unitType.weight', 'Khối lượng (gram)')}
+                </Select.Option>
+              </Select>
             </Form.Item>
           </Col>
 

@@ -18,6 +18,23 @@ import { useNotification } from '../hooks/useNotification';
 import type { PaymentFormValues } from '../components/features/payments/PaymentForm/PaymentForm.types';
 import type { PaymentFiltersValue } from '../components/features/payments/PaymentFilters/PaymentFilters.types';
 
+const toDateValue = (value?: Date): number | undefined => value?.getTime();
+
+const areFiltersEqual = (
+  left: PaymentFiltersValue,
+  right: PaymentFiltersValue
+): boolean => {
+  return (
+    left.orderId === right.orderId &&
+    left.search === right.search &&
+    left.paymentType === right.paymentType &&
+    left.status === right.status &&
+    left.method === right.method &&
+    toDateValue(left.dateFrom) === toDateValue(right.dateFrom) &&
+    toDateValue(left.dateTo) === toDateValue(right.dateTo)
+  );
+};
+
 export const PaymentsPage: React.FC = () => {
   const { t } = useTranslation();
   const { error } = useNotification();
@@ -56,7 +73,7 @@ export const PaymentsPage: React.FC = () => {
   // Debounce search input - wait 2s after user stops typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setDebouncedFilters(filters);
+      setDebouncedFilters((prev) => (areFiltersEqual(prev, filters) ? prev : filters));
     }, 2000);
 
     return () => clearTimeout(timeoutId);
@@ -69,15 +86,7 @@ export const PaymentsPage: React.FC = () => {
       dateFrom: debouncedFilters.dateFrom ? new Date(debouncedFilters.dateFrom) : undefined,
       dateTo: debouncedFilters.dateTo ? new Date(debouncedFilters.dateTo) : undefined,
     }),
-    [
-      debouncedFilters.orderId,
-      debouncedFilters.paymentType,
-      debouncedFilters.status,
-      debouncedFilters.method,
-      debouncedFilters.search,
-      debouncedFilters.dateFrom,
-      debouncedFilters.dateTo,
-    ]
+    [debouncedFilters]
   );
 
   const { payments, loading, refetch } = usePayments({

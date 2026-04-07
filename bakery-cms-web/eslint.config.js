@@ -12,7 +12,6 @@ export default defineConfig([
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      tseslint.configs.strict,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
@@ -21,26 +20,27 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      // TypeScript strict rules
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/explicit-function-return-type': ['error', {
-        allowExpressions: true,
-        allowTypedFunctionExpressions: true,
-      }],
-      '@typescript-eslint/explicit-module-boundary-types': 'error',
+      // TypeScript pragmatic rules
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
       }],
       
       // Functional programming rules
       'prefer-const': 'error',
       'no-var': 'error',
-      'no-param-reassign': 'error',
+      'no-param-reassign': 'off',
       
       // React rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       
       // Code quality

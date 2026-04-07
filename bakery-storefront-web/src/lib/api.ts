@@ -126,6 +126,7 @@ const normalizeProduct = (product: ApiProduct): ApiProduct => {
 
   return {
     ...product,
+    saleUnitType: product.saleUnitType === 'weight' ? 'weight' : 'piece',
     description: product.description ?? '',
     imageUrl: resolveProductImageUrl({ product, normalizedImages }),
     category: product.category ?? null,

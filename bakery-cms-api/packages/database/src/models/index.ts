@@ -182,6 +182,13 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  Brand.hasMany(StockMovement, {
+    foreignKey: 'brandId',
+    as: 'stockMovements',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
   // StockItemBrand associations
   StockItemBrand.belongsTo(StockItem, {
     foreignKey: 'stockItemId',
@@ -239,6 +246,13 @@ export const initializeModels = (sequelize: Sequelize): {
     foreignKey: 'userId',
     as: 'user',
     onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockMovement.belongsTo(Brand, {
+    foreignKey: 'brandId',
+    as: 'brand',
+    onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
   });
 

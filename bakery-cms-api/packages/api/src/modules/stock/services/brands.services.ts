@@ -5,9 +5,14 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError } from '@bakery-cms/common';
+import {
+  AppError,
+  StockPurchaseUnit,
+  StockUnitType,
+} from '@bakery-cms/common';
 import { BrandRepository } from '../repositories/brands.repositories';
 import { StockItemBrandRepository } from '../repositories/stock-item-brands.repositories';
+import { StockItemRepository } from '../repositories/stock-items.repositories';
 import type { FileService } from '../../files/services/files.services';
 import {
   CreateBrandDto,
@@ -36,6 +41,10 @@ import {
   createInvalidInputError,
 } from '../../../utils/error-factory';
 import { getLogger } from '../../../utils/logger';
+import {
+  isCompatiblePurchaseUnit,
+  toStockBaseQuantity,
+} from '../utils/brand-pricing.utils';
 
 const logger = getLogger();
 
@@ -63,6 +72,7 @@ export interface BrandService {
 export type BrandServiceDependencies = {
   readonly brandRepository: BrandRepository;
   readonly stockItemBrandRepository: StockItemBrandRepository;
+  readonly stockItemRepository: StockItemRepository;
   readonly fileService?: FileService;
 };
 
@@ -74,7 +84,32 @@ export type BrandServiceDependencies = {
 export const createBrandService = (
   deps: BrandServiceDependencies
 ): BrandService => {
-  const { brandRepository, stockItemBrandRepository, fileService } = deps;
+  const { brandRepository, stockItemBrandRepository, stockItemRepository, fileService } = deps;
+
+  const toMoney = (value: number): number =>
+    Math.round(value * 100) / 100;
+
+  const toBaseQuantity = (
+    stockUnitType: StockUnitType,
+    purchaseQuantity: number,
+    purchaseUnit: StockPurchaseUnit
+  ): Result<number, AppError> => {
+    if (purchaseQuantity <= 0) {
+      return err(createInvalidInputError('Purchase quantity must be greater than 0'));
+    }
+
+    if (!isCompatiblePurchaseUnit(stockUnitType, purchaseUnit)) {
+      return err(
+        createInvalidInputError(
+          `Purchase unit "${purchaseUnit}" is not compatible with stock unit type "${stockUnitType}"`
+        )
+      );
+    }
+
+    return ok(
+      toStockBaseQuantity(stockUnitType, purchaseQuantity, purchaseUnit)
+    );
+  };
   /**
    * Create new brand
    */
@@ -271,6 +306,12 @@ export const createBrandService = (
         return err(createNotFoundError('Brand', dto.brandId));
       }
 
+      const stockItem = await stockItemRepository.findById(stockItemId);
+      if (!stockItem) {
+        logger.warn('Stock item not found when adding brand', { stockItemId });
+        return err(createNotFoundError('Stock item', stockItemId));
+      }
+
       // Check if association already exists
       const existing = await stockItemBrandRepository.findByStockItemAndBrand(
         stockItemId,
@@ -284,6 +325,19 @@ export const createBrandService = (
 
       // Create association
       const attributes = toStockItemBrandCreationAttributes(stockItemId, dto);
+      const baseQuantityResult = toBaseQuantity(
+        (stockItem.unitType as StockUnitType) ?? StockUnitType.PIECE,
+        dto.purchaseQuantity,
+        dto.purchaseUnit
+      );
+
+      if (baseQuantityResult.isErr()) {
+        return err(baseQuantityResult.error);
+      }
+
+      const baseQuantity = baseQuantityResult.value;
+      attributes.unitPriceBeforeTax = toMoney(dto.priceBeforeTax / baseQuantity);
+      attributes.unitPriceAfterTax = toMoney(dto.priceAfterTax / baseQuantity);
       const stockItemBrand = await stockItemBrandRepository.create(attributes);
 
       logger.info('Brand added to stock item successfully', {
@@ -333,7 +387,42 @@ export const createBrandService = (
     try {
       logger.info('Updating stock item brand', { stockItemId, brandId, updates: dto });
 
+      const existing = await stockItemBrandRepository.findByStockItemAndBrand(
+        stockItemId,
+        brandId
+      );
+      if (!existing) {
+        logger.warn('Stock item brand association not found', { stockItemId, brandId });
+        return err(createNotFoundError('Stock item brand association', `${stockItemId}:${brandId}`));
+      }
+
+      const stockItem = await stockItemRepository.findById(stockItemId);
+      if (!stockItem) {
+        logger.warn('Stock item not found when updating stock item brand', { stockItemId });
+        return err(createNotFoundError('Stock item', stockItemId));
+      }
+
+      const nextPurchaseQuantity = dto.purchaseQuantity ?? Number(existing.purchaseQuantity);
+      const nextPurchaseUnit =
+        dto.purchaseUnit ??
+        ((existing.purchaseUnit as StockPurchaseUnit) ?? StockPurchaseUnit.PIECE);
+      const nextPriceBeforeTax = dto.priceBeforeTax ?? Number(existing.priceBeforeTax);
+      const nextPriceAfterTax = dto.priceAfterTax ?? Number(existing.priceAfterTax);
+
+      const baseQuantityResult = toBaseQuantity(
+        (stockItem.unitType as StockUnitType) ?? StockUnitType.PIECE,
+        nextPurchaseQuantity,
+        nextPurchaseUnit
+      );
+      if (baseQuantityResult.isErr()) {
+        return err(baseQuantityResult.error);
+      }
+
       const attributes = toStockItemBrandUpdateAttributes(dto);
+      const baseQuantity = baseQuantityResult.value;
+      attributes.unitPriceBeforeTax = toMoney(nextPriceBeforeTax / baseQuantity);
+      attributes.unitPriceAfterTax = toMoney(nextPriceAfterTax / baseQuantity);
+
       const stockItemBrand = await stockItemBrandRepository.update(
         stockItemId,
         brandId,
@@ -421,7 +510,7 @@ export const createBrandService = (
     addBrandToStockItem,
     getStockItemBrands,
     updateStockItemBrand,
-    removeBrandFromStockItem: removeBrandFromStockItem,
+    removeBrandFromStockItem,
     setPreferredBrand,
   };
 };

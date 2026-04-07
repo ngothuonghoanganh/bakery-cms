@@ -211,7 +211,7 @@ export class OAuthPKCEService implements IOAuthPKCEService {
         refreshToken: refresh_token,
         expiresIn: expires_in,
         tokenType: token_type || 'Bearer',
-        scope: scope,
+        scope,
       });
     } catch (error: any) {
       logger.error('Failed to exchange OAuth code for tokens', { provider, error });

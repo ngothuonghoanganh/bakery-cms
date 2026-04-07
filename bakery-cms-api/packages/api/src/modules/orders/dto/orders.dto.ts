@@ -3,7 +3,13 @@
  * Type definitions for API request/response payloads
  */
 
-import { OrderStatus, OrderType, BusinessModel, PaymentMethod } from '@bakery-cms/common';
+import {
+  OrderStatus,
+  OrderType,
+  BusinessModel,
+  PaymentMethod,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import { PaymentResponseDto, VietQRResponseDto } from '../../payments/dto/payments.dto';
 
 /**
@@ -16,6 +22,7 @@ export interface OrderItemDto {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  saleUnitType?: SaleUnitType;
   notes?: string;
 }
 
@@ -29,6 +36,7 @@ export interface OrderItemResponseDto {
   productId: string;
   productCode: string | null;
   productName: string | null;
+  saleUnitType: SaleUnitType;
   quantity: number;
   unitPrice: number;
   subtotal: number;
@@ -188,6 +196,7 @@ export interface OrderBillSnapshotItemDto {
   productId: string;
   productCode: string | null;
   productName: string | null;
+  saleUnitType: SaleUnitType;
   quantity: number;
   unitPrice: number;
   subtotal: number;

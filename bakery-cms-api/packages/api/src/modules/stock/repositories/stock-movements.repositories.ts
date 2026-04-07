@@ -4,7 +4,12 @@
  */
 
 import { Op } from 'sequelize';
-import { StockMovementModel, StockItemModel, UserModel } from '@bakery-cms/database';
+import {
+  StockMovementModel,
+  StockItemModel,
+  UserModel,
+  BrandModel,
+} from '@bakery-cms/database';
 import { StockMovementListQueryDto } from '../dto/stock-movements.dto';
 
 /**
@@ -14,7 +19,13 @@ import { StockMovementListQueryDto } from '../dto/stock-movements.dto';
 export interface StockMovementRepository {
   findById(id: string): Promise<StockMovementModel | null>;
   findAll(query: StockMovementListQueryDto): Promise<{
-    rows: Array<StockMovementModel & { stockItem?: StockItemModel; user?: UserModel }>;
+    rows: Array<
+      StockMovementModel & {
+        stockItem?: StockItemModel;
+        user?: UserModel;
+        brand?: BrandModel;
+      }
+    >;
     count: number;
   }>;
   create(attributes: Partial<StockMovementModel>): Promise<StockMovementModel>;
@@ -45,6 +56,11 @@ export const createStockMovementRepository = (
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'email'],
         },
+        {
+          model: BrandModel,
+          as: 'brand',
+          attributes: ['id', 'name'],
+        },
       ],
     });
   };
@@ -55,7 +71,13 @@ export const createStockMovementRepository = (
   const findAll = async (
     query: StockMovementListQueryDto
   ): Promise<{
-    rows: Array<StockMovementModel & { stockItem?: StockItemModel; user?: UserModel }>;
+    rows: Array<
+      StockMovementModel & {
+        stockItem?: StockItemModel;
+        user?: UserModel;
+        brand?: BrandModel;
+      }
+    >;
     count: number;
   }> => {
     const {
@@ -113,6 +135,11 @@ export const createStockMovementRepository = (
           model: UserModel,
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+        {
+          model: BrandModel,
+          as: 'brand',
+          attributes: ['id', 'name'],
         },
       ],
     });

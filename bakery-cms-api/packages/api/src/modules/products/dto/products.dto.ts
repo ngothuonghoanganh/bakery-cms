@@ -3,7 +3,12 @@
  * Type definitions for API request/response payloads
  */
 
-import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import { FileResponseDto } from '../../files/dto/files.dto';
 import { ProductImageResponseDto } from './product-images.dto';
 
@@ -17,6 +22,7 @@ export interface ProductResponseDto {
   name: string;
   description: string | null;
   price: number;
+  saleUnitType: SaleUnitType;
   category: string | null;
   businessType: BusinessType;
   status: ProductStatus;
@@ -48,6 +54,7 @@ export interface ProductComboItemResponseDto {
     id: string;
     productCode: string;
     name: string;
+    saleUnitType: SaleUnitType;
     imageUrl: string | null;
     imageFileId: string | null;
   } | null;
@@ -74,6 +81,7 @@ export interface CreateProductDto {
   name: string;
   description?: string;
   price: number;
+  saleUnitType?: SaleUnitType;
   category?: string;
   businessType: BusinessType;
   status?: ProductStatus;
@@ -94,6 +102,7 @@ export interface UpdateProductDto {
   name?: string;
   description?: string;
   price?: number;
+  saleUnitType?: SaleUnitType;
   category?: string;
   businessType?: BusinessType;
   status?: ProductStatus;
@@ -115,6 +124,7 @@ export interface ProductListQueryDto {
   businessType?: BusinessType;
   status?: ProductStatus;
   productType?: ProductType;
+  saleUnitType?: SaleUnitType;
   isPublished?: boolean;
   category?: string;
   search?: string;

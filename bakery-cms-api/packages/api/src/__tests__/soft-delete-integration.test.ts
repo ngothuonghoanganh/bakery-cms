@@ -11,9 +11,7 @@ import {
   getSequelizeInstance 
 } from '@bakery-cms/database';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@bakery-cms/common';
-
-// Use require for uuid to avoid ESM issues in Jest
-const { v4: uuidv4 } = require('uuid');
+import { v4 as uuidv4 } from 'uuid';
 
 describe('Soft Delete Integration Tests', () => {
   let sequelize: ReturnType<typeof getSequelizeInstance>;

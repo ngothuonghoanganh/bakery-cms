@@ -151,7 +151,9 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
     // Create or update images from input
     for (let i = 0; i < images.length; i++) {
       const imageInput = images[i];
-      if (!imageInput) continue;
+      if (!imageInput) {
+continue;
+}
 
       const displayOrder = imageInput.displayOrder ?? i;
       const isPrimary = imageInput.isPrimary ?? i === 0;
@@ -264,7 +266,9 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
 
     for (let index = 0; index < comboItems.length; index++) {
       const inputItem = comboItems[index];
-      if (!inputItem) continue;
+      if (!inputItem) {
+continue;
+}
 
       const displayOrder = inputItem.displayOrder ?? index;
       if (inputItem.id && existingItemIds.has(inputItem.id)) {

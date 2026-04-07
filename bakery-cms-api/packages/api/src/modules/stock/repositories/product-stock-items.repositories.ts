@@ -79,7 +79,7 @@ export const createProductStockItemRepository = (
   const findByProductAndStockItem = async (
     productId: string,
     stockItemId: string,
-    includeDeleted: boolean = false
+    includeDeleted = false
   ): Promise<ProductStockItemModel | null> => {
     return await model.findOne({
       where: { productId, stockItemId },

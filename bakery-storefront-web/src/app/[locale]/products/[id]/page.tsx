@@ -14,6 +14,14 @@ const statusText = (status: string, availableText: string, outText: string): str
   return status === 'available' ? availableText : outText;
 };
 
+const getPriceSuffix = (saleUnitType: 'piece' | 'weight', locale: string): string => {
+  if (saleUnitType === 'weight') {
+    return '/100g';
+  }
+
+  return locale === 'vi' ? '/cái' : '/piece';
+};
+
 const resolveDetailImageUrls = (
   product: Awaited<ReturnType<typeof fetchProductById>>
 ): string[] => {
@@ -126,7 +134,9 @@ export default async function ProductDetailPage({
             {product.description && <p>{product.description}</p>}
 
             <div className="detail-meta">
-              <strong>{formatPrice(product.price, locale)}</strong>
+              <strong>
+                {formatPrice(product.price, locale)} {getPriceSuffix(product.saleUnitType, locale)}
+              </strong>
               <span className={`status-badge ${product.status === 'available' ? 'available' : 'out'}`}>
                 {statusText(
                   product.status,

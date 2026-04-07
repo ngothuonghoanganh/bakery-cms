@@ -4,7 +4,13 @@
  */
 
 import Joi from 'joi';
-import { OrderStatus, OrderType, BusinessModel, PaymentMethod } from '@bakery-cms/common';
+import {
+  OrderStatus,
+  OrderType,
+  BusinessModel,
+  PaymentMethod,
+  SaleUnitType,
+} from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -29,6 +35,12 @@ const orderItemSchema = Joi.object({
     'string.guid': 'Product ID must be a valid UUID',
     'any.required': 'Product ID is required',
   }),
+  saleUnitType: Joi.string()
+    .valid(...Object.values(SaleUnitType))
+    .optional()
+    .messages({
+      'any.only': `Sale unit type must be one of: ${Object.values(SaleUnitType).join(', ')}`,
+    }),
   quantity: Joi.number()
     .integer()
     .min(1)

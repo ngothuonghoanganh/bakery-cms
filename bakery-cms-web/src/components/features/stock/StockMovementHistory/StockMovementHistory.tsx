@@ -3,11 +3,11 @@
  * Displays audit trail of stock movements with filtering
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Table, Tag, Space, DatePicker, Select, Button, Card, Alert } from 'antd';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { useStockMovements } from '../../../../hooks/useStockMovements';
 import type { StockMovement } from '../../../../types/models/stock.model';
@@ -59,6 +59,20 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
 
   const { stockMovements, pagination, loading, error, fetchStockMovements } = useStockMovements(filters);
 
+  useEffect(() => {
+    setFilters((prev) => {
+      if (prev.stockItemId === stockItemId) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        page: 1,
+        stockItemId,
+      };
+    });
+  }, [stockItemId]);
+
   const getMovementTypeLabel = useMemo(
     () => (type: string): string => {
       const typeKey = type.toLowerCase();
@@ -105,25 +119,29 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
       page,
       limit: pageSize,
     }));
-    fetchStockMovements({ ...filters, page, limit: pageSize });
-  }, [filters, fetchStockMovements]);
+  }, []);
 
   /**
    * Handle date range change
    */
-  const handleDateRangeChange = useCallback((dates: any) => {
-    if (dates && dates.length === 2) {
-      handleFilterChange('startDate', dates[0].toISOString());
-      handleFilterChange('endDate', dates[1].toISOString());
-    } else {
-      setFilters((prev) => {
-        const newFilters = { ...prev };
-        delete newFilters.startDate;
-        delete newFilters.endDate;
-        return newFilters;
-      });
-    }
-  }, [handleFilterChange]);
+  const handleDateRangeChange = useCallback((dates: [Dayjs | null, Dayjs | null] | null) => {
+    setFilters((prev) => {
+      if (dates?.[0] && dates?.[1]) {
+        return {
+          ...prev,
+          page: 1,
+          startDate: dates[0].toISOString(),
+          endDate: dates[1].toISOString(),
+        };
+      }
+
+      const { startDate: _startDate, endDate: _endDate, ...rest } = prev;
+      return {
+        ...rest,
+        page: 1,
+      };
+    });
+  }, []);
 
   /**
    * Reset filters
@@ -134,9 +152,16 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
       limit: 10,
       stockItemId,
     };
+    const currentKey = JSON.stringify(filters);
+    const resetKey = JSON.stringify(resetFilters);
+
+    if (currentKey === resetKey) {
+      void fetchStockMovements(resetFilters);
+      return;
+    }
+
     setFilters(resetFilters);
-    fetchStockMovements(resetFilters);
-  }, [stockItemId, fetchStockMovements]);
+  }, [filters, stockItemId, fetchStockMovements]);
 
   /**
    * Table columns
@@ -153,6 +178,13 @@ export const StockMovementHistory: React.FC<StockMovementHistoryProps> = ({
             },
           ]
         : []),
+      {
+        title: t('stock.movementHistory.brand'),
+        dataIndex: 'brandName',
+        key: 'brandName',
+        width: 160,
+        render: (brandName: string | null) => brandName || '-',
+      },
       {
         title: t('stock.movementHistory.type'),
         dataIndex: 'type',

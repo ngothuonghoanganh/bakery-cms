@@ -30,6 +30,16 @@ export enum ProductType {
 }
 
 /**
+ * Sale unit type
+ * - piece: sold by item count
+ * - weight: sold by weight (price is stored per 100g)
+ */
+export enum SaleUnitType {
+  PIECE = 'piece',
+  WEIGHT = 'weight',
+}
+
+/**
  * Helper to check if a value is a valid BusinessType
  */
 export const isValidBusinessType = (value: string): value is BusinessType => {
@@ -48,4 +58,11 @@ export const isValidProductStatus = (value: string): value is ProductStatus => {
  */
 export const isValidProductType = (value: string): value is ProductType => {
   return Object.values(ProductType).includes(value as ProductType);
+};
+
+/**
+ * Helper to check if a value is a valid SaleUnitType
+ */
+export const isValidSaleUnitType = (value: string): value is SaleUnitType => {
+  return Object.values(SaleUnitType).includes(value as SaleUnitType);
 };

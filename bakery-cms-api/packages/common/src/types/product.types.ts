@@ -14,6 +14,7 @@ export type Product = {
   readonly name: string;
   readonly description: string | null;
   readonly price: number;
+  readonly saleUnitType: string; // SaleUnitType enum value
   readonly category: string | null;
   readonly businessType: string; // BusinessType enum value
   readonly status: string; // ProductStatus enum value
@@ -39,6 +40,7 @@ export type CreateProductDTO = {
   readonly name: string;
   readonly description?: string;
   readonly price: number;
+  readonly saleUnitType?: string;
   readonly category?: string;
   readonly businessType: string;
   readonly status?: string;
@@ -59,6 +61,7 @@ export type UpdateProductDTO = {
   readonly name?: string;
   readonly description?: string;
   readonly price?: number;
+  readonly saleUnitType?: string;
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
@@ -81,6 +84,7 @@ export type ProductFilters = {
   readonly businessType?: string;
   readonly status?: string;
   readonly productType?: string;
+  readonly saleUnitType?: string;
   readonly isPublished?: boolean;
   readonly minPrice?: number;
   readonly maxPrice?: number;

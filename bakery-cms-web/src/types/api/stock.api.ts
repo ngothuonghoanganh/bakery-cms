@@ -4,12 +4,14 @@
  */
 
 import type { FileAPIResponse } from './file.api';
+import type { StockPurchaseUnit, StockUnitType } from '@bakery-cms/common';
 
 // Stock Items
 export type StockItemAPIResponse = {
   readonly id: string;
   readonly name: string;
   readonly description: string | null;
+  readonly unitType: StockUnitType;
   readonly unitOfMeasure: string;
   readonly currentQuantity: number;
   readonly reorderThreshold: number | null;
@@ -24,8 +26,12 @@ export type StockItemBrandAPIResponse = {
   readonly stockItemId: string;
   readonly brandId: string;
   readonly brandName: string;
+  readonly purchaseQuantity: number;
+  readonly purchaseUnit: StockPurchaseUnit;
   readonly priceBeforeTax: number;
   readonly priceAfterTax: number;
+  readonly unitPriceBeforeTax: number;
+  readonly unitPriceAfterTax: number;
   readonly isPreferred: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -44,7 +50,7 @@ export type PaginatedStockItemsAPIResponse = {
 export type CreateStockItemRequest = {
   readonly name: string;
   readonly description?: string;
-  readonly unitOfMeasure: string;
+  readonly unitType: StockUnitType;
   readonly currentQuantity?: number;
   readonly reorderThreshold?: number;
 };
@@ -52,7 +58,7 @@ export type CreateStockItemRequest = {
 export type UpdateStockItemRequest = {
   readonly name?: string;
   readonly description?: string;
-  readonly unitOfMeasure?: string;
+  readonly unitType?: StockUnitType;
   readonly reorderThreshold?: number;
 };
 
@@ -78,12 +84,16 @@ export type AdjustStockRequest = {
 
 export type AddBrandToStockItemRequest = {
   readonly brandId: string;
+  readonly purchaseQuantity: number;
+  readonly purchaseUnit: StockPurchaseUnit;
   readonly priceBeforeTax: number;
   readonly priceAfterTax: number;
   readonly isPreferred?: boolean;
 };
 
 export type UpdateStockItemBrandRequest = {
+  readonly purchaseQuantity?: number;
+  readonly purchaseUnit?: StockPurchaseUnit;
   readonly priceBeforeTax?: number;
   readonly priceAfterTax?: number;
   readonly isPreferred?: boolean;
@@ -137,6 +147,8 @@ export type StockMovementAPIResponse = {
   readonly id: string;
   readonly stockItemId: string;
   readonly stockItemName: string;
+  readonly brandId: string | null;
+  readonly brandName: string | null;
   readonly type: string; // 'received' | 'used' | 'adjusted' | 'damaged' | 'expired'
   readonly quantity: number;
   readonly previousQuantity: number;

@@ -4,6 +4,7 @@
  */
 
 import { BrandModel, StockItemBrandModel, FileModel } from '@bakery-cms/database';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 import {
   BrandResponseDto,
   CreateBrandDto,
@@ -100,8 +101,12 @@ export const toStockItemBrandResponseDto = (
     stockItemId: model.stockItemId,
     brandId: model.brandId,
     brandName,
+    purchaseQuantity: Number(model.purchaseQuantity),
+    purchaseUnit: model.purchaseUnit as StockPurchaseUnit,
     priceBeforeTax: Number(model.priceBeforeTax),
     priceAfterTax: Number(model.priceAfterTax),
+    unitPriceBeforeTax: Number(model.unitPriceBeforeTax),
+    unitPriceAfterTax: Number(model.unitPriceAfterTax),
     isPreferred: model.isPreferred,
     createdAt: model.createdAt.toISOString(),
     updatedAt: model.updatedAt.toISOString(),
@@ -119,8 +124,12 @@ export const toStockItemBrandCreationAttributes = (
   return {
     stockItemId,
     brandId: dto.brandId,
+    purchaseQuantity: dto.purchaseQuantity,
+    purchaseUnit: dto.purchaseUnit,
     priceBeforeTax: dto.priceBeforeTax,
     priceAfterTax: dto.priceAfterTax,
+    unitPriceBeforeTax: 0,
+    unitPriceAfterTax: 0,
     isPreferred: dto.isPreferred ?? false,
   };
 };
@@ -134,6 +143,12 @@ export const toStockItemBrandUpdateAttributes = (
 ): Partial<StockItemBrandModel> => {
   const attributes: Partial<StockItemBrandModel> = {};
 
+  if (dto.purchaseQuantity !== undefined) {
+    attributes.purchaseQuantity = dto.purchaseQuantity;
+  }
+  if (dto.purchaseUnit !== undefined) {
+    attributes.purchaseUnit = dto.purchaseUnit;
+  }
   if (dto.priceBeforeTax !== undefined) {
     attributes.priceBeforeTax = dto.priceBeforeTax;
   }

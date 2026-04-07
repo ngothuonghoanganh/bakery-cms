@@ -110,7 +110,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         const result = await createStockItem({
           name: values.name,
           description: values.description,
-          unitOfMeasure: values.unitOfMeasure,
+          unitType: values.unitType,
           currentQuantity: values.currentQuantity,
           reorderThreshold: values.reorderThreshold,
         });
@@ -139,7 +139,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         const result = await updateStockItem(id, {
           name: values.name,
           description: values.description,
-          unitOfMeasure: values.unitOfMeasure,
+          unitType: values.unitType,
           reorderThreshold: values.reorderThreshold,
         });
 

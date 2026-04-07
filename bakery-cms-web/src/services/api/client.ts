@@ -19,6 +19,57 @@ import { useNotificationStore } from '@/stores/notificationStore';
  */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
+const PUBLIC_AUTH_ENDPOINT_PREFIXES = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email',
+  '/auth/oauth/',
+];
+
+type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+let refreshAuthPromise: Promise<string | null> | null = null;
+
+const getRequestUrl = (config?: InternalAxiosRequestConfig): string => {
+  return config?.url ?? '';
+};
+
+const isPublicAuthRequest = (config?: InternalAxiosRequestConfig): boolean => {
+  const url = getRequestUrl(config);
+  return PUBLIC_AUTH_ENDPOINT_PREFIXES.some(
+    (prefix) => url.startsWith(prefix) || url.includes(`/api/v1${prefix}`)
+  );
+};
+
+const getOrCreateRefreshPromise = (): Promise<string | null> => {
+  if (!refreshAuthPromise) {
+    refreshAuthPromise = (async () => {
+      const authState = useAuthStore.getState();
+      await authState.refreshAuth();
+      return useAuthStore.getState().token;
+    })().finally(() => {
+      refreshAuthPromise = null;
+    });
+  }
+
+  return refreshAuthPromise;
+};
+
+const handleExpiredSession = (): void => {
+  const authState = useAuthStore.getState();
+  const notificationState = useNotificationStore.getState();
+
+  authState.clearAuth();
+  notificationState.error(
+    'Authentication Error',
+    'Your session has expired. Please login again.'
+  );
+
+  window.location.href = '/login';
+};
 
 /**
  * Create Axios instance with default configuration
@@ -79,37 +130,33 @@ const createAPIClient = (): AxiosInstance => {
         console.error('[API Error]', error);
       }
 
-      const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const originalRequest = error.config as RetryableRequestConfig | undefined;
 
       // Handle authentication errors with token refresh
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (
+        error.response?.status === 401 &&
+        originalRequest &&
+        !originalRequest._retry &&
+        !isPublicAuthRequest(originalRequest)
+      ) {
         originalRequest._retry = true;
 
         try {
-          // Try to refresh the token
-          const authState = useAuthStore.getState();
-          await authState.refreshAuth();
+          // Refresh once for concurrent 401 responses, then reuse the same promise.
+          const newToken = await getOrCreateRefreshPromise();
 
           // Retry the original request with new token
-          const newToken = useAuthStore.getState().token;
           if (newToken && originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
 
+          if (!newToken) {
+            throw new Error('No token returned from refresh');
+          }
+
           return client(originalRequest);
         } catch (refreshError) {
-          // Refresh failed, logout user
-          const authState = useAuthStore.getState();
-          const notificationState = useNotificationStore.getState();
-
-          authState.clearAuth();
-          notificationState.error(
-            'Authentication Error',
-            'Your session has expired. Please login again.'
-          );
-
-          // Redirect to login page
-          window.location.href = '/login';
+          handleExpiredSession();
           return Promise.reject(refreshError);
         }
       }

@@ -11,7 +11,7 @@ import {
   PaymentModel,
   ProductModel,
 } from '@bakery-cms/database';
-import { OrderStatus } from '@bakery-cms/common';
+import { OrderStatus, SaleUnitType } from '@bakery-cms/common';
 import { OrderListQueryDto, OrderItemDto, OrderBillSnapshotDto } from '../dto/orders.dto';
 
 /**
@@ -37,8 +37,14 @@ export interface OrderRepository {
  */
 export interface OrderItemRepository {
   findByOrderId(orderId: string): Promise<OrderItemModel[]>;
+  findProductSaleInfo(productIds: string[]): Promise<OrderItemProductSaleInfo[]>;
   createMany(orderId: string, items: OrderItemDto[]): Promise<OrderItemModel[]>;
   deleteByOrderId(orderId: string): Promise<number>;
+}
+
+export interface OrderItemProductSaleInfo {
+  id: string;
+  saleUnitType: SaleUnitType;
 }
 
 /**
@@ -90,7 +96,14 @@ export const createOrderRepository = (
             {
               model: productModel,
               as: 'product',
-              attributes: ['id', 'productCode', 'name', 'price', 'category'],
+              attributes: [
+                'id',
+                'productCode',
+                'name',
+                'price',
+                'category',
+                'saleUnitType',
+              ],
               required: false,
             },
           ],
@@ -164,7 +177,14 @@ export const createOrderRepository = (
             {
               model: productModel,
               as: 'product',
-              attributes: ['id', 'productCode', 'name', 'price', 'category'],
+              attributes: [
+                'id',
+                'productCode',
+                'name',
+                'price',
+                'category',
+                'saleUnitType',
+              ],
               required: false,
             },
           ],
@@ -355,12 +375,41 @@ export const createOrderRepository = (
           {
             model: productModel,
             as: 'product',
-            attributes: ['id', 'productCode', 'name', 'price', 'category'],
+            attributes: [
+              'id',
+              'productCode',
+              'name',
+              'price',
+              'category',
+              'saleUnitType',
+            ],
             required: false,
           },
         ],
         order: [['createdAt', 'ASC']],
       });
+    },
+
+    findProductSaleInfo: async (
+      productIds: string[]
+    ): Promise<OrderItemProductSaleInfo[]> => {
+      if (productIds.length === 0) {
+        return [];
+      }
+
+      const uniqueProductIds = Array.from(new Set(productIds));
+      const products = await productModel.findAll({
+        where: {
+          id: uniqueProductIds,
+        },
+        attributes: ['id', 'saleUnitType'],
+      });
+
+      return products.map((product) => ({
+        id: product.id,
+        saleUnitType:
+          (product.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
+      }));
     },
 
     /**
@@ -375,17 +424,25 @@ export const createOrderRepository = (
         where: {
           id: uniqueProductIds,
         },
-        attributes: ['id', 'productCode', 'name'],
+        attributes: ['id', 'productCode', 'name', 'saleUnitType'],
       });
 
       const productNameMap = new Map(products.map((product) => [product.id, product.name]));
       const productCodeMap = new Map(products.map((product) => [product.id, product.productCode]));
+      const productSaleUnitTypeMap = new Map(
+        products.map((product) => [
+          product.id,
+          (product.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
+        ])
+      );
 
       const itemAttributes = items.map((item) => ({
         orderId,
         productId: item.productId,
         productCode: productCodeMap.get(item.productId) || 'UNKNOWN',
         productName: productNameMap.get(item.productId) || 'Unknown Product',
+        saleUnitType:
+          productSaleUnitTypeMap.get(item.productId) ?? SaleUnitType.PIECE,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,

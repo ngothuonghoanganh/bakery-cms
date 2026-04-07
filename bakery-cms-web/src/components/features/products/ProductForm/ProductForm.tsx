@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Row, Col, Tabs, Divider, Switch, Button } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
 import { FileUpload } from '../../../shared/FileUpload';
 import { MultiFileUpload, type ProductImageItem } from '../../../shared/MultiFileUpload';
-import { BusinessType, ProductStatus, ProductType } from '../../../../types/models/product.model';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '../../../../types/models/product.model';
 import { fileService } from '../../../../services/file.service';
 import { productService } from '../../../../services/product.service';
 import type { ProductFormProps, ProductFormValues, ProductComboItemFormValue } from './ProductForm.types';
@@ -16,6 +21,7 @@ const { Option } = Select;
 type ComboProductOption = {
   id: string;
   label: string;
+  saleUnitType: SaleUnitType;
 };
 
 export const ProductForm: React.FC<ProductFormProps> = ({
@@ -33,13 +39,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [comboProductOptions, setComboProductOptions] = useState<ComboProductOption[]>([]);
   const [comboOptionsLoading, setComboOptionsLoading] = useState(false);
   const isEditMode = Boolean(product);
+  const selectedSaleUnitType =
+    Form.useWatch('saleUnitType', form) ?? SaleUnitType.PIECE;
+  const comboItems = Form.useWatch('comboItems', form) ?? [];
+  const comboProductOptionsById = useMemo(
+    () =>
+      new Map(
+        comboProductOptions.map((option) => [option.id, option] as const)
+      ),
+    [comboProductOptions]
+  );
 
   useEffect(() => {
     if (visible && product) {
       form.setFieldsValue({
+        productCode: product.productCode,
         name: product.name,
         description: product.description || undefined,
         price: product.price,
+        saleUnitType: product.saleUnitType ?? SaleUnitType.PIECE,
         category: product.category || undefined,
         businessType: product.businessType,
         status: product.status,
@@ -83,6 +101,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         businessType: BusinessType.READY_TO_SELL,
         status: ProductStatus.AVAILABLE,
         productType: ProductType.SINGLE,
+        saleUnitType: SaleUnitType.PIECE,
         isPublished: true,
         comboItems: [],
       });
@@ -117,6 +136,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           .map((item) => ({
             id: item.id,
             label: `${item.name} (${item.productCode})`,
+            saleUnitType: item.saleUnitType ?? SaleUnitType.PIECE,
           }));
         setComboProductOptions(options);
       } else {
@@ -196,6 +216,43 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setProductImages(images);
   };
 
+  const getComboItemSaleUnitType = (
+    itemProductId: string | undefined
+  ): SaleUnitType => {
+    if (!itemProductId) {
+      return SaleUnitType.PIECE;
+    }
+
+    return (
+      comboProductOptionsById.get(itemProductId)?.saleUnitType ??
+      SaleUnitType.PIECE
+    );
+  };
+
+  const getComboItemDefaultQuantity = (saleUnitType: SaleUnitType): number => {
+    return saleUnitType === SaleUnitType.WEIGHT ? 100 : 1;
+  };
+
+  const handleComboItemProductChange = (
+    itemProductId: string,
+    index: number
+  ): void => {
+    const currentComboItems =
+      (form.getFieldValue('comboItems') as ProductComboItemFormValue[] | undefined) ??
+      [];
+    const saleUnitType = getComboItemSaleUnitType(itemProductId);
+    const nextComboItems = [...currentComboItems];
+    const currentItem = nextComboItems[index] ?? { quantity: 1 };
+
+    nextComboItems[index] = {
+      ...currentItem,
+      itemProductId,
+      quantity: getComboItemDefaultQuantity(saleUnitType),
+    };
+
+    form.setFieldValue('comboItems', nextComboItems);
+  };
+
   return (
     <AntModal
       title={isEditMode ? t('products.form.editTitle') : t('products.form.createTitle')}
@@ -232,10 +289,39 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </Form.Item>
           </Col>
 
-          <Col span={12}>
+          <Col span={8}>
+            <Form.Item
+              name="saleUnitType"
+              label={t('products.form.saleUnitType', 'Đơn vị bán')}
+              rules={[
+                {
+                  required: true,
+                  message: t(
+                    'products.form.validation.saleUnitTypeRequired',
+                    'Vui lòng chọn đơn vị bán'
+                  ),
+                },
+              ]}
+            >
+              <Select>
+                <Option value={SaleUnitType.PIECE}>
+                  {t('products.saleUnitType.piece', 'Cái')}
+                </Option>
+                <Option value={SaleUnitType.WEIGHT}>
+                  {t('products.saleUnitType.weight', 'Khối lượng')}
+                </Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={8}>
             <Form.Item
               name="price"
-              label={t('products.form.price')}
+              label={
+                selectedSaleUnitType === SaleUnitType.WEIGHT
+                  ? t('products.form.priceWeight', 'Giá bán (VND/100g)')
+                  : t('products.form.pricePiece', 'Giá bán (VND/cái)')
+              }
               rules={[
                 { required: true, message: t('products.form.validation.priceRequired') },
                 { type: 'number', min: 0.01, message: t('products.form.validation.priceMin') },
@@ -243,15 +329,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             >
               <InputNumber
                 style={{ width: '100%' }}
-                prefix="$"
+                prefix="₫"
                 min={0}
-                precision={2}
+                precision={0}
                 placeholder={t('products.form.pricePlaceholder')}
               />
             </Form.Item>
           </Col>
 
-          <Col span={12}>
+          <Col span={8}>
             <Form.Item
               name="category"
               label={t('products.form.category')}
@@ -320,7 +406,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   >
                     {(fields, { add, remove }, { errors }) => (
                       <>
-                        {fields.map((field) => (
+                        {fields.map((field, index) => {
+                          const selectedItemProductId = comboItems[index]?.itemProductId;
+                          const itemSaleUnitType = getComboItemSaleUnitType(
+                            selectedItemProductId
+                          );
+                          const quantityUnitLabel =
+                            itemSaleUnitType === SaleUnitType.WEIGHT
+                              ? 'g'
+                              : t('products.saleUnitType.piece', 'Cái');
+
+                          return (
                           <Row key={field.key} gutter={8} align="middle">
                             <Col span={14}>
                               <Form.Item
@@ -338,6 +434,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                                   loading={comboOptionsLoading}
                                   placeholder={t('products.form.comboProductPlaceholder')}
                                   optionFilterProp="label"
+                                  onChange={(value) =>
+                                    handleComboItemProductChange(value, index)
+                                  }
                                   options={comboProductOptions.map((option) => ({
                                     value: option.id,
                                     label: option.label,
@@ -365,8 +464,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                                   min={0.001}
                                   step={0.001}
                                   precision={3}
+                                  addonAfter={quantityUnitLabel}
                                   style={{ width: '100%' }}
-                                  placeholder={t('products.form.comboQuantityPlaceholder')}
+                                  placeholder={`${t(
+                                    'products.form.comboQuantityPlaceholder'
+                                  )} (${quantityUnitLabel})`}
                                 />
                               </Form.Item>
                             </Col>
@@ -374,7 +476,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                               <MinusCircleOutlined onClick={() => remove(field.name)} />
                             </Col>
                           </Row>
-                        ))}
+                          );
+                        })}
                         <Form.ErrorList errors={errors} />
                         <Form.Item>
                           <Button

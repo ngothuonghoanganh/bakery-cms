@@ -3,11 +3,19 @@
  */
 
 import { z } from 'zod';
-import { OrderType, BusinessModel, OrderStatus } from '../../../../types/models/order.model';
+import {
+  OrderType,
+  BusinessModel,
+  OrderStatus,
+  SaleUnitType,
+} from '../../../../types/models/order.model';
 
 // Order item validation schema
 export const orderItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
+  saleUnitType: z
+    .enum([SaleUnitType.PIECE, SaleUnitType.WEIGHT])
+    .optional(),
   quantity: z
     .number()
     .min(1, 'Quantity must be at least 1')

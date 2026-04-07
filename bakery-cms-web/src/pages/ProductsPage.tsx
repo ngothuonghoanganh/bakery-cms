@@ -92,9 +92,11 @@ export const ProductsPage = (): React.JSX.Element => {
   const handleCreate = useCallback(
     async (values: ProductFormValues) => {
       const result = await createProduct({
+        productCode: values.productCode,
         name: values.name,
         description: values.description,
         price: values.price,
+        saleUnitType: values.saleUnitType,
         category: values.category,
         businessType: values.businessType,
         status: values.status,
@@ -128,9 +130,11 @@ export const ProductsPage = (): React.JSX.Element => {
   const handleUpdate = useCallback(
     async (id: string, values: ProductFormValues) => {
       const result = await updateProduct(id, {
+        productCode: values.productCode,
         name: values.name,
         description: values.description,
         price: values.price,
+        saleUnitType: values.saleUnitType,
         category: values.category,
         businessType: values.businessType,
         status: values.status,

@@ -3,14 +3,21 @@
  * Represents stock data in the frontend domain layer
  */
 
-import { StockItemStatus, MovementType } from '@bakery-cms/common';
+import {
+  StockItemStatus,
+  MovementType,
+  StockUnitType,
+  StockPurchaseUnit,
+} from '@bakery-cms/common';
 import type { FileModel } from './file.model';
 
 // Re-export for backward compatibility
-export { StockItemStatus, MovementType };
+export { StockItemStatus, MovementType, StockUnitType, StockPurchaseUnit };
 export type {
   StockItemStatus as StockItemStatusType,
   MovementType as MovementTypeType,
+  StockUnitType as StockUnitTypeType,
+  StockPurchaseUnit as StockPurchaseUnitType,
 } from '@bakery-cms/common';
 
 // Stock Item
@@ -18,6 +25,7 @@ export type StockItem = {
   readonly id: string;
   readonly name: string;
   readonly description: string | null;
+  readonly unitType: StockUnitType;
   readonly unitOfMeasure: string;
   readonly currentQuantity: number;
   readonly reorderThreshold: number | null;
@@ -32,8 +40,12 @@ export type StockItemBrand = {
   readonly stockItemId: string;
   readonly brandId: string;
   readonly brandName: string;
+  readonly purchaseQuantity: number;
+  readonly purchaseUnit: StockPurchaseUnit;
   readonly priceBeforeTax: number;
   readonly priceAfterTax: number;
+  readonly unitPriceBeforeTax: number;
+  readonly unitPriceAfterTax: number;
   readonly isPreferred: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -93,6 +105,8 @@ export type StockMovement = {
   readonly id: string;
   readonly stockItemId: string;
   readonly stockItemName: string;
+  readonly brandId: string | null;
+  readonly brandName: string | null;
   readonly type: MovementType;
   readonly quantity: number;
   readonly previousQuantity: number;

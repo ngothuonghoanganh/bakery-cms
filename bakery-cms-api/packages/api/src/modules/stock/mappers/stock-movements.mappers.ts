@@ -3,7 +3,12 @@
  * Transform between Sequelize models and DTOs
  */
 
-import { StockMovementModel, StockItemModel, UserModel } from '@bakery-cms/database';
+import {
+  StockMovementModel,
+  StockItemModel,
+  UserModel,
+  BrandModel,
+} from '@bakery-cms/database';
 import { MovementType } from '@bakery-cms/common';
 import { StockMovementResponseDto } from '../dto/stock-movements.dto';
 
@@ -16,12 +21,15 @@ export const toStockMovementResponseDto = (
   model: StockMovementModel & {
     stockItem?: StockItemModel;
     user?: UserModel;
+    brand?: BrandModel;
   }
 ): StockMovementResponseDto => {
   return {
     id: model.id,
     stockItemId: model.stockItemId,
     stockItemName: model.stockItem?.name ?? 'Unknown',
+    brandId: (model as any).brandId ?? null,
+    brandName: model.brand?.name ?? null,
     type: model.type as MovementType,
     quantity: Number(model.quantity),
     previousQuantity: Number(model.previousQuantity),
@@ -43,6 +51,7 @@ export const toStockMovementResponseDtoList = (
   models: Array<StockMovementModel & {
     stockItem?: StockItemModel;
     user?: UserModel;
+    brand?: BrandModel;
   }>
 ): StockMovementResponseDto[] => {
   return models.map(toStockMovementResponseDto);

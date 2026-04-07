@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, ArrowLeftOutlined, StarFilled } from '@an
 import { useTranslation } from 'react-i18next';
 import { BusinessType, ProductStatus, ProductType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
+import { getSaleUnitPriceSuffix } from '../../../../utils/sale-unit.utils';
 import { ProductRecipe } from '../../stock/ProductRecipe';
 import { fileService } from '../../../../services/file.service';
 import type { ProductDetailProps } from './ProductDetail.types';
@@ -201,8 +202,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <Descriptions.Item label={t('products.detail.productId')}>{product.id}</Descriptions.Item>
           <Descriptions.Item label={t('products.detail.price')}>
             <strong style={{ fontSize: 18, color: '#52c41a' }}>
-              {formatCurrency(product.price)}
+              {formatCurrency(product.price)} {getSaleUnitPriceSuffix(product.saleUnitType)}
             </strong>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('products.detail.saleUnitType', 'Đơn vị bán')}>
+            {product.saleUnitType === 'weight'
+              ? t('products.saleUnitType.weight', 'Khối lượng')
+              : t('products.saleUnitType.piece', 'Cái')}
           </Descriptions.Item>
 
           <Descriptions.Item label={t('products.detail.category')}>{product.category || '-'}</Descriptions.Item>
@@ -261,13 +267,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           >
             <List
               locale={{ emptyText: t('products.detail.noComboItems') }}
-              dataSource={product.comboItems}
+              dataSource={product.comboItems.slice()}
               renderItem={(comboItem) => (
                 <List.Item>
                   <Space direction="vertical" size={0}>
                     <Text strong>{comboItem.itemProduct?.name || comboItem.itemProductId}</Text>
                     <Text type="secondary">
-                      {t('products.detail.comboQuantityLabel')}: {comboItem.quantity}
+                      {t('products.detail.comboQuantityLabel')}:{' '}
+                      {comboItem.quantity}{' '}
+                      {comboItem.itemProduct?.saleUnitType === 'weight'
+                        ? 'g'
+                        : t('products.saleUnitType.piece', 'Cái')}
                     </Text>
                   </Space>
                 </List.Item>

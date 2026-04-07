@@ -5,7 +5,7 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError, MovementType } from '@bakery-cms/common';
+import { AppError, MovementType, StockUnitType } from '@bakery-cms/common';
 import { StockItemRepository } from '../repositories/stock-items.repositories';
 import { StockMovementRepository } from '../repositories/stock-movements.repositories';
 import {
@@ -28,12 +28,40 @@ import {
 } from '../mappers/stock-items.mappers';
 import {
   createNotFoundError,
+  createConflictError,
   createDatabaseError,
   createInvalidInputError,
 } from '../../../utils/error-factory';
 import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
+
+const inferUnitTypeFromLegacyValue = (
+  unitValue: string | undefined
+): StockUnitType => {
+  const normalized = (unitValue || '').trim().toLowerCase();
+
+  if (
+    normalized === 'weight' ||
+    normalized === 'gram' ||
+    normalized === 'g' ||
+    normalized === 'kg' ||
+    normalized === 'kilogram'
+  ) {
+    return StockUnitType.WEIGHT;
+  }
+
+  return StockUnitType.PIECE;
+};
+
+const createDuplicateStockItemNameError = (name: string): AppError =>
+  createConflictError('Stock item with this name already exists', [
+    {
+      field: 'name',
+      message: 'name must be unique',
+      value: name,
+    },
+  ]);
 
 /**
  * Stock items service interface
@@ -68,6 +96,12 @@ export const createStockItemService = (
   ): Promise<Result<StockItemResponseDto, AppError>> => {
     try {
       logger.info('Creating new stock item', { stockItemName: dto.name });
+
+      const existingStockItem = await repository.findByName(dto.name);
+      if (existingStockItem) {
+        logger.warn('Stock item name already exists', { stockItemName: dto.name });
+        return err(createDuplicateStockItemNameError(dto.name));
+      }
 
       const attributes = toStockItemCreationAttributes(dto);
       const stockItem = await repository.create(attributes);
@@ -167,6 +201,17 @@ export const createStockItemService = (
         return err(createInvalidInputError('No valid fields provided for update'));
       }
 
+      if (dto.name !== undefined) {
+        const existingStockItem = await repository.findByName(dto.name);
+        if (existingStockItem && existingStockItem.id !== id) {
+          logger.warn('Stock item name already exists for update', {
+            stockItemId: id,
+            stockItemName: dto.name,
+          });
+          return err(createDuplicateStockItemNameError(dto.name));
+        }
+      }
+
       const stockItem = await repository.update(id, attributes);
 
       if (!stockItem) {
@@ -219,10 +264,27 @@ export const createStockItemService = (
     try {
       logger.info('Restoring soft-deleted stock item', { stockItemId: id, operation: 'restore' });
 
+      const deletedStockItem = await repository.findByIdIncludingDeleted(id);
+
+      if (!deletedStockItem || !deletedStockItem.deletedAt) {
+        logger.warn('Stock item not found or not deleted', { stockItemId: id });
+        return err(createNotFoundError('Deleted stock item', id));
+      }
+
+      const existingStockItem = await repository.findByName(deletedStockItem.name);
+      if (existingStockItem && existingStockItem.id !== id) {
+        logger.warn('Cannot restore stock item due to duplicate active name', {
+          stockItemId: id,
+          stockItemName: deletedStockItem.name,
+          conflictingStockItemId: existingStockItem.id,
+        });
+        return err(createDuplicateStockItemNameError(deletedStockItem.name));
+      }
+
       const stockItem = await repository.restore(id);
 
       if (!stockItem) {
-        logger.warn('Stock item not found or not deleted', { stockItemId: id });
+        logger.warn('Stock item not found or not deleted during restore', { stockItemId: id });
         return err(createNotFoundError('Deleted stock item', id));
       }
 
@@ -313,17 +375,6 @@ export const createStockItemService = (
       const previousQuantity = Number(stockItem.currentQuantity);
       const newQuantity = previousQuantity + dto.quantity;
 
-      // Prevent negative stock
-      if (newQuantity < 0) {
-        logger.warn('Adjustment would result in negative stock', {
-          stockItemId: id,
-          currentQuantity: previousQuantity,
-          adjustment: dto.quantity,
-          wouldBe: newQuantity,
-        });
-        return err(createInvalidInputError('Adjustment would result in negative stock'));
-      }
-
       const updatedStockItem = await repository.updateQuantity(id, newQuantity);
 
       if (!updatedStockItem) {
@@ -399,22 +450,37 @@ export const createStockItemService = (
           continue;
         }
 
-        if (!row.unitOfMeasure || row.unitOfMeasure.trim() === '') {
+        const unitType = row.unitType ?? inferUnitTypeFromLegacyValue(row.unitOfMeasure);
+
+        if (!unitType) {
           results.push({
             row: rowNumber,
             name: row.name,
             success: false,
-            error: 'Unit of measure is required',
+            error: 'Unit type is required',
           });
           errorCount++;
           continue;
         }
 
         // Create stock item
+        const normalizedName = row.name.trim();
+        const existingStockItem = await repository.findByName(normalizedName);
+        if (existingStockItem) {
+          results.push({
+            row: rowNumber,
+            name: row.name,
+            success: false,
+            error: 'Stock item with this name already exists',
+          });
+          errorCount++;
+          continue;
+        }
+
         const attributes = toStockItemCreationAttributes({
-          name: row.name.trim(),
+          name: normalizedName,
           description: row.description?.trim(),
-          unitOfMeasure: row.unitOfMeasure.trim(),
+          unitType,
           currentQuantity: row.currentQuantity ?? 0,
           reorderThreshold: row.reorderThreshold,
         });

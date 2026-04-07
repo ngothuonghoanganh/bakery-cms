@@ -240,7 +240,9 @@ describe('JWTUtils', () => {
       const tokenResult = generateAccessToken(testUserId, testEmail, testRole);
       expect(tokenResult.isOk()).toBe(true);
       
-      if (!tokenResult.isOk()) return;
+      if (!tokenResult.isOk()) {
+return;
+}
 
       // Act
       const verifyResult = verifyAccessToken(tokenResult.value);
@@ -272,7 +274,9 @@ describe('JWTUtils', () => {
       const refreshTokenResult = generateRefreshToken(testUserId, testEmail, testRole);
       expect(refreshTokenResult.isOk()).toBe(true);
       
-      if (!refreshTokenResult.isOk()) return;
+      if (!refreshTokenResult.isOk()) {
+return;
+}
 
       // Act
       const verifyResult = verifyAccessToken(refreshTokenResult.value);
@@ -316,7 +320,9 @@ describe('JWTUtils', () => {
       const tokenResult = generateRefreshToken(testUserId, testEmail, testRole);
       expect(tokenResult.isOk()).toBe(true);
       
-      if (!tokenResult.isOk()) return;
+      if (!tokenResult.isOk()) {
+return;
+}
 
       // Act
       const verifyResult = verifyRefreshToken(tokenResult.value);
@@ -349,7 +355,9 @@ describe('JWTUtils', () => {
       const tokenResult = generateEmailVerificationToken(testUserId, testEmail);
       expect(tokenResult.isOk()).toBe(true);
       
-      if (!tokenResult.isOk()) return;
+      if (!tokenResult.isOk()) {
+return;
+}
 
       // Act
       const verifyResult = verifyEmailVerificationToken(tokenResult.value);
@@ -377,7 +385,9 @@ describe('JWTUtils', () => {
       const tokenResult = generatePasswordResetToken(testUserId, testEmail);
       expect(tokenResult.isOk()).toBe(true);
       
-      if (!tokenResult.isOk()) return;
+      if (!tokenResult.isOk()) {
+return;
+}
 
       // Act
       const verifyResult = verifyPasswordResetToken(tokenResult.value);

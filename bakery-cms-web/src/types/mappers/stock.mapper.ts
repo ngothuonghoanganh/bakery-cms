@@ -31,7 +31,12 @@ import type {
   BulkImportResult,
 } from '@/types/models/stock.model';
 
-import { StockItemStatus, MovementType } from '@/types/models/stock.model';
+import {
+  StockItemStatus,
+  MovementType,
+  StockUnitType,
+  StockPurchaseUnit,
+} from '@/types/models/stock.model';
 import { mapFileFromAPI } from './file.mapper';
 
 // Stock Item Mappers
@@ -46,8 +51,12 @@ export const mapStockItemBrandFromAPI = (
   stockItemId: apiBrand.stockItemId,
   brandId: apiBrand.brandId,
   brandName: apiBrand.brandName,
+  purchaseQuantity: apiBrand.purchaseQuantity ?? 1,
+  purchaseUnit: apiBrand.purchaseUnit ?? StockPurchaseUnit.PIECE,
   priceBeforeTax: apiBrand.priceBeforeTax,
   priceAfterTax: apiBrand.priceAfterTax,
+  unitPriceBeforeTax: apiBrand.unitPriceBeforeTax ?? apiBrand.priceBeforeTax,
+  unitPriceAfterTax: apiBrand.unitPriceAfterTax ?? apiBrand.priceAfterTax,
   isPreferred: apiBrand.isPreferred,
   createdAt: new Date(apiBrand.createdAt),
   updatedAt: new Date(apiBrand.updatedAt),
@@ -60,6 +69,7 @@ export const mapStockItemFromAPI = (apiStockItem: StockItemAPIResponse): StockIt
   id: apiStockItem.id,
   name: apiStockItem.name,
   description: apiStockItem.description,
+  unitType: apiStockItem.unitType ?? StockUnitType.PIECE,
   unitOfMeasure: apiStockItem.unitOfMeasure,
   currentQuantity: apiStockItem.currentQuantity,
   reorderThreshold: apiStockItem.reorderThreshold,
@@ -122,6 +132,8 @@ export const mapStockMovementFromAPI = (
   id: apiMovement.id,
   stockItemId: apiMovement.stockItemId,
   stockItemName: apiMovement.stockItemName,
+  brandId: apiMovement.brandId,
+  brandName: apiMovement.brandName,
   type: apiMovement.type as MovementType,
   quantity: apiMovement.quantity,
   previousQuantity: apiMovement.previousQuantity,

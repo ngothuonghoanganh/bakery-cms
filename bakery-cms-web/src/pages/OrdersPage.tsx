@@ -14,6 +14,8 @@ import {
   confirmOrder,
   cancelOrder,
 } from '../services/order.service';
+import { SaleUnitType } from '../types/models/order.model';
+import { calculateOrderItemSubtotal } from '../utils/sale-unit.utils';
 import type { OrderFiltersValue } from '../components/features/orders/OrderFilters/OrderFilters.types';
 import type { OrderFormValues } from '../components/features/orders/OrderForm/OrderForm.types';
 
@@ -81,7 +83,12 @@ export const OrdersPage: React.FC = () => {
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        subtotal: item.quantity * item.unitPrice,
+        saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+        subtotal: calculateOrderItemSubtotal(
+          item.quantity,
+          item.unitPrice,
+          item.saleUnitType || SaleUnitType.PIECE
+        ),
         notes: item.notes || undefined,
       })),
       extraFees: (values.extraFees || []).map((fee) => ({
@@ -109,7 +116,12 @@ export const OrdersPage: React.FC = () => {
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        subtotal: item.quantity * item.unitPrice,
+        saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+        subtotal: calculateOrderItemSubtotal(
+          item.quantity,
+          item.unitPrice,
+          item.saleUnitType || SaleUnitType.PIECE
+        ),
         notes: item.notes || undefined,
       })),
       extraFees: (values.extraFees || []).map((fee) => ({

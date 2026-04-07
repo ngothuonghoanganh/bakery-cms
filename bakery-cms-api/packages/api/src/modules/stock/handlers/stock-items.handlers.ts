@@ -382,10 +382,12 @@ export const createStockItemHandlers = (
       const rows: BulkImportStockItemRowDto[] = records.map((record) => {
         const quantityStr = record['currentQuantity'] || record['current_quantity'] || record['Quantity'];
         const thresholdStr = record['reorderThreshold'] || record['reorder_threshold'] || record['Threshold'];
+        const unitType = record['unitType'] || record['unit_type'];
 
         return {
           name: record['name'] || record['Name'] || '',
           description: record['description'] || record['Description'] || undefined,
+          unitType: unitType ? (unitType as any) : undefined,
           unitOfMeasure: record['unitOfMeasure'] || record['unit_of_measure'] || record['Unit'] || '',
           currentQuantity: quantityStr ? parseFloat(quantityStr) : undefined,
           reorderThreshold: thresholdStr ? parseFloat(thresholdStr) : undefined,

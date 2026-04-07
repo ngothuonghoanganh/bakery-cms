@@ -15,6 +15,7 @@ import {
 import { PaymentRepository } from '../repositories/payments.repositories';
 import { SettingsRepository } from '../../settings/repositories/settings.repositories';
 import type { OrderRepository } from '../../orders/repositories/orders.repositories';
+import type { PaidOrderStockService } from '../../stock/services/paid-order-stock.services';
 import {
   CreatePaymentDto,
   PaymentResponseDto,
@@ -44,6 +45,19 @@ import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
 
+const isAppError = (value: unknown): value is AppError => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const maybeError = value as Partial<AppError>;
+  return (
+    typeof maybeError.code === 'string' &&
+    typeof maybeError.message === 'string' &&
+    typeof maybeError.statusCode === 'number'
+  );
+};
+
 /**
  * Payment service interface
  * Defines all business operations for payments
@@ -53,7 +67,11 @@ export interface PaymentService {
   getPaymentById(id: string): Promise<Result<PaymentResponseDto, AppError>>;
   getPaymentByOrderId(orderId: string): Promise<Result<PaymentResponseDto, AppError>>;
   getAllPayments(query: PaymentListQueryDto): Promise<Result<PaymentListResponseDto, AppError>>;
-  markAsPaid(id: string, dto: MarkAsPaidDto): Promise<Result<PaymentResponseDto, AppError>>;
+  markAsPaid(
+    id: string,
+    dto: MarkAsPaidDto,
+    actorUserId: string
+  ): Promise<Result<PaymentResponseDto, AppError>>;
   refundOrder(
     orderId: string,
     dto: CreateRefundPaymentDto
@@ -116,7 +134,8 @@ const isValidPaymentStatusTransition = (
 export const createPaymentService = (
   repository: PaymentRepository,
   settingsRepository: SettingsRepository,
-  orderRepository: OrderRepository
+  orderRepository: OrderRepository,
+  paidOrderStockService: PaidOrderStockService
 ): PaymentService => {
   const toMoney = (value: number): number => Math.round(value * 100) / 100;
 
@@ -154,7 +173,10 @@ export const createPaymentService = (
     }
   };
 
-  const syncOrderPaidStatusIfNeeded = async (orderId: string): Promise<void> => {
+  const syncOrderPaidStatusIfNeeded = async (
+    orderId: string,
+    actorUserId: string
+  ): Promise<void> => {
     const order = await orderRepository.findById(orderId);
     if (!order) {
       logger.warn('Order not found while syncing payment status', { orderId });
@@ -172,7 +194,7 @@ export const createPaymentService = (
     if (!isFullyPaid) {
       if (
         order.status === OrderStatus.PAID &&
-        !Boolean((order as any).hasPendingExtraPayment)
+        !(order as any).hasPendingExtraPayment
       ) {
         await orderRepository.update(orderId, { hasPendingExtraPayment: true } as any);
       }
@@ -186,7 +208,7 @@ export const createPaymentService = (
     }
 
     if (order.status === OrderStatus.PAID) {
-      if (Boolean((order as any).hasPendingExtraPayment)) {
+      if ((order as any).hasPendingExtraPayment) {
         await orderRepository.update(orderId, { hasPendingExtraPayment: false } as any);
       }
       return;
@@ -199,6 +221,12 @@ export const createPaymentService = (
         expectedStatus: OrderStatus.CONFIRMED,
       });
       return;
+    }
+
+    const stockConsumptionResult =
+      await paidOrderStockService.consumeStockForPaidOrder(orderId, actorUserId);
+    if (stockConsumptionResult.isErr()) {
+      throw stockConsumptionResult.error;
     }
 
     const updatedOrder = await orderRepository.update(
@@ -386,7 +414,8 @@ export const createPaymentService = (
    */
   const markAsPaid = async (
     id: string,
-    dto: MarkAsPaidDto
+    dto: MarkAsPaidDto,
+    actorUserId: string
   ): Promise<Result<PaymentResponseDto, AppError>> => {
     try {
       logger.info('Marking payment as paid', { paymentId: id });
@@ -436,7 +465,7 @@ export const createPaymentService = (
       if (paymentToReturn.paymentType === PaymentType.REFUND) {
         await syncOrderRefundedStatusIfNeeded(paymentToReturn.orderId);
       } else {
-        await syncOrderPaidStatusIfNeeded(paymentToReturn.orderId);
+        await syncOrderPaidStatusIfNeeded(paymentToReturn.orderId, actorUserId);
       }
 
       const finalPayment = await repository.findById(id);
@@ -444,6 +473,14 @@ export const createPaymentService = (
 
       return ok(toPaymentResponseDto(finalPayment ?? paymentToReturn));
     } catch (error) {
+      if (isAppError(error)) {
+        logger.warn('Failed to mark payment as paid due to business/app validation', {
+          error,
+          paymentId: id,
+        });
+        return err(error);
+      }
+
       logger.error('Failed to mark payment as paid', { error, paymentId: id });
       return err(createDatabaseError('Failed to mark payment as paid', error));
     }

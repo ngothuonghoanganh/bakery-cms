@@ -10,7 +10,12 @@ import type {
   ProductComboItemAPIResponse,
 } from '@/types/api/product.api';
 import type { Product, PaginatedProducts, ProductImage, ProductComboItem } from '@/types/models/product.model';
-import { BusinessType, ProductStatus, ProductType } from '@/types/models/product.model';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@/types/models/product.model';
 import { mapFileFromAPI } from './file.mapper';
 
 /**
@@ -40,6 +45,7 @@ export const mapProductComboItemFromAPI = (
         id: apiComboItem.itemProduct.id,
         productCode: apiComboItem.itemProduct.productCode,
         name: apiComboItem.itemProduct.name,
+        saleUnitType: apiComboItem.itemProduct.saleUnitType ?? SaleUnitType.PIECE,
         imageUrl: apiComboItem.itemProduct.imageUrl,
         imageFileId: apiComboItem.itemProduct.imageFileId,
       }
@@ -53,9 +59,11 @@ export const mapProductComboItemFromAPI = (
  */
 export const mapProductFromAPI = (apiProduct: ProductAPIResponse): Product => ({
   id: apiProduct.id,
+  productCode: apiProduct.productCode,
   name: apiProduct.name,
   description: apiProduct.description,
   price: apiProduct.price,
+  saleUnitType: apiProduct.saleUnitType ?? SaleUnitType.PIECE,
   category: apiProduct.category,
   businessType: apiProduct.businessType as BusinessType,
   status: apiProduct.status as ProductStatus,

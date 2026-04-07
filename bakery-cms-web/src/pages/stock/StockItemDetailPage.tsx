@@ -59,7 +59,11 @@ import {
   setPreferredBrand,
   createBrand,
 } from '@/services/stock.service';
-import { StockItemStatus } from '@/types/models/stock.model';
+import {
+  StockItemStatus,
+  StockPurchaseUnit,
+  StockUnitType,
+} from '@/types/models/stock.model';
 import type { StockItem, StockItemBrand, Brand } from '@/types/models/stock.model';
 import { formatCurrency } from '@/utils/format.utils';
 
@@ -70,6 +74,8 @@ interface BrandPriceFormValues {
   brandId?: string;
   newBrandName?: string;
   newBrandImageFileId?: string;
+  purchaseQuantity: number;
+  purchaseUnit: StockPurchaseUnit;
   priceBeforeTax: number;
   priceAfterTax: number;
 }
@@ -120,6 +126,39 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   const [receiveForm] = Form.useForm();
   const [adjustForm] = Form.useForm();
   const [brandPriceForm] = Form.useForm<BrandPriceFormValues>();
+  const purchaseQuantityValue = Form.useWatch('purchaseQuantity', brandPriceForm);
+  const purchaseUnitValue = Form.useWatch('purchaseUnit', brandPriceForm);
+  const priceBeforeTaxValue = Form.useWatch('priceBeforeTax', brandPriceForm);
+  const priceAfterTaxValue = Form.useWatch('priceAfterTax', brandPriceForm);
+
+  const unitPriceDivider = React.useMemo(() => {
+    const purchaseQuantity = Number(purchaseQuantityValue || 0);
+    if (purchaseQuantity <= 0) {
+      return 0;
+    }
+
+    if (stockItem?.unitType === StockUnitType.WEIGHT && purchaseUnitValue === StockPurchaseUnit.KILOGRAM) {
+      return purchaseQuantity * 1000;
+    }
+
+    return purchaseQuantity;
+  }, [stockItem?.unitType, purchaseQuantityValue, purchaseUnitValue]);
+
+  const unitPriceBeforeTaxPreview = React.useMemo(() => {
+    const price = Number(priceBeforeTaxValue || 0);
+    if (unitPriceDivider <= 0) {
+      return 0;
+    }
+    return price / unitPriceDivider;
+  }, [priceBeforeTaxValue, unitPriceDivider]);
+
+  const unitPriceAfterTaxPreview = React.useMemo(() => {
+    const price = Number(priceAfterTaxValue || 0);
+    if (unitPriceDivider <= 0) {
+      return 0;
+    }
+    return price / unitPriceDivider;
+  }, [priceAfterTaxValue, unitPriceDivider]);
 
   // Fetch all available brands for the dropdown
   const { brands: allBrands, refetch: refetchAllBrands } = useBrands({ autoFetch: true });
@@ -135,7 +174,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       } else {
         notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
       }
-    } catch (err) {
+    } catch (_err) {
       notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
     } finally {
       setLoading(false);
@@ -150,7 +189,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       if (result.success) {
         setStockItemBrands(result.data);
       }
-    } catch (err) {
+    } catch (_err) {
       // Brands are optional, don't show error
     }
   }, [id]);
@@ -220,8 +259,17 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     setEditingBrandPrice(null);
     setIsCreatingNewBrand(false);
     brandPriceForm.resetFields();
+    brandPriceForm.setFieldsValue({
+      purchaseQuantity: 1,
+      purchaseUnit:
+        stockItem?.unitType === StockUnitType.WEIGHT
+          ? StockPurchaseUnit.GRAM
+          : StockPurchaseUnit.PIECE,
+      priceBeforeTax: 0,
+      priceAfterTax: 0,
+    });
     setBrandModalVisible(true);
-  }, [brandPriceForm]);
+  }, [brandPriceForm, stockItem?.unitType]);
 
   const openEditBrandModal = useCallback(
     (brandPrice: StockItemBrand) => {
@@ -229,6 +277,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       setIsCreatingNewBrand(false);
       brandPriceForm.setFieldsValue({
         brandId: brandPrice.brandId,
+        purchaseQuantity: brandPrice.purchaseQuantity,
+        purchaseUnit: brandPrice.purchaseUnit,
         priceBeforeTax: brandPrice.priceBeforeTax,
         priceAfterTax: brandPrice.priceAfterTax,
       });
@@ -263,7 +313,6 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           notifyError(t('stock.detail.brandCreateFailed', 'Failed to Create Brand'), createResult.error.message);
           return;
         }
-        console.log('Created brand:', createResult.data);
         brandId = createResult.data.id;
         refetchAllBrands();
       }
@@ -276,6 +325,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       if (editingBrandPrice) {
         // Update existing brand price
         const result = await updateStockItemBrand(id, brandId, {
+          purchaseQuantity: values.purchaseQuantity,
+          purchaseUnit: values.purchaseUnit,
           priceBeforeTax: values.priceBeforeTax,
           priceAfterTax: values.priceAfterTax,
         });
@@ -291,6 +342,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         // Add new brand to stock item
         const result = await addBrandToStockItem(id, {
           brandId,
+          purchaseQuantity: values.purchaseQuantity,
+          purchaseUnit: values.purchaseUnit,
           priceBeforeTax: values.priceBeforeTax,
           priceAfterTax: values.priceAfterTax,
         });
@@ -365,6 +418,11 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     return null;
   };
 
+  const purchaseUnitOptions =
+    stockItem?.unitType === StockUnitType.WEIGHT
+      ? [StockPurchaseUnit.GRAM, StockPurchaseUnit.KILOGRAM]
+      : [StockPurchaseUnit.PIECE];
+
   // Brand table columns
   const brandColumns: ColumnsType<StockItemBrand> = [
     {
@@ -392,6 +450,12 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       ),
     },
     {
+      title: t('stock.detail.purchaseSpec', 'Quy cách mua'),
+      key: 'purchaseSpec',
+      render: (_: unknown, record: StockItemBrand) =>
+        `${record.purchaseQuantity} ${record.purchaseUnit}`,
+    },
+    {
       title: t('stock.detail.priceBeforeTax', 'Price Before Tax'),
       dataIndex: 'priceBeforeTax',
       key: 'priceBeforeTax',
@@ -402,6 +466,18 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       dataIndex: 'priceAfterTax',
       key: 'priceAfterTax',
       render: (price: number) => formatCurrency(price),
+    },
+    {
+      title: t('stock.detail.unitPriceBeforeTax', 'Đơn giá trước thuế'),
+      dataIndex: 'unitPriceBeforeTax',
+      key: 'unitPriceBeforeTax',
+      render: (price: number) => `${formatCurrency(price)} /${stockItem?.unitOfMeasure ?? ''}`,
+    },
+    {
+      title: t('stock.detail.unitPriceAfterTax', 'Đơn giá sau thuế'),
+      dataIndex: 'unitPriceAfterTax',
+      key: 'unitPriceAfterTax',
+      render: (price: number) => `${formatCurrency(price)} /${stockItem?.unitOfMeasure ?? ''}`,
     },
     {
       title: t('common.table.actions', 'Actions'),
@@ -494,7 +570,14 @@ export const StockItemDetailPage = (): React.JSX.Element => {
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card>
-                <Statistic title={t('stock.detail.unitOfMeasure', 'Unit of Measure')} value={stockItem.unitOfMeasure} />
+                <Statistic
+                  title={t('stock.detail.unitType', 'Loại đơn vị')}
+                  value={
+                    stockItem.unitType === StockUnitType.WEIGHT
+                      ? t('stock.unitType.weight', 'Khối lượng')
+                      : t('stock.unitType.piece', 'Cái')
+                  }
+                />
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
@@ -514,6 +597,11 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           <Descriptions title={t('common.actions.details', 'Details')} bordered column={{ xs: 1, sm: 2, md: 2 }}>
             <Descriptions.Item label={t('stock.detail.name', 'Name')}>{stockItem.name}</Descriptions.Item>
             <Descriptions.Item label={t('stock.form.unit', 'Unit')}>{stockItem.unitOfMeasure}</Descriptions.Item>
+            <Descriptions.Item label={t('stock.detail.unitType', 'Loại đơn vị')}>
+              {stockItem.unitType === StockUnitType.WEIGHT
+                ? t('stock.unitType.weight', 'Khối lượng')
+                : t('stock.unitType.piece', 'Cái')}
+            </Descriptions.Item>
             <Descriptions.Item label={t('stock.detail.description', 'Description')} span={2}>
               {stockItem.description || t('stock.detail.noDescription', 'No description')}
             </Descriptions.Item>
@@ -765,6 +853,56 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           )}
 
           <Form.Item
+            name="purchaseQuantity"
+            label={t('stock.detail.purchaseQuantity', 'Số lượng quy cách')}
+            rules={[
+              {
+                required: true,
+                message: t(
+                  'stock.detail.purchaseQuantityRequired',
+                  'Vui lòng nhập số lượng quy cách'
+                ),
+              },
+              {
+                type: 'number',
+                min: 0.0001,
+                message: t(
+                  'stock.detail.purchaseQuantityMin',
+                  'Số lượng quy cách phải lớn hơn 0'
+                ),
+              },
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              precision={3}
+              min={0.0001}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="purchaseUnit"
+            label={t('stock.detail.purchaseUnit', 'Đơn vị quy cách')}
+            rules={[
+              {
+                required: true,
+                message: t(
+                  'stock.detail.purchaseUnitRequired',
+                  'Vui lòng chọn đơn vị quy cách'
+                ),
+              },
+            ]}
+          >
+            <Select>
+              {purchaseUnitOptions.map((unit) => (
+                <Select.Option key={unit} value={unit}>
+                  {unit}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="priceBeforeTax"
             label={t('stock.detail.priceBeforeTaxVND', 'Price Before Tax (VND)')}
             rules={[
@@ -774,7 +912,6 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              // min={0}
               precision={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => Number(value?.replace(/,/g, '') || 0)}
@@ -791,10 +928,27 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              // min={0}`
               precision={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => Number(value?.replace(/,/g, '') || 0)}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label={t('stock.detail.unitPriceBeforeTax', 'Đơn giá trước thuế')}
+          >
+            <Input
+              value={`${formatCurrency(unitPriceBeforeTaxPreview)} /${stockItem.unitOfMeasure}`}
+              readOnly
+            />
+          </Form.Item>
+
+          <Form.Item
+            label={t('stock.detail.unitPriceAfterTax', 'Đơn giá sau thuế')}
+          >
+            <Input
+              value={`${formatCurrency(unitPriceAfterTaxPreview)} /${stockItem.unitOfMeasure}`}
+              readOnly
             />
           </Form.Item>
         </Form>

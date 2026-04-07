@@ -14,6 +14,7 @@ import { MovementType } from '@bakery-cms/common';
 export class StockMovementModel extends Model {
   declare id: string;
   declare stockItemId: string;
+  declare brandId: string | null;
   declare type: string;
   declare quantity: number;
   declare previousQuantity: number;
@@ -51,6 +52,17 @@ export const initStockMovementModel = (
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
       },
+      brandId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'brand_id',
+        references: {
+          model: 'brands',
+          key: 'id',
+        },
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      },
       type: {
         type: DataTypes.ENUM(
           MovementType.RECEIVED,
@@ -82,7 +94,6 @@ export const initStockMovementModel = (
         allowNull: false,
         field: 'new_quantity',
         validate: {
-          min: 0,
           matchesCalculation(this: StockMovementModel, value: number) {
             const expected = Number(this.previousQuantity) + Number(this.quantity);
             if (Math.abs(value - expected) > 0.001) {
@@ -154,6 +165,10 @@ export const initStockMovementModel = (
         {
           fields: ['user_id'],
           name: 'idx_sm_user_id',
+        },
+        {
+          fields: ['brand_id'],
+          name: 'idx_sm_brand_id',
         },
         {
           fields: ['reference_type', 'reference_id'],

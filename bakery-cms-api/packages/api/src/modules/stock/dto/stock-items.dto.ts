@@ -3,7 +3,11 @@
  * Type definitions for API request/response payloads
  */
 
-import { StockItemStatus } from '@bakery-cms/common';
+import {
+  StockItemStatus,
+  StockUnitType,
+  StockPurchaseUnit,
+} from '@bakery-cms/common';
 
 /**
  * Stock item response DTO
@@ -13,6 +17,7 @@ export interface StockItemResponseDto {
   id: string;
   name: string;
   description: string | null;
+  unitType: StockUnitType;
   unitOfMeasure: string;
   currentQuantity: number;
   reorderThreshold: number | null;
@@ -30,8 +35,12 @@ export interface StockItemBrandResponseDto {
   stockItemId: string;
   brandId: string;
   brandName: string;
+  purchaseQuantity: number;
+  purchaseUnit: StockPurchaseUnit;
   priceBeforeTax: number;
   priceAfterTax: number;
+  unitPriceBeforeTax: number;
+  unitPriceAfterTax: number;
   isPreferred: boolean;
   createdAt: string;
   updatedAt: string;
@@ -44,7 +53,7 @@ export interface StockItemBrandResponseDto {
 export interface CreateStockItemDto {
   name: string;
   description?: string;
-  unitOfMeasure: string;
+  unitType: StockUnitType;
   currentQuantity?: number;
   reorderThreshold?: number;
 }
@@ -56,7 +65,7 @@ export interface CreateStockItemDto {
 export interface UpdateStockItemDto {
   name?: string;
   description?: string;
-  unitOfMeasure?: string;
+  unitType?: StockUnitType;
   reorderThreshold?: number;
 }
 
@@ -111,6 +120,8 @@ export interface AdjustStockDto {
  */
 export interface AddBrandToStockItemDto {
   brandId: string;
+  purchaseQuantity: number;
+  purchaseUnit: StockPurchaseUnit;
   priceBeforeTax: number;
   priceAfterTax: number;
   isPreferred?: boolean;
@@ -121,6 +132,8 @@ export interface AddBrandToStockItemDto {
  * Expected in PATCH /stock-items/:id/brands/:brandId
  */
 export interface UpdateStockItemBrandDto {
+  purchaseQuantity?: number;
+  purchaseUnit?: StockPurchaseUnit;
   priceBeforeTax?: number;
   priceAfterTax?: number;
   isPreferred?: boolean;
@@ -133,7 +146,8 @@ export interface UpdateStockItemBrandDto {
 export interface BulkImportStockItemRowDto {
   name: string;
   description?: string;
-  unitOfMeasure: string;
+  unitType?: StockUnitType;
+  unitOfMeasure?: string;
   currentQuantity?: number;
   reorderThreshold?: number;
 }

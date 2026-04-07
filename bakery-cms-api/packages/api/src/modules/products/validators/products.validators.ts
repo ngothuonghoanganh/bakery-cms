@@ -4,7 +4,12 @@
  */
 
 import Joi from 'joi';
-import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -57,6 +62,14 @@ export const createProductSchema = Joi.object({
       'number.base': 'Price must be a number',
       'number.positive': 'Price must be positive',
       'any.required': 'Price is required',
+    }),
+
+  saleUnitType: Joi.string()
+    .valid(...Object.values(SaleUnitType))
+    .optional()
+    .default(SaleUnitType.PIECE)
+    .messages({
+      'any.only': `Sale unit type must be one of: ${Object.values(SaleUnitType).join(', ')}`,
     }),
 
   category: Joi.string()
@@ -200,6 +213,13 @@ export const updateProductSchema = Joi.object({
     .messages({
       'number.base': 'Price must be a number',
       'number.positive': 'Price must be positive',
+    }),
+
+  saleUnitType: Joi.string()
+    .valid(...Object.values(SaleUnitType))
+    .optional()
+    .messages({
+      'any.only': `Sale unit type must be one of: ${Object.values(SaleUnitType).join(', ')}`,
     }),
 
   category: Joi.string()
@@ -366,6 +386,13 @@ export const productListQuerySchema = Joi.object({
     .optional()
     .messages({
       'any.only': `Product type must be one of: ${Object.values(ProductType).join(', ')}`,
+    }),
+
+  saleUnitType: Joi.string()
+    .valid(...Object.values(SaleUnitType))
+    .optional()
+    .messages({
+      'any.only': `Sale unit type must be one of: ${Object.values(SaleUnitType).join(', ')}`,
     }),
 
   isPublished: Joi.boolean()

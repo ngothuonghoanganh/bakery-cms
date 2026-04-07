@@ -3,7 +3,7 @@
  * Comprehensive filter controls for payment list
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Input, Select, DatePicker, Row, Col } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
@@ -13,9 +13,30 @@ import type { PaymentFiltersProps, PaymentFiltersValue } from './PaymentFilters.
 
 const { RangePicker } = DatePicker;
 
+const toDateValue = (value?: Date): number | undefined => value?.getTime();
+
+const areFiltersEqual = (
+  left: PaymentFiltersValue,
+  right: PaymentFiltersValue
+): boolean => {
+  return (
+    left.orderId === right.orderId &&
+    left.search === right.search &&
+    left.paymentType === right.paymentType &&
+    left.status === right.status &&
+    left.method === right.method &&
+    toDateValue(left.dateFrom) === toDateValue(right.dateFrom) &&
+    toDateValue(left.dateTo) === toDateValue(right.dateTo)
+  );
+};
+
 export const PaymentFilters: React.FC<PaymentFiltersProps> = ({ value = {}, onChange }) => {
   const { t } = useTranslation();
   const [localFilters, setLocalFilters] = useState<PaymentFiltersValue>(value);
+
+  useEffect(() => {
+    setLocalFilters((prev) => (areFiltersEqual(prev, value) ? prev : value));
+  }, [value]);
 
   const paymentMethodOptions = useMemo(
     () => [

@@ -4,6 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize } from 'sequelize';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 
 /**
  * StockItemBrand model class
@@ -13,8 +14,12 @@ export class StockItemBrandModel extends Model {
   declare id: string;
   declare stockItemId: string;
   declare brandId: string;
+  declare purchaseQuantity: number;
+  declare purchaseUnit: string;
   declare priceBeforeTax: number;
   declare priceAfterTax: number;
+  declare unitPriceBeforeTax: number;
+  declare unitPriceAfterTax: number;
   declare isPreferred: boolean;
   declare deletedAt: Date | null;
   declare readonly createdAt: Date;
@@ -58,6 +63,21 @@ export const initStockItemBrandModel = (
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
       },
+      purchaseQuantity: {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false,
+        defaultValue: 1,
+        field: 'purchase_quantity',
+        validate: {
+          min: 0.001,
+        },
+      },
+      purchaseUnit: {
+        type: DataTypes.ENUM(...Object.values(StockPurchaseUnit)),
+        allowNull: false,
+        defaultValue: StockPurchaseUnit.PIECE,
+        field: 'purchase_unit',
+      },
       priceBeforeTax: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
@@ -76,6 +96,32 @@ export const initStockItemBrandModel = (
             if (value < this.priceBeforeTax) {
               throw new Error(
                 'Price after tax must be greater than or equal to price before tax'
+              );
+            }
+          },
+        },
+      },
+      unitPriceBeforeTax: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: false,
+        field: 'unit_price_before_tax',
+        validate: {
+          min: 0,
+        },
+      },
+      unitPriceAfterTax: {
+        type: DataTypes.DECIMAL(12, 2),
+        allowNull: false,
+        field: 'unit_price_after_tax',
+        validate: {
+          min: 0,
+          isGreaterThanOrEqualToUnitBeforeTax(
+            this: StockItemBrandModel,
+            value: number
+          ) {
+            if (value < this.unitPriceBeforeTax) {
+              throw new Error(
+                'Unit price after tax must be greater than or equal to unit price before tax'
               );
             }
           },
@@ -102,6 +148,10 @@ export const initStockItemBrandModel = (
         {
           fields: ['brand_id'],
           name: 'idx_sib_brand_id',
+        },
+        {
+          fields: ['purchase_unit'],
+          name: 'idx_sib_purchase_unit',
         },
         {
           fields: ['stock_item_id', 'brand_id'],

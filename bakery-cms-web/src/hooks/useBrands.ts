@@ -30,14 +30,22 @@ export const useBrands = (options: UseBrandsOptions = {}): UseBrandsReturn => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(autoFetch);
   const [error, setError] = useState<AppError | null>(null);
-
-  // Use refs to avoid infinite loops with object dependencies
   const filtersRef = useRef(filters);
   const paginationRef = useRef(pagination);
-  filtersRef.current = filters;
-  paginationRef.current = pagination;
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
 
   const fetchBrands = useCallback(async (): Promise<void> => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+
     setLoading(true);
     setError(null);
 
@@ -45,6 +53,10 @@ export const useBrands = (options: UseBrandsOptions = {}): UseBrandsReturn => {
       ...filtersRef.current,
       ...paginationRef.current,
     });
+
+    if (requestId !== requestIdRef.current) {
+      return;
+    }
 
     if (result.success) {
       setBrands(result.data.brands);
@@ -59,15 +71,14 @@ export const useBrands = (options: UseBrandsOptions = {}): UseBrandsReturn => {
     setLoading(false);
   }, []);
 
-  // Serialize dependencies for comparison
-  const filterKey = JSON.stringify(filters);
+  const filtersKey = JSON.stringify(filters);
   const paginationKey = JSON.stringify(pagination);
 
   useEffect(() => {
     if (autoFetch) {
       fetchBrands();
     }
-  }, [autoFetch, fetchBrands, filterKey, paginationKey]);
+  }, [autoFetch, fetchBrands, filtersKey, paginationKey]);
 
   return {
     brands,

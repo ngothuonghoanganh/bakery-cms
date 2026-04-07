@@ -303,26 +303,28 @@ export class OAuthService {
   async getAuthorizationUrl(provider: AuthProvider, state?: string): Promise<Result<string, AppError>> {
     try {
       switch (provider) {
-        case AuthProvider.GOOGLE:
+        case AuthProvider.GOOGLE: {
           const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${this.config.google.clientID}&` +
             `redirect_uri=${encodeURIComponent(this.config.google.callbackURL)}&` +
             `scope=profile email&` +
             `response_type=code&` +
             `access_type=offline&` +
-            `prompt=consent` +
-            (state ? `&state=${encodeURIComponent(state)}` : '');
+            `prompt=consent${ 
+            state ? `&state=${encodeURIComponent(state)}` : ''}`;
           
           return ok(googleUrl);
+        }
 
-        case AuthProvider.FACEBOOK:
+        case AuthProvider.FACEBOOK: {
           const facebookUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
             `client_id=${this.config.facebook.clientID}&` +
             `redirect_uri=${encodeURIComponent(this.config.facebook.callbackURL)}&` +
-            `scope=email` +
-            (state ? `&state=${encodeURIComponent(state)}` : '');
+            `scope=email${ 
+            state ? `&state=${encodeURIComponent(state)}` : ''}`;
           
           return ok(facebookUrl);
+        }
 
         default:
           return err(createValidationError(`Unsupported OAuth provider: ${provider}`));

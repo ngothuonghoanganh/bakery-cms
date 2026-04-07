@@ -10,18 +10,40 @@ import type { PaymentFiltersValue } from '@/components/features/payments/Payment
 import type { PaymentFiltersRequest } from '@/types/api/payment.api';
 import type { AppError } from '@/types/common/error.types';
 
+const toIsoString = (value?: Date): string | undefined => value?.toISOString();
+
 const mapFiltersToRequest = (filters?: PaymentFiltersValue): PaymentFiltersRequest | undefined => {
   if (!filters) return undefined;
-  const startDate = filters.dateFrom?.toISOString();
-  const endDate = filters.dateTo?.toISOString();
+  const startDate = toIsoString(filters.dateFrom);
+  const endDate = toIsoString(filters.dateTo);
 
   return {
-    ...filters,
+    orderId: filters.orderId,
+    search: filters.search,
+    paymentType: filters.paymentType,
+    status: filters.status,
+    method: filters.method,
     dateFrom: startDate,
     dateTo: endDate,
     startDate,
     endDate,
   };
+};
+
+const buildFiltersKey = (filters?: PaymentFiltersValue): string => {
+  if (!filters) {
+    return '';
+  }
+
+  return JSON.stringify({
+    orderId: filters.orderId ?? null,
+    search: filters.search ?? null,
+    paymentType: filters.paymentType ?? null,
+    status: filters.status ?? null,
+    method: filters.method ?? null,
+    dateFrom: toIsoString(filters.dateFrom) ?? null,
+    dateTo: toIsoString(filters.dateTo) ?? null,
+  });
 };
 
 export type UsePaymentsOptions = {
@@ -85,8 +107,8 @@ export const usePayments = (options: UsePaymentsOptions = {}): UsePaymentsReturn
     setRefreshing(false);
   }, []);
 
-  // Create a stable key from filters for dependency tracking
-  const filtersKey = JSON.stringify(filters);
+  // Use a deterministic key to avoid repeated fetches with equivalent filters
+  const filtersKey = buildFiltersKey(filters);
 
   useEffect(() => {
     if (autoFetch) {

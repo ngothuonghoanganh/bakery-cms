@@ -10,6 +10,7 @@ import { createOrderService } from './services/orders.services';
 import { createOrderHandlers } from './handlers/orders.handlers';
 import { createPaymentRepository } from '../payments/repositories/payments.repositories';
 import { createSettingsRepository } from '../settings/repositories/settings.repositories';
+import { createPaidOrderStockService } from '../stock/services/paid-order-stock.services';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
 import { authenticateJWT } from '../../middleware';
 import { requireAuthenticated, requireStaff } from '../../middleware/rbac.middleware';
@@ -45,7 +46,22 @@ export const createOrdersRouter = (): Router => {
   );
   const paymentRepository = createPaymentRepository(models.Payment);
   const settingsRepository = createSettingsRepository(models.SystemSetting);
-  const service = createOrderService(repository, paymentRepository, settingsRepository);
+  const paidOrderStockService = createPaidOrderStockService({
+    orderModel: models.Order,
+    orderItemModel: models.OrderItem,
+    productModel: models.Product,
+    productComboItemModel: models.ProductComboItem,
+    productStockItemModel: models.ProductStockItem,
+    stockItemModel: models.StockItem,
+    stockItemBrandModel: models.StockItemBrand,
+    stockMovementModel: models.StockMovement,
+  });
+  const service = createOrderService(
+    repository,
+    paymentRepository,
+    settingsRepository,
+    paidOrderStockService
+  );
   const handlers = createOrderHandlers(service);
 
   /**

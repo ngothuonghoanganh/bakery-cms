@@ -2,12 +2,16 @@
  * StockItemList component types
  */
 
-import type { StockItem, StockItemFilters } from '../../../../types/models/stock.model';
+import type {
+  StockItem,
+  StockItemFilters,
+  StockUnitTypeType as StockUnitType,
+} from '../../../../types/models/stock.model';
 
 export interface StockItemFormValues {
   name: string;
   description?: string;
-  unitOfMeasure: string;
+  unitType: StockUnitType;
   currentQuantity?: number;
   reorderThreshold?: number;
 }

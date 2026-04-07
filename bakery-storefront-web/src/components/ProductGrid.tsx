@@ -21,6 +21,14 @@ const getStatusClassName = (status: string): string => {
   return status === 'available' ? 'status-badge available' : 'status-badge out';
 };
 
+const getPriceSuffix = (saleUnitType: ApiProduct['saleUnitType'], locale: Locale): string => {
+  if (saleUnitType === 'weight') {
+    return '/100g';
+  }
+
+  return locale === 'vi' ? '/cái' : '/piece';
+};
+
 export const ProductGrid = ({
   locale,
   dictionary,
@@ -77,7 +85,9 @@ export const ProductGrid = ({
                 {product.description && <p>{product.description}</p>}
 
                 <div className="product-footer">
-                  <strong>{formatPrice(product.price, locale)}</strong>
+                  <strong>
+                    {formatPrice(product.price, locale)} {getPriceSuffix(product.saleUnitType, locale)}
+                  </strong>
                   <Link
                     href={`/${locale}/products/${product.id}`}
                     className="btn-light"

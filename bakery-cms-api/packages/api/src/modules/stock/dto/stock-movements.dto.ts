@@ -13,6 +13,8 @@ export interface StockMovementResponseDto {
   id: string;
   stockItemId: string;
   stockItemName: string;
+  brandId: string | null;
+  brandName: string | null;
   type: MovementType;
   quantity: number;
   previousQuantity: number;

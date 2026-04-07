@@ -9,7 +9,12 @@ import {
   ProductImageModel,
   ProductComboItemModel,
 } from '@bakery-cms/database';
-import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import {
   ProductResponseDto,
   CreateProductDto,
@@ -48,6 +53,9 @@ export const toProductResponseDto = (model: ProductWithAssociations): ProductRes
           id: comboItem.itemProduct.id,
           productCode: comboItem.itemProduct.productCode,
           name: comboItem.itemProduct.name,
+          saleUnitType:
+            (comboItem.itemProduct.saleUnitType as SaleUnitType) ??
+            SaleUnitType.PIECE,
           imageUrl: comboItem.itemProduct.imageUrl,
           imageFileId: comboItem.itemProduct.imageFileId,
         }
@@ -62,6 +70,7 @@ export const toProductResponseDto = (model: ProductWithAssociations): ProductRes
     name: model.name,
     description: model.description,
     price: Number(model.price),
+    saleUnitType: (model.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
     category: model.category,
     businessType: model.businessType as BusinessType,
     status: model.status as ProductStatus,
@@ -99,6 +108,7 @@ export const toProductCreationAttributes = (
     name: dto.name,
     description: dto.description ?? null,
     price: dto.price,
+    saleUnitType: dto.saleUnitType ?? SaleUnitType.PIECE,
     category: dto.category ?? null,
     businessType: dto.businessType,
     status: dto.status ?? ProductStatus.AVAILABLE,
@@ -130,6 +140,9 @@ export const toProductUpdateAttributes = (
   }
   if (dto.price !== undefined) {
     attributes.price = dto.price;
+  }
+  if (dto.saleUnitType !== undefined) {
+    attributes.saleUnitType = dto.saleUnitType;
   }
   if (dto.category !== undefined) {
     attributes.category = dto.category ?? null;

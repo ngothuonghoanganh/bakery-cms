@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared';
 import { ProductStatus, BusinessType, ProductType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
+import { getSaleUnitPriceSuffix } from '../../../../utils/sale-unit.utils';
 import { fileService } from '../../../../services/file.service';
 import type { ProductTableProps, ProductColumn } from './ProductTable.types';
 import type { Product } from '../../../../types/models/product.model';
@@ -152,7 +153,18 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         key: 'price',
         width: 120,
         sorter: true,
-        render: (price: number) => formatCurrency(price),
+        render: (price: number, record: Product) =>
+          `${formatCurrency(price)} ${getSaleUnitPriceSuffix(record.saleUnitType)}`,
+      },
+      {
+        title: t('products.table.saleUnitType', 'Đơn vị bán'),
+        dataIndex: 'saleUnitType',
+        key: 'saleUnitType',
+        width: 130,
+        render: (saleUnitType: Product['saleUnitType']) =>
+          saleUnitType === 'weight'
+            ? t('products.saleUnitType.weight', 'Khối lượng')
+            : t('products.saleUnitType.piece', 'Cái'),
       },
       {
         title: t('products.table.businessType'),

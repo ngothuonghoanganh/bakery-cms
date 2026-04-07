@@ -21,7 +21,13 @@ import type {
   OrderBillSnapshot,
   OrderBillSnapshotItem,
 } from '@/types/models/order.model';
-import type {  OrderStatusType as OrderStatus, OrderTypeType as OrderType, BusinessModelType as BusinessModel } from '@/types/models/order.model';
+import type {
+  OrderStatusType as OrderStatus,
+  OrderTypeType as OrderType,
+  BusinessModelType as BusinessModel,
+  SaleUnitTypeType as SaleUnitType,
+} from '@/types/models/order.model';
+import { SaleUnitType as SaleUnitTypeValue } from '@/types/models/order.model';
 
 /**
  * Map API response to OrderItem domain model
@@ -32,6 +38,7 @@ export const mapOrderItemFromAPI = (apiItem: OrderItemAPIResponse): OrderItem =>
   productId: apiItem.productId,
   productCode: apiItem.productCode ?? null,
   productName: apiItem.productName ?? null,
+  saleUnitType: (apiItem.saleUnitType as SaleUnitType) ?? SaleUnitTypeValue.PIECE,
   quantity: apiItem.quantity,
   unitPrice: apiItem.unitPrice,
   subtotal: apiItem.subtotal,
@@ -90,6 +97,8 @@ export const mapOrderBillSnapshotItemFromAPI = (
   productId: apiItem.productId,
   productCode: apiItem.productCode ?? null,
   productName: apiItem.productName ?? null,
+  saleUnitType:
+    (apiItem.saleUnitType as SaleUnitType) ?? SaleUnitTypeValue.PIECE,
   quantity: apiItem.quantity,
   unitPrice: apiItem.unitPrice,
   subtotal: apiItem.subtotal,

@@ -3,11 +3,12 @@
  */
 
 import type { StockItem } from '../../../../types/models/stock.model';
+import type { StockUnitTypeType as StockUnitType } from '../../../../types/models/stock.model';
 
 export interface StockItemFormValues {
   name: string;
   description?: string;
-  unitOfMeasure: string;
+  unitType: StockUnitType;
   currentQuantity?: number;
   reorderThreshold?: number;
 }

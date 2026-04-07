@@ -82,6 +82,7 @@ export const createStockRouter = (): Router => {
   const brandService = createBrandService({
     brandRepository,
     stockItemBrandRepository,
+    stockItemRepository,
     fileService,
   });
   const brandHandlers = createBrandHandlers(brandService);

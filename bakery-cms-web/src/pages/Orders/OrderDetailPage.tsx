@@ -3,7 +3,7 @@
  * Container page for viewing and managing a single order
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Card, Form, Image, Input, InputNumber, Modal, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
@@ -28,7 +28,12 @@ import {
 } from '../../services/order.service';
 import { getAllPayments, refundOrderPayment } from '../../services/payment.service';
 import { settingsService } from '../../services/settings.service';
-import type { Order, OrderBill, OrderBillSnapshot } from '../../types/models/order.model';
+import {
+  SaleUnitType,
+  type Order,
+  type OrderBill,
+  type OrderBillSnapshot,
+} from '../../types/models/order.model';
 import type { Payment, VietQRData } from '../../types/models/payment.model';
 import type {
   InvoiceLanguage,
@@ -38,6 +43,10 @@ import type {
 import type { OrderFormValues } from '../../components/features/orders/OrderForm/OrderForm.types';
 import type { ColumnsType } from 'antd/es/table';
 import { formatCurrency, formatDateTime } from '../../utils/format.utils';
+import {
+  calculateOrderItemSubtotal,
+  getSaleUnitPriceSuffix,
+} from '../../utils/sale-unit.utils';
 
 const { Text } = Typography;
 
@@ -199,6 +208,14 @@ const formatBillProductCode = (item: OrderBillSnapshot['items'][number]): string
 const formatBillProductName = (item: OrderBillSnapshot['items'][number]): string =>
   item.productName?.trim() || 'Unknown Product';
 
+const formatBillItemQuantity = (item: OrderBillSnapshot['items'][number]): string =>
+  item.saleUnitType === SaleUnitType.WEIGHT ? `${item.quantity} g` : `${item.quantity} cái`;
+
+const formatBillItemUnitPrice = (
+  item: OrderBillSnapshot['items'][number],
+  locale: string
+): string => `${formatBillMoney(item.unitPrice, locale)} ${getSaleUnitPriceSuffix(item.saleUnitType)}`;
+
 const calculateBillItemsTotal = (snapshot: OrderBillSnapshot): number =>
   snapshot.items.reduce((sum, item) => sum + item.subtotal, 0);
 
@@ -223,6 +240,7 @@ const buildBillSnapshotFromOrder = (order: Order): OrderBillSnapshot => ({
       productId: item.productId,
       productCode: item.productCode ?? null,
       productName: item.productName ?? null,
+      saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       subtotal: item.subtotal,
@@ -638,13 +656,13 @@ const renderBillSnapshotToCanvas = async (
     );
     ctx.textAlign = 'center';
     ctx.fillText(
-      String(item.quantity),
+      formatBillItemQuantity(item),
       tableX + colNoW + colCodeW + colNameW + colQtyW / 2,
       rowY + 30
     );
     ctx.textAlign = 'right';
     ctx.fillText(
-      formatBillMoney(item.unitPrice, locale),
+      formatBillItemUnitPrice(item, locale),
       tableX + colNoW + colCodeW + colNameW + colQtyW + colUnitW - 18,
       rowY + 30
     );
@@ -818,6 +836,7 @@ export const OrderDetailPage: React.FC = () => {
   const [voidingBill, setVoidingBill] = useState(false);
   const [invoiceLanguage, setInvoiceLanguage] = useState<InvoiceLanguage>('en');
   const [storeProfile, setStoreProfile] = useState<StoreProfile>(DEFAULT_STORE_PROFILE);
+  const lastAutoFetchedPaymentsOrderIdRef = useRef<string | null>(null);
 
   const billLanguage = useMemo(
     () => getBillLanguagePack(invoiceLanguage),
@@ -1030,10 +1049,17 @@ export const OrderDetailPage: React.FC = () => {
   }, [fetchBills, id, showError, t]);
 
   useEffect(() => {
-    if (activeTab === 'payments' && order && orderPayments.length === 0 && !orderPaymentsLoading) {
-      void fetchPayments(order.id);
+    if (activeTab !== 'payments' || !order?.id || orderPaymentsLoading) {
+      return;
     }
-  }, [activeTab, fetchPayments, order, orderPayments.length, orderPaymentsLoading]);
+
+    if (lastAutoFetchedPaymentsOrderIdRef.current === order.id) {
+      return;
+    }
+
+    lastAutoFetchedPaymentsOrderIdRef.current = order.id;
+    void fetchPayments(order.id);
+  }, [activeTab, fetchPayments, order?.id, orderPaymentsLoading]);
 
   useEffect(() => {
     void loadBillSettings();
@@ -1061,9 +1087,14 @@ export const OrderDetailPage: React.FC = () => {
         notes: values.notes || undefined,
         items: values.items.map((item) => ({
           productId: item.productId,
+          saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          subtotal: item.quantity * item.unitPrice,
+          subtotal: calculateOrderItemSubtotal(
+            item.quantity,
+            item.unitPrice,
+            item.saleUnitType || SaleUnitType.PIECE
+          ),
           notes: item.notes || undefined,
         })),
         extraFees: (values.extraFees || []).map((fee) => ({
@@ -1174,11 +1205,10 @@ export const OrderDetailPage: React.FC = () => {
     navigate('/orders');
   };
 
-  const handleViewPayments = async () => {
+  const handleViewPayments = () => {
     if (!order) return;
 
     setActiveTab('payments');
-    await fetchPayments(order.id);
   };
 
   const openManageExtrasModal = async () => {
@@ -1534,6 +1564,7 @@ export const OrderDetailPage: React.FC = () => {
       items:
         order.items?.map((item) => ({
           productId: item.productId,
+          saleUnitType: item.saleUnitType,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           notes: item.notes || '',
@@ -2309,7 +2340,7 @@ export const OrderDetailPage: React.FC = () => {
 
               <Table<OrderBillSnapshot['items'][number]>
                 rowKey={(item) =>
-                  `${item.productId}-${item.productCode || 'UNKNOWN'}-${item.quantity}-${item.unitPrice}`
+                  `${item.productId}-${item.productCode || 'UNKNOWN'}-${item.saleUnitType}-${item.quantity}-${item.unitPrice}`
                 }
                 dataSource={[...previewBill.snapshot.items]}
                 bordered
@@ -2345,6 +2376,7 @@ export const OrderDetailPage: React.FC = () => {
                     key: 'quantity',
                     width: 90,
                     align: 'center',
+                    render: (_value: number, item) => formatBillItemQuantity(item),
                   },
                   {
                     title: billLanguage.unitPrice,
@@ -2352,8 +2384,8 @@ export const OrderDetailPage: React.FC = () => {
                     key: 'unitPrice',
                     width: 140,
                     align: 'right',
-                    render: (value: number) =>
-                      formatCurrency(value, 'VND', billLanguage.locale),
+                    render: (_value: number, item) =>
+                      `${formatCurrency(item.unitPrice, 'VND', billLanguage.locale)} ${getSaleUnitPriceSuffix(item.saleUnitType)}`,
                   },
                   {
                     title: billLanguage.subtotal,

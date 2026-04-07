@@ -4,7 +4,12 @@
  */
 
 import { Model, DataTypes, Sequelize, Op } from 'sequelize';
-import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@bakery-cms/common';
 
 /**
  * Product model class
@@ -16,6 +21,7 @@ export class ProductModel extends Model {
   declare name: string;
   declare description: string | null;
   declare price: number;
+  declare saleUnitType: string;
   declare category: string | null;
   declare businessType: string;
   declare status: string;
@@ -73,6 +79,12 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
           min: 0,
           isDecimal: true,
         },
+      },
+      saleUnitType: {
+        type: DataTypes.ENUM(...Object.values(SaleUnitType)),
+        allowNull: false,
+        defaultValue: SaleUnitType.PIECE,
+        field: 'sale_unit_type',
       },
       category: {
         type: DataTypes.STRING(100),
@@ -168,6 +180,10 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         },
         {
           fields: ['status'],
+        },
+        {
+          fields: ['sale_unit_type'],
+          name: 'idx_products_sale_unit_type',
         },
         {
           fields: ['product_type'],

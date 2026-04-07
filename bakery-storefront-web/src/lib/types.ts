@@ -17,6 +17,7 @@ export type ApiProduct = {
   name: string;
   description: string | null;
   price: number;
+  saleUnitType: 'piece' | 'weight';
   category: string | null;
   status: string;
   imageUrl: string | null;

@@ -5,17 +5,18 @@
 
 
 // Import enums as both types and values from common package
-import { OrderStatus, BusinessModel, OrderType } from '@bakery-cms/common';
+import { OrderStatus, BusinessModel, OrderType, SaleUnitType } from '@bakery-cms/common';
 
 // Re-export for component usage
-export { OrderStatus, BusinessModel, OrderType };
+export { OrderStatus, BusinessModel, OrderType, SaleUnitType };
 
 // Also export with Type suffix for backward compatibility
 export type {
   OrderStatus as OrderStatusType,
   BusinessModel as BusinessModelType,
   OrderType as OrderTypeType,
-}
+  SaleUnitType as SaleUnitTypeType,
+} from '@bakery-cms/common';
 
 
 export type OrderItem = {
@@ -24,6 +25,7 @@ export type OrderItem = {
   readonly productId: string;
   readonly productCode: string | null;
   readonly productName: string | null;
+  readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;
@@ -81,6 +83,7 @@ export type OrderBillSnapshotItem = {
   readonly productId: string;
   readonly productCode: string | null;
   readonly productName: string | null;
+  readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;

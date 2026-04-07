@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "yarn workspace @bakery-cms/api dev",
-    "build": "yarn workspace @bakery-cms/common build && yarn workspace @bakery-cms/database build && yarn workspace @bakery-cms/api build",
+    "build": "yarn workspace @bakery-cms/api build",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint packages/*/src --ext .ts",

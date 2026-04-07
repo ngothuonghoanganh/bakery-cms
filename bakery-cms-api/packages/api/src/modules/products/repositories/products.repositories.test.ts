@@ -23,7 +23,7 @@ const createMockProductModel = (): MockProductModel => ({
   destroy: jest.fn(),
   count: jest.fn(),
   scope: jest.fn(),
-});;
+});
 
 describe('Product Repository - Soft Delete', () => {
   let repository: ProductRepository;

@@ -109,7 +109,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
       } else {
         showError(t('common.status.failed'), result.error.message);
       }
-    } catch (err) {
+    } catch (_err) {
       showError(t('common.status.error'), t('stock.recipe.removeError'));
     }
   }, [productId, refetchAll, onRecipeChange, success, showError, t]);
@@ -154,7 +154,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
           showError(t('common.status.failed'), result.error.message);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       showError(t('common.status.error'), t('stock.recipe.saveError'));
     } finally {
       setSubmitting(false);

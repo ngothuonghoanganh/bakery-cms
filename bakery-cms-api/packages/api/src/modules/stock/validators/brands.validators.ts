@@ -4,6 +4,7 @@
  */
 
 import Joi from 'joi';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -156,6 +157,24 @@ export const addBrandToStockItemSchema = Joi.object({
     'any.required': 'Brand ID is required',
   }),
 
+  purchaseQuantity: Joi.number()
+    .positive()
+    .precision(3)
+    .required()
+    .messages({
+      'number.base': 'Purchase quantity must be a number',
+      'number.positive': 'Purchase quantity must be greater than 0',
+      'any.required': 'Purchase quantity is required',
+    }),
+
+  purchaseUnit: Joi.string()
+    .valid(...Object.values(StockPurchaseUnit))
+    .required()
+    .messages({
+      'any.only': `Purchase unit must be one of: ${Object.values(StockPurchaseUnit).join(', ')}`,
+      'any.required': 'Purchase unit is required',
+    }),
+
   priceBeforeTax: Joi.number()
     .positive()
     .precision(2)
@@ -189,6 +208,22 @@ export const addBrandToStockItemSchema = Joi.object({
  * Validates PATCH /stock-items/:stockItemId/brands/:brandId request body
  */
 export const updateStockItemBrandSchema = Joi.object({
+  purchaseQuantity: Joi.number()
+    .positive()
+    .precision(3)
+    .optional()
+    .messages({
+      'number.base': 'Purchase quantity must be a number',
+      'number.positive': 'Purchase quantity must be greater than 0',
+    }),
+
+  purchaseUnit: Joi.string()
+    .valid(...Object.values(StockPurchaseUnit))
+    .optional()
+    .messages({
+      'any.only': `Purchase unit must be one of: ${Object.values(StockPurchaseUnit).join(', ')}`,
+    }),
+
   priceBeforeTax: Joi.number()
     .positive()
     .precision(2)

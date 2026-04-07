@@ -148,7 +148,7 @@ export const createDatabaseError = (
 /**
  * Create authentication error
  */
-export const createAuthenticationError = (message: string = 'Authentication required'): AppError => ({
+export const createAuthenticationError = (message = 'Authentication required'): AppError => ({
   code: ErrorCode.UNAUTHORIZED,
   message,
   statusCode: 401,
@@ -158,7 +158,7 @@ export const createAuthenticationError = (message: string = 'Authentication requ
 /**
  * Create authorization error
  */
-export const createAuthorizationError = (message: string = 'Insufficient permissions'): AppError => ({
+export const createAuthorizationError = (message = 'Insufficient permissions'): AppError => ({
   code: ErrorCode.FORBIDDEN,
   message,
   statusCode: 403,
@@ -190,7 +190,7 @@ export const createInvalidInputError = (message: string, details?: readonly Vali
 /**
  * Create internal server error
  */
-export const createInternalError = (message: string = 'Internal server error'): AppError => ({
+export const createInternalError = (message = 'Internal server error'): AppError => ({
   code: ErrorCode.INTERNAL_ERROR,
   message,
   statusCode: 500,
@@ -210,7 +210,7 @@ export const createBusinessRuleError = (message: string): AppError => ({
 /**
  * Create rate limit error
  */
-export const createRateLimitError = (message: string = 'Too many requests'): AppError => ({
+export const createRateLimitError = (message = 'Too many requests'): AppError => ({
   code: ErrorCode.RATE_LIMIT_EXCEEDED,
   message,
   statusCode: 429,

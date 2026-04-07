@@ -3,6 +3,7 @@ import type {
   BusinessType,
   ProductStatus,
   ProductType,
+  SaleUnitTypeType as SaleUnitType,
 } from '../../../../types/models/product.model';
 import type { ProductImageItem } from '../../../shared/MultiFileUpload';
 
@@ -14,9 +15,11 @@ export interface ProductComboItemFormValue {
 }
 
 export interface ProductFormValues {
+  productCode?: string;
   name: string;
   description?: string;
   price: number;
+  saleUnitType: SaleUnitType;
   category?: string;
   businessType: BusinessType;
   status: ProductStatus;

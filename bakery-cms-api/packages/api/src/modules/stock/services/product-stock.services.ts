@@ -326,7 +326,7 @@ export const createProductStockService = (
             item.preferredBrandId
           );
           if (brandPrice) {
-            unitPrice = Number(brandPrice.priceAfterTax);
+            unitPrice = Number(brandPrice.unitPriceAfterTax);
             brand = preferredBrand;
           }
         } else {
@@ -334,11 +334,11 @@ export const createProductStockService = (
           const brands = await stockItemBrandRepository.findByStockItemId(item.stockItemId);
           if (brands.length > 0) {
             const lowestPriceBrand = brands.reduce((lowest, current) => {
-              return Number(current.priceAfterTax) < Number(lowest.priceAfterTax)
+              return Number(current.unitPriceAfterTax) < Number(lowest.unitPriceAfterTax)
                 ? current
                 : lowest;
             });
-            unitPrice = Number(lowestPriceBrand.priceAfterTax);
+            unitPrice = Number(lowestPriceBrand.unitPriceAfterTax);
             brand = (lowestPriceBrand as any).brand ?? null;
           }
         }

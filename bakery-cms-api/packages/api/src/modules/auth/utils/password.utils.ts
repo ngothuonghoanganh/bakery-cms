@@ -34,7 +34,10 @@ export const PASSWORD_CONFIG = {
 /**
  * Special characters for password validation
  */
-const SPECIAL_CHARS = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+const SPECIAL_CHARS = `!@#$%^&*()_+-=[]{};':"\\|,.<>/?`;
+
+const hasSpecialChar = (password: string): boolean =>
+  [...password].some((char) => SPECIAL_CHARS.includes(char));
 
 /**
  * Hash a password using bcrypt with 12 salt rounds
@@ -152,9 +155,9 @@ export const validatePassword = (password: string): PasswordValidationResult => 
   }
 
   // Check for special characters
-  if (PASSWORD_CONFIG.REQUIRE_SPECIAL_CHARS && !SPECIAL_CHARS.test(password)) {
+  if (PASSWORD_CONFIG.REQUIRE_SPECIAL_CHARS && !hasSpecialChar(password)) {
     errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;\':".,<>?/)');
-  } else if (SPECIAL_CHARS.test(password)) {
+  } else if (hasSpecialChar(password)) {
     score += 1;
   }
 
@@ -171,8 +174,12 @@ export const validatePassword = (password: string): PasswordValidationResult => 
   }
 
   // Additional scoring for length
-  if (password.length >= 12) score += 1;
-  if (password.length >= 16) score += 1;
+  if (password.length >= 12) {
+score += 1;
+}
+  if (password.length >= 16) {
+score += 1;
+}
 
   // Calculate strength
   let strength: 'weak' | 'medium' | 'strong' = 'weak';
@@ -235,7 +242,7 @@ const hasCommonPatterns = (password: string): boolean => {
 /**
  * Generate a secure random password
  */
-export const generateSecurePassword = (length: number = 16): string => {
+export const generateSecurePassword = (length = 16): string => {
   // Enforce minimum length of 12 characters for security
   const actualLength = Math.max(12, length);
   

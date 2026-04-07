@@ -4,6 +4,7 @@
  */
 
 import type { FileAPIResponse } from './file.api';
+import type { SaleUnitType } from '@bakery-cms/common';
 
 /**
  * Product image API response
@@ -29,6 +30,7 @@ export type ProductComboItemAPIResponse = {
     readonly id: string;
     readonly productCode: string;
     readonly name: string;
+    readonly saleUnitType: SaleUnitType;
     readonly imageUrl: string | null;
     readonly imageFileId: string | null;
   } | null;
@@ -38,9 +40,11 @@ export type ProductComboItemAPIResponse = {
 
 export type ProductAPIResponse = {
   readonly id: string;
+  readonly productCode: string;
   readonly name: string;
   readonly description: string | null;
   readonly price: number;
+  readonly saleUnitType: SaleUnitType;
   readonly category: string | null;
   readonly businessType: string;
   readonly status: string;
@@ -66,9 +70,11 @@ export type PaginatedProductsAPIResponse = {
 };
 
 export type CreateProductRequest = {
+  readonly productCode?: string;
   readonly name: string;
   readonly description?: string;
   readonly price: number;
+  readonly saleUnitType?: SaleUnitType;
   readonly category?: string;
   readonly businessType: string;
   readonly status?: string;
@@ -91,9 +97,11 @@ export type CreateProductRequest = {
 };
 
 export type UpdateProductRequest = {
+  readonly productCode?: string;
   readonly name?: string;
   readonly description?: string;
   readonly price?: number;
+  readonly saleUnitType?: SaleUnitType;
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
@@ -120,6 +128,7 @@ export type ProductFiltersRequest = {
   readonly businessType?: string;
   readonly status?: string;
   readonly productType?: string;
+  readonly saleUnitType?: SaleUnitType;
   readonly isPublished?: boolean;
   readonly minPrice?: number;
   readonly maxPrice?: number;

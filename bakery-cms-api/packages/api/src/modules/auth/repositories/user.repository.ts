@@ -296,7 +296,7 @@ export const createUserRepository = (
    */
   const lockAccount = async (
     id: string,
-    durationMinutes: number = 30
+    durationMinutes = 30
   ): Promise<UserModel | null> => {
     const user = await model.findByPk(id);
     if (!user) {

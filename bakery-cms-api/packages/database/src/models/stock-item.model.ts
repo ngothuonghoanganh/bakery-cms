@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize } from 'sequelize';
-import { StockItemStatus } from '@bakery-cms/common';
+import { StockItemStatus, StockUnitType } from '@bakery-cms/common';
 
 /**
  * StockItem model class
@@ -14,6 +14,7 @@ export class StockItemModel extends Model {
   declare id: string;
   declare name: string;
   declare description: string | null;
+  declare unitType: string;
   declare unitOfMeasure: string;
   declare currentQuantity: number;
   declare reorderThreshold: number | null;
@@ -27,6 +28,9 @@ export class StockItemModel extends Model {
    * Pure function for status calculation
    */
   computeStatus(): StockItemStatus {
+    if (this.currentQuantity < 0) {
+      return StockItemStatus.LOW_STOCK;
+    }
     if (this.currentQuantity === 0) {
       return StockItemStatus.OUT_OF_STOCK;
     }
@@ -58,7 +62,6 @@ export const initStockItemModel = (
       name: {
         type: DataTypes.STRING(255),
         allowNull: false,
-        unique: true,
         validate: {
           notEmpty: true,
           len: [1, 255],
@@ -67,6 +70,12 @@ export const initStockItemModel = (
       description: {
         type: DataTypes.TEXT,
         allowNull: true,
+      },
+      unitType: {
+        type: DataTypes.ENUM(...Object.values(StockUnitType)),
+        allowNull: false,
+        defaultValue: StockUnitType.PIECE,
+        field: 'unit_type',
       },
       unitOfMeasure: {
         type: DataTypes.STRING(50),
@@ -80,9 +89,6 @@ export const initStockItemModel = (
         type: DataTypes.DECIMAL(10, 3),
         allowNull: false,
         defaultValue: 0,
-        validate: {
-          min: 0,
-        },
       },
       reorderThreshold: {
         type: DataTypes.DECIMAL(10, 3),
@@ -117,12 +123,18 @@ export const initStockItemModel = (
           name: 'idx_stock_items_status',
         },
         {
+          fields: ['unit_type'],
+          name: 'idx_stock_items_unit_type',
+        },
+        {
           fields: ['deleted_at'],
           name: 'idx_stock_items_deleted_at',
         },
       ],
       hooks: {
         beforeSave: (instance: StockItemModel) => {
+          instance.unitOfMeasure =
+            instance.unitType === StockUnitType.WEIGHT ? 'gram' : 'piece';
           instance.status = instance.computeStatus();
         },
       },

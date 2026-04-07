@@ -303,7 +303,7 @@ export const createAuthService = (
    */
   const refreshToken = async (dto: RefreshTokenRequestDto): Promise<Result<TokenPairDto, AppError>> => {
     try {
-      logger.debug('Token refresh attempt', { refreshToken: dto.refreshToken.substring(0, 20) + '...' });
+      logger.debug('Token refresh attempt', { refreshToken: `${dto.refreshToken.substring(0, 20)  }...` });
 
       // Verify refresh token
       const tokenVerifyResult = await verifyRefreshToken(dto.refreshToken);
@@ -373,7 +373,7 @@ export const createAuthService = (
 
       return ok(response);
     } catch (error) {
-      logger.error('Token refresh failed with error', { error, refreshToken: dto.refreshToken.substring(0, 20) + '...' });
+      logger.error('Token refresh failed with error', { error, refreshToken: `${dto.refreshToken.substring(0, 20)  }...` });
       return err(createDatabaseError('Token refresh failed', error));
     }
   };
@@ -738,8 +738,12 @@ export const createAuthService = (
 
       // Build update data
       const updateData: { firstName?: string; lastName?: string } = {};
-      if (firstName !== undefined) updateData.firstName = firstName;
-      if (lastName !== undefined) updateData.lastName = lastName;
+      if (firstName !== undefined) {
+updateData.firstName = firstName;
+}
+      if (lastName !== undefined) {
+updateData.lastName = lastName;
+}
 
       // Check if there's anything to update
       if (Object.keys(updateData).length === 0) {

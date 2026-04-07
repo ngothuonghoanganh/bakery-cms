@@ -4,7 +4,12 @@
  */
 
 import { OrderModel, OrderItemModel, OrderBillModel } from '@bakery-cms/database';
-import { OrderStatus, OrderType, BusinessModel } from '@bakery-cms/common';
+import {
+  OrderStatus,
+  OrderType,
+  BusinessModel,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import {
   OrderResponseDto,
   OrderItemResponseDto,
@@ -16,6 +21,7 @@ import {
   OrderBillSnapshotDto,
   OrderBillResponseDto,
 } from '../dto/orders.dto';
+import { calculateOrderItemSubtotal } from '../utils/order-pricing.utils';
 
 const toMoney = (value: number): number => Math.round(value * 100) / 100;
 
@@ -104,7 +110,13 @@ export const toOrderItemResponseDto = (
   model: OrderItemModel
 ): OrderItemResponseDto => {
   const associatedProduct = (
-    model as unknown as { product?: { name?: string | null; productCode?: string | null } }
+    model as unknown as {
+      product?: {
+        name?: string | null;
+        productCode?: string | null;
+        saleUnitType?: string | null;
+      };
+    }
   ).product;
 
   return {
@@ -113,6 +125,9 @@ export const toOrderItemResponseDto = (
     productId: model.productId,
     productCode: model.productCode ?? associatedProduct?.productCode ?? null,
     productName: model.productName ?? associatedProduct?.name ?? null,
+    saleUnitType:
+      (model.saleUnitType as SaleUnitType) ??
+      ((associatedProduct?.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE),
     quantity: model.quantity,
     unitPrice: Number(model.unitPrice),
     subtotal: Number(model.subtotal),
@@ -240,6 +255,7 @@ export const toOrderItemCreationAttributes = (
   return {
     orderId,
     productId: dto.productId,
+    saleUnitType: dto.saleUnitType ?? SaleUnitType.PIECE,
     quantity: dto.quantity,
     unitPrice: dto.unitPrice,
     subtotal: dto.subtotal,
@@ -283,10 +299,14 @@ export const calculateOrderTotalWithExtraFees = (
 
 /**
  * Validate order item subtotal
- * Pure function to ensure subtotal matches quantity * unitPrice
+ * Pure function to ensure subtotal matches unit-type formula
  */
 export const validateItemSubtotal = (item: OrderItemDto): boolean => {
-  const expectedSubtotal = item.quantity * item.unitPrice;
+  const expectedSubtotal = calculateOrderItemSubtotal(
+    item.quantity,
+    item.unitPrice,
+    item.saleUnitType ?? SaleUnitType.PIECE
+  );
   const actualSubtotal = item.subtotal;
   // Allow small floating point differences
   return Math.abs(expectedSubtotal - actualSubtotal) < 0.01;
@@ -334,6 +354,9 @@ export const toOrderBillSnapshotDto = (
       productName:
         item.productName ??
         ((item as unknown as { product?: { name?: string | null } }).product?.name ?? null),
+      saleUnitType:
+        (item.saleUnitType as SaleUnitType) ??
+        SaleUnitType.PIECE,
       quantity: item.quantity,
       unitPrice: Number(item.unitPrice),
       subtotal: Number(item.subtotal),

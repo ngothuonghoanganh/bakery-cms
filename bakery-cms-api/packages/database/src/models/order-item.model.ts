@@ -4,6 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize, Op } from 'sequelize';
+import { SaleUnitType } from '@bakery-cms/common';
 
 /**
  * OrderItem model class
@@ -15,6 +16,7 @@ export class OrderItemModel extends Model {
   declare productId: string;
   declare productCode: string;
   declare productName: string;
+  declare saleUnitType: string;
   declare quantity: number;
   declare unitPrice: number;
   declare subtotal: number;
@@ -76,6 +78,12 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
           notEmpty: true,
           len: [3, 50],
         },
+      },
+      saleUnitType: {
+        type: DataTypes.ENUM(...Object.values(SaleUnitType)),
+        allowNull: false,
+        defaultValue: SaleUnitType.PIECE,
+        field: 'sale_unit_type',
       },
       quantity: {
         type: DataTypes.INTEGER,
@@ -159,6 +167,10 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         },
         {
           fields: ['product_code'],
+        },
+        {
+          fields: ['sale_unit_type'],
+          name: 'idx_order_items_sale_unit_type',
         },
         {
           unique: true,

@@ -175,6 +175,7 @@ export const OrderList: React.FC<OrderListProps> = ({
       items:
         selectedOrder.items?.map((item) => ({
           productId: item.productId,
+          saleUnitType: item.saleUnitType,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           notes: item.notes || '',

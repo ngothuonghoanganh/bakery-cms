@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { StockItemStatus } from '@bakery-cms/common';
+import { StockItemStatus, StockUnitType } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -37,27 +37,23 @@ export const createStockItemSchema = Joi.object({
       'string.base': 'Description must be a string',
     }),
 
-  unitOfMeasure: Joi.string()
-    .trim()
-    .min(1)
-    .max(50)
+  unitType: Joi.string()
+    .valid(...Object.values(StockUnitType))
     .required()
     .messages({
-      'string.base': 'Unit of measure must be a string',
-      'string.empty': 'Unit of measure cannot be empty',
-      'string.min': 'Unit of measure must be at least 1 character',
-      'string.max': 'Unit of measure must not exceed 50 characters',
-      'any.required': 'Unit of measure is required',
+      'any.only': `Unit type must be one of: ${Object.values(StockUnitType).join(', ')}`,
+      'any.required': 'Unit type is required',
     }),
 
+  // Backward compatibility: ignored in mapper, canonicalized from unitType.
+  unitOfMeasure: Joi.string().trim().max(50).optional(),
+
   currentQuantity: Joi.number()
-    .min(0)
     .precision(3)
     .optional()
     .default(0)
     .messages({
       'number.base': 'Current quantity must be a number',
-      'number.min': 'Current quantity must be at least 0',
     }),
 
   reorderThreshold: Joi.number()
@@ -96,17 +92,15 @@ export const updateStockItemSchema = Joi.object({
       'string.base': 'Description must be a string',
     }),
 
-  unitOfMeasure: Joi.string()
-    .trim()
-    .min(1)
-    .max(50)
+  unitType: Joi.string()
+    .valid(...Object.values(StockUnitType))
     .optional()
     .messages({
-      'string.base': 'Unit of measure must be a string',
-      'string.empty': 'Unit of measure cannot be empty',
-      'string.min': 'Unit of measure must be at least 1 character',
-      'string.max': 'Unit of measure must not exceed 50 characters',
+      'any.only': `Unit type must be one of: ${Object.values(StockUnitType).join(', ')}`,
     }),
+
+  // Backward compatibility: ignored in mapper, canonicalized from unitType.
+  unitOfMeasure: Joi.string().trim().max(50).optional(),
 
   reorderThreshold: Joi.number()
     .min(0)

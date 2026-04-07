@@ -12,13 +12,17 @@ import {
   PaymentMethod,
   PaymentStatus,
   PaymentType,
+  SaleUnitType,
 } from '@bakery-cms/common';
 import {
   OrderRepository,
+  OrderItemRepository,
   OrderBillRepository,
+  OrderItemProductSaleInfo,
 } from '../repositories/orders.repositories';
 import { PaymentRepository } from '../../payments/repositories/payments.repositories';
 import { SettingsRepository } from '../../settings/repositories/settings.repositories';
+import type { PaidOrderStockService } from '../../stock/services/paid-order-stock.services';
 import {
   CreateOrderDto,
   UpdateOrderDto,
@@ -34,6 +38,7 @@ import {
   SaveOrderBillDto,
   OrderBillResponseDto,
   VoidOrderBillDto,
+  OrderItemDto,
 } from '../dto/orders.dto';
 import {
   toOrderResponseDto,
@@ -43,10 +48,10 @@ import {
   calculateOrderTotalWithExtraFees,
   calculateOrderExtraFeesTotal,
   parseOrderExtraFees,
-  validateAllItemsSubtotals,
   toOrderBillSnapshotDto,
   toOrderBillResponseDto,
 } from '../mappers/orders.mappers';
+import { calculateOrderItemSubtotal } from '../utils/order-pricing.utils';
 import {
   toPaymentResponseDto,
   stringifyVietQRData,
@@ -103,7 +108,8 @@ export interface OrderService {
   confirmOrder(id: string, dto: ConfirmOrderDto): Promise<Result<ConfirmOrderResponseDto, AppError>>;
   addOrderExtras(
     id: string,
-    dto: AddOrderExtrasDto
+    dto: AddOrderExtrasDto,
+    actorUserId: string
   ): Promise<Result<AddOrderExtrasResponseDto, AppError>>;
   cancelOrder(id: string, reason?: string): Promise<Result<OrderResponseDto, AppError>>;
   deleteOrder(id: string): Promise<Result<void, AppError>>;
@@ -160,9 +166,13 @@ const isValidStatusTransition = (
  * Uses dependency injection for repository
  */
 export const createOrderService = (
-  repository: OrderRepository & { items: any; bills: OrderBillRepository },
+  repository: OrderRepository & {
+    items: OrderItemRepository;
+    bills: OrderBillRepository;
+  },
   paymentRepository: PaymentRepository,
-  settingsRepository: SettingsRepository
+  settingsRepository: SettingsRepository,
+  paidOrderStockService: PaidOrderStockService
 ): OrderService => {
   const envConfig = getEnvConfig();
   const vietqrCredentials =
@@ -323,6 +333,112 @@ export const createOrderService = (
     return ok(normalizedFees);
   };
 
+  const normalizeAndValidateOrderItems = async (
+    items: OrderItemDto[]
+  ): Promise<Result<OrderItemDto[], AppError>> => {
+    const uniqueProductIds = Array.from(new Set(items.map((item) => item.productId)));
+    const productSaleInfo = await repository.items.findProductSaleInfo(uniqueProductIds);
+
+    if (productSaleInfo.length !== uniqueProductIds.length) {
+      return err(createInvalidInputError('One or more products are invalid'));
+    }
+
+    const saleUnitTypeByProductId = new Map<string, SaleUnitType>(
+      productSaleInfo.map((item: OrderItemProductSaleInfo) => [
+        item.id,
+        item.saleUnitType,
+      ])
+    );
+
+    const normalizedItems: OrderItemDto[] = [];
+
+    for (const item of items) {
+      const saleUnitType = saleUnitTypeByProductId.get(item.productId);
+      if (!saleUnitType) {
+        return err(
+          createInvalidInputError(`Product is invalid: ${item.productId}`)
+        );
+      }
+
+      if (item.saleUnitType && item.saleUnitType !== saleUnitType) {
+        return err(
+          createInvalidInputError(
+            `Sale unit type mismatch for product ${item.productId}`
+          )
+        );
+      }
+
+      const quantity = Number(item.quantity);
+      if (!Number.isFinite(quantity) || !Number.isInteger(quantity)) {
+        return err(
+          createInvalidInputError(
+            `Quantity must be an integer for product ${item.productId}`
+          )
+        );
+      }
+
+      if (saleUnitType === SaleUnitType.PIECE) {
+        if (quantity < 1) {
+          return err(
+            createInvalidInputError(
+              `Quantity for piece product must be at least 1: ${item.productId}`
+            )
+          );
+        }
+      } else if (saleUnitType === SaleUnitType.WEIGHT) {
+        if (quantity < 100 || quantity % 100 !== 0) {
+          return err(
+            createInvalidInputError(
+              `Quantity for weight product must be integer gram in steps of 100 (min 100g): ${item.productId}`
+            )
+          );
+        }
+      }
+
+      const unitPrice = Number(item.unitPrice);
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        return err(
+          createInvalidInputError(
+            `Unit price must be greater than 0 for product ${item.productId}`
+          )
+        );
+      }
+
+      const subtotal = Number(item.subtotal);
+      if (!Number.isFinite(subtotal)) {
+        return err(
+          createInvalidInputError(
+            `Subtotal is invalid for product ${item.productId}`
+          )
+        );
+      }
+
+      const expectedSubtotal = calculateOrderItemSubtotal(
+        quantity,
+        unitPrice,
+        saleUnitType
+      );
+
+      if (Math.abs(expectedSubtotal - subtotal) >= 0.01) {
+        return err(
+          createInvalidInputError(
+            `Item subtotal is incorrect for product ${item.productId}`
+          )
+        );
+      }
+
+      normalizedItems.push({
+        ...item,
+        quantity,
+        unitPrice,
+        subtotal: expectedSubtotal,
+        saleUnitType,
+      });
+    }
+
+    return ok(normalizedItems);
+  };
+
   const toOrderResponseFromOrderId = async (
     orderId: string
   ): Promise<Result<OrderResponseDto, AppError>> => {
@@ -454,12 +570,11 @@ export const createOrderService = (
     try {
       logger.info('Creating new order', { itemCount: dto.items.length });
 
-      // Validate items subtotals
-      if (!validateAllItemsSubtotals(dto.items)) {
-        return err(
-          createInvalidInputError('One or more item subtotals are incorrect')
-        );
+      const normalizedItemsResult = await normalizeAndValidateOrderItems(dto.items);
+      if (normalizedItemsResult.isErr()) {
+        return err(normalizedItemsResult.error);
       }
+      const normalizedItems = normalizedItemsResult.value;
 
       // Generate unique order number
       let orderNumber = generateOrderNumber();
@@ -494,7 +609,7 @@ export const createOrderService = (
 
       // Calculate total amount (items + extras)
       const totalAmount = calculateOrderTotalWithExtraFees(
-        dto.items,
+        normalizedItems,
         normalizedExtraFees
       );
 
@@ -508,7 +623,7 @@ export const createOrderService = (
       const order = await repository.create(orderAttributes);
 
       // Create order items
-      await repository.items.createMany(order.id, dto.items);
+      await repository.items.createMany(order.id, normalizedItems);
 
       // Fetch order with items
       const orderWithItems = await repository.findByIdWithItems(order.id);
@@ -636,13 +751,14 @@ export const createOrderService = (
       const existingOrderItems = ((existingOrder as any).items || []).map(
         (item: any) => ({
           productId: item.productId,
+          saleUnitType: (item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
           subtotal: Number(item.subtotal),
           notes: item.notes ?? undefined,
         })
       );
-      const nextItems = dto.items ?? existingOrderItems;
+      let nextItems: OrderItemDto[] = existingOrderItems;
       let nextExtraFees: OrderExtraFeeResponseDto[];
 
       if (dto.extraFees !== undefined) {
@@ -661,16 +777,15 @@ export const createOrderService = (
 
       // Update order items if provided
       if (dto.items) {
-        // Validate items subtotals
-        if (!validateAllItemsSubtotals(dto.items)) {
-          return err(
-            createInvalidInputError('One or more item subtotals are incorrect')
-          );
+        const normalizedItemsResult = await normalizeAndValidateOrderItems(dto.items);
+        if (normalizedItemsResult.isErr()) {
+          return err(normalizedItemsResult.error);
         }
+        nextItems = normalizedItemsResult.value;
 
         // Delete existing items and create new ones
         await repository.items.deleteByOrderId(id);
-        await repository.items.createMany(id, dto.items);
+        await repository.items.createMany(id, nextItems);
       }
 
       if (dto.items || dto.extraFees !== undefined) {
@@ -806,7 +921,8 @@ export const createOrderService = (
    */
   const addOrderExtras = async (
     id: string,
-    dto: AddOrderExtrasDto
+    dto: AddOrderExtrasDto,
+    actorUserId: string
   ): Promise<Result<AddOrderExtrasResponseDto, AppError>> => {
     try {
       logger.info('Updating order extras', {
@@ -849,6 +965,7 @@ export const createOrderService = (
 
       const orderItems = ((order as any).items || []).map((item: any) => ({
         productId: item.productId,
+        saleUnitType: (item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
         subtotal: Number(item.subtotal),
@@ -937,6 +1054,15 @@ export const createOrderService = (
             payment = paymentResult.value.payment;
             vietqr = paymentResult.value.vietqr;
           } else {
+            const stockConsumptionResult =
+              await paidOrderStockService.consumeStockForPaidOrder(
+                id,
+                actorUserId
+              );
+            if (stockConsumptionResult.isErr()) {
+              return err(stockConsumptionResult.error);
+            }
+
             await repository.updateStatus(id, OrderStatus.PAID);
           }
         }
@@ -949,6 +1075,12 @@ export const createOrderService = (
         order.status === OrderStatus.CONFIRMED &&
         totalPaidAmount + 0.01 >= nextTotalAmount
       ) {
+        const stockConsumptionResult =
+          await paidOrderStockService.consumeStockForPaidOrder(id, actorUserId);
+        if (stockConsumptionResult.isErr()) {
+          return err(stockConsumptionResult.error);
+        }
+
         await repository.update(id, { status: OrderStatus.PAID });
       }
 

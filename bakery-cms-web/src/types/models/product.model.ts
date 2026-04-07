@@ -3,15 +3,21 @@
  * Represents product data in the frontend domain layer
  */
 
-import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
+import {
+  BusinessType,
+  ProductStatus,
+  ProductType,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import type { FileModel } from './file.model';
 
 // Re-export for backward compatibility
-export { BusinessType, ProductStatus, ProductType };
+export { BusinessType, ProductStatus, ProductType, SaleUnitType };
 export type {
   BusinessType as BusinessTypeType,
   ProductStatus as ProductStatusType,
   ProductType as ProductTypeType,
+  SaleUnitType as SaleUnitTypeType,
 } from '@bakery-cms/common';
 
 /**
@@ -38,6 +44,7 @@ export type ProductComboItem = {
     readonly id: string;
     readonly productCode: string;
     readonly name: string;
+    readonly saleUnitType: SaleUnitType;
     readonly imageUrl: string | null;
     readonly imageFileId: string | null;
   } | null;
@@ -47,9 +54,11 @@ export type ProductComboItem = {
 
 export type Product = {
   readonly id: string;
+  readonly productCode: string;
   readonly name: string;
   readonly description: string | null;
   readonly price: number;
+  readonly saleUnitType: SaleUnitType;
   readonly category: string | null;
   readonly businessType: BusinessType;
   readonly status: ProductStatus;
@@ -69,6 +78,7 @@ export type ProductFilters = {
   readonly businessType?: BusinessType;
   readonly status?: ProductStatus;
   readonly productType?: ProductType;
+  readonly saleUnitType?: SaleUnitType;
   readonly isPublished?: boolean;
   readonly minPrice?: number;
   readonly maxPrice?: number;

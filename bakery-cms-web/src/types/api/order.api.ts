@@ -3,6 +3,7 @@
  */
 
 import type { PaymentAPIResponse, VietQRDataAPIResponse } from './payment.api';
+import type { SaleUnitType } from '@bakery-cms/common';
 
 export type OrderItemAPIResponse = {
   readonly id: string;
@@ -10,6 +11,7 @@ export type OrderItemAPIResponse = {
   readonly productId: string;
   readonly productCode: string | null;
   readonly productName: string | null;
+  readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;
@@ -59,6 +61,7 @@ export type CreateOrderItemRequest = {
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;
+  readonly saleUnitType?: SaleUnitType;
   readonly notes?: string;
 };
 
@@ -137,6 +140,7 @@ export type OrderBillSnapshotItemAPIResponse = {
   readonly productId: string;
   readonly productCode: string | null;
   readonly productName: string | null;
+  readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;

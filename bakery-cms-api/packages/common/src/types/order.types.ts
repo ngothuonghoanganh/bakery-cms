@@ -31,6 +31,7 @@ export type OrderItem = {
   readonly id: string;
   readonly orderId: string;
   readonly productId: string;
+  readonly saleUnitType: string;
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;
@@ -53,6 +54,7 @@ export type CreateOrderItemDTO = {
   readonly quantity: number;
   readonly unitPrice: number;
   readonly subtotal: number;
+  readonly saleUnitType?: string;
 };
 
 /**
