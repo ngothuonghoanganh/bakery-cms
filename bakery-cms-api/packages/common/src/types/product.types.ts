@@ -17,9 +17,19 @@ export type Product = {
   readonly category: string | null;
   readonly businessType: string; // BusinessType enum value
   readonly status: string; // ProductStatus enum value
+  readonly productType: string; // ProductType enum value
+  readonly isPublished: boolean;
   readonly imageUrl: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+};
+
+export type ProductComboItem = {
+  readonly id: string;
+  readonly comboProductId: string;
+  readonly itemProductId: string;
+  readonly quantity: number;
+  readonly displayOrder: number;
 };
 
 /**
@@ -32,7 +42,14 @@ export type CreateProductDTO = {
   readonly category?: string;
   readonly businessType: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
   readonly imageUrl?: string;
+  readonly comboItems?: readonly {
+    readonly itemProductId: string;
+    readonly quantity: number;
+    readonly displayOrder?: number;
+  }[];
 };
 
 /**
@@ -45,7 +62,15 @@ export type UpdateProductDTO = {
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
   readonly imageUrl?: string;
+  readonly comboItems?: readonly {
+    readonly id?: string;
+    readonly itemProductId: string;
+    readonly quantity: number;
+    readonly displayOrder?: number;
+  }[];
 };
 
 /**
@@ -55,6 +80,8 @@ export type ProductFilters = {
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
   readonly minPrice?: number;
   readonly maxPrice?: number;
   readonly search?: string;

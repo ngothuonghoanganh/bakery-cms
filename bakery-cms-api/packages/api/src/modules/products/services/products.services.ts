@@ -5,9 +5,10 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError } from '@bakery-cms/common';
+import { AppError, ProductType } from '@bakery-cms/common';
 import { ProductRepository } from '../repositories/products.repositories';
 import type { ProductImageRepository } from '../repositories/product-images.repositories';
+import type { ProductComboItemRepository } from '../repositories/product-combo-items.repositories';
 import type { FileService } from '../../files/services/files.services';
 import {
   CreateProductDto,
@@ -16,6 +17,7 @@ import {
   ProductResponseDto,
   ProductListResponseDto,
   ProductImageInputDto,
+  ProductComboItemInputDto,
 } from '../dto/products.dto';
 import {
   toProductResponseDto,
@@ -56,6 +58,7 @@ export type ProductServiceDependencies = {
   readonly repository: ProductRepository;
   readonly fileService?: FileService;
   readonly productImageRepository?: ProductImageRepository;
+  readonly productComboItemRepository?: ProductComboItemRepository;
 };
 
 /**
@@ -64,7 +67,7 @@ export type ProductServiceDependencies = {
  * Uses dependency injection for repository and optional file service
  */
 export const createProductService = (deps: ProductServiceDependencies): ProductService => {
-  const { repository, fileService, productImageRepository } = deps;
+  const { repository, fileService, productImageRepository, productComboItemRepository } = deps;
 
   const normalizeProductCode = (value: string): string => value.trim().toUpperCase();
 
@@ -190,6 +193,98 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
   };
 
   /**
+   * Validate combo items business rules
+   */
+  const validateComboItems = async (
+    comboProductId: string | undefined,
+    comboItems: ProductComboItemInputDto[]
+  ): Promise<Result<void, AppError>> => {
+    if (comboItems.length === 0) {
+      return err(createInvalidInputError('Combo product must include at least one item'));
+    }
+
+    const seenItemProductIds = new Set<string>();
+    for (const comboItem of comboItems) {
+      if (!comboItem.itemProductId) {
+        return err(createInvalidInputError('Each combo item must include itemProductId'));
+      }
+
+      if (comboProductId && comboItem.itemProductId === comboProductId) {
+        return err(createInvalidInputError('Combo product cannot include itself'));
+      }
+
+      if (seenItemProductIds.has(comboItem.itemProductId)) {
+        return err(createInvalidInputError('Combo product cannot contain duplicate child products'));
+      }
+      seenItemProductIds.add(comboItem.itemProductId);
+
+      if (comboItem.quantity <= 0) {
+        return err(createInvalidInputError('Combo item quantity must be greater than 0'));
+      }
+
+      const childProduct = await repository.findById(comboItem.itemProductId);
+      if (!childProduct) {
+        return err(createNotFoundError('Product', comboItem.itemProductId));
+      }
+
+      const childProductType = (childProduct as any).productType ?? ProductType.SINGLE;
+      if (childProductType === ProductType.COMBO) {
+        return err(
+          createInvalidInputError(
+            `Product "${comboItem.itemProductId}" is a combo and cannot be added as a combo child`
+          )
+        );
+      }
+    }
+
+    return ok(undefined);
+  };
+
+  /**
+   * Sync combo child products for a combo product
+   */
+  const syncProductComboItems = async (
+    comboProductId: string,
+    comboItems: ProductComboItemInputDto[]
+  ): Promise<void> => {
+    if (!productComboItemRepository) {
+      logger.warn('Product combo item repository not available, skipping combo sync');
+      return;
+    }
+
+    const existingItems = await productComboItemRepository.findByComboProductId(comboProductId);
+    const existingItemIds = new Set(existingItems.map((item) => item.id));
+    const inputItemIds = new Set(comboItems.filter((item) => item.id).map((item) => item.id as string));
+
+    for (const existingItem of existingItems) {
+      if (!inputItemIds.has(existingItem.id)) {
+        await productComboItemRepository.delete(existingItem.id);
+      }
+    }
+
+    for (let index = 0; index < comboItems.length; index++) {
+      const inputItem = comboItems[index];
+      if (!inputItem) continue;
+
+      const displayOrder = inputItem.displayOrder ?? index;
+      if (inputItem.id && existingItemIds.has(inputItem.id)) {
+        await productComboItemRepository.update(inputItem.id, {
+          itemProductId: inputItem.itemProductId,
+          quantity: inputItem.quantity,
+          displayOrder,
+        });
+      } else {
+        await productComboItemRepository.create({
+          comboProductId,
+          itemProductId: inputItem.itemProductId,
+          quantity: inputItem.quantity,
+          displayOrder,
+        });
+      }
+    }
+  };
+
+  /**
    * Create new product
    */
   const createProduct = async (
@@ -197,6 +292,20 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
   ): Promise<Result<ProductResponseDto, AppError>> => {
     try {
       logger.info('Creating new product', { productName: dto.name });
+
+      const productType = dto.productType ?? ProductType.SINGLE;
+      if (productType === ProductType.COMBO) {
+        if (!dto.comboItems || dto.comboItems.length === 0) {
+          return err(createInvalidInputError('Combo product must include at least one item'));
+        }
+
+        const comboValidation = await validateComboItems(undefined, dto.comboItems);
+        if (comboValidation.isErr()) {
+          return err(comboValidation.error);
+        }
+      } else if (dto.comboItems && dto.comboItems.length > 0) {
+        return err(createInvalidInputError('Single product cannot include combo items'));
+      }
 
       const resolvedCodeResult = await resolveCreateProductCode(dto.productCode);
       if (resolvedCodeResult.isErr()) {
@@ -214,7 +323,11 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
         await syncProductImages(product.id, dto.images);
       }
 
-      // Re-fetch the product to include the newly created images
+      if (productType === ProductType.COMBO && dto.comboItems && dto.comboItems.length > 0) {
+        await syncProductComboItems(product.id, dto.comboItems);
+      }
+
+      // Re-fetch the product to include newly created related records
       const updatedProduct = await repository.findById(product.id);
 
       logger.info('Product created successfully', { productId: product.id });
@@ -322,11 +435,12 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
         productCode: normalizedProductCode ?? dto.productCode,
       });
 
-      // Check if there are any attributes to update (excluding images which are handled separately)
+      // Check if there are any updates to process
       const hasAttributeUpdates = Object.keys(attributes).length > 0;
       const hasImageUpdates = dto.images !== undefined;
+      const hasComboItemUpdates = dto.comboItems !== undefined;
 
-      if (!hasAttributeUpdates && !hasImageUpdates) {
+      if (!hasAttributeUpdates && !hasImageUpdates && !hasComboItemUpdates) {
         return err(createInvalidInputError('No valid fields provided for update'));
       }
 
@@ -335,6 +449,29 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
       if (!existingProduct) {
         logger.warn('Product not found for update', { productId: id });
         return err(createNotFoundError('Product', id));
+      }
+
+      const existingProductType =
+        ((existingProduct as any).productType as ProductType | undefined) ?? ProductType.SINGLE;
+      const targetProductType = dto.productType ?? existingProductType;
+
+      if (targetProductType === ProductType.COMBO) {
+        if (hasComboItemUpdates) {
+          if (!dto.comboItems || dto.comboItems.length === 0) {
+            return err(createInvalidInputError('Combo product must include at least one item'));
+          }
+
+          const comboValidation = await validateComboItems(id, dto.comboItems);
+          if (comboValidation.isErr()) {
+            return err(comboValidation.error);
+          }
+        } else if (existingProductType !== ProductType.COMBO) {
+          return err(
+            createInvalidInputError('Switching product type to combo requires combo items')
+          );
+        }
+      } else if (dto.comboItems && dto.comboItems.length > 0) {
+        return err(createInvalidInputError('Single product cannot include combo items'));
       }
 
       // Update product attributes if any
@@ -352,6 +489,24 @@ export const createProductService = (deps: ProductServiceDependencies): ProductS
       if (hasImageUpdates && dto.images) {
         await syncProductImages(id, dto.images);
         // Re-fetch the product to include the updated images
+        const refreshedProduct = await repository.findById(id);
+        if (refreshedProduct) {
+          product = refreshedProduct;
+        }
+      }
+
+      // Handle combo items
+      if (targetProductType === ProductType.COMBO && dto.comboItems) {
+        await syncProductComboItems(id, dto.comboItems);
+        const refreshedProduct = await repository.findById(id);
+        if (refreshedProduct) {
+          product = refreshedProduct;
+        }
+      }
+
+      // Switching from combo to single clears combo definition
+      if (targetProductType !== ProductType.COMBO && existingProductType === ProductType.COMBO) {
+        await syncProductComboItems(id, []);
         const refreshedProduct = await repository.findById(id);
         if (refreshedProduct) {
           product = refreshedProduct;

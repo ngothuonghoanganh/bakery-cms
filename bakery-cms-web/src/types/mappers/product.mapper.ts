@@ -7,9 +7,10 @@ import type {
   ProductAPIResponse,
   PaginatedProductsAPIResponse,
   ProductImageAPIResponse,
+  ProductComboItemAPIResponse,
 } from '@/types/api/product.api';
-import type { Product, PaginatedProducts, ProductImage } from '@/types/models/product.model';
-import { BusinessType, ProductStatus } from '@/types/models/product.model';
+import type { Product, PaginatedProducts, ProductImage, ProductComboItem } from '@/types/models/product.model';
+import { BusinessType, ProductStatus, ProductType } from '@/types/models/product.model';
 import { mapFileFromAPI } from './file.mapper';
 
 /**
@@ -26,6 +27,27 @@ export const mapProductImageFromAPI = (apiImage: ProductImageAPIResponse): Produ
   updatedAt: new Date(apiImage.updatedAt),
 });
 
+export const mapProductComboItemFromAPI = (
+  apiComboItem: ProductComboItemAPIResponse
+): ProductComboItem => ({
+  id: apiComboItem.id,
+  comboProductId: apiComboItem.comboProductId,
+  itemProductId: apiComboItem.itemProductId,
+  quantity: apiComboItem.quantity,
+  displayOrder: apiComboItem.displayOrder,
+  itemProduct: apiComboItem.itemProduct
+    ? {
+        id: apiComboItem.itemProduct.id,
+        productCode: apiComboItem.itemProduct.productCode,
+        name: apiComboItem.itemProduct.name,
+        imageUrl: apiComboItem.itemProduct.imageUrl,
+        imageFileId: apiComboItem.itemProduct.imageFileId,
+      }
+    : null,
+  createdAt: new Date(apiComboItem.createdAt),
+  updatedAt: new Date(apiComboItem.updatedAt),
+});
+
 /**
  * Map API response to Product domain model
  */
@@ -37,6 +59,9 @@ export const mapProductFromAPI = (apiProduct: ProductAPIResponse): Product => ({
   category: apiProduct.category,
   businessType: apiProduct.businessType as BusinessType,
   status: apiProduct.status as ProductStatus,
+  productType: (apiProduct.productType as ProductType) || ProductType.SINGLE,
+  isPublished: apiProduct.isPublished ?? true,
+  comboItems: apiProduct.comboItems?.map(mapProductComboItemFromAPI) || [],
   imageUrl: apiProduct.imageUrl,
   imageFileId: apiProduct.imageFileId,
   imageFile: apiProduct.imageFile ? mapFileFromAPI(apiProduct.imageFile) : null,

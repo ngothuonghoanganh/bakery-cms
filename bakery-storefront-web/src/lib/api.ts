@@ -18,6 +18,10 @@ const toUploadProxyPath = (value: unknown): string | null => {
     return null;
   }
 
+  if (raw.startsWith('/upload/')) {
+    return raw;
+  }
+
   if (raw.startsWith('/uploads/')) {
     return raw;
   }
@@ -25,6 +29,9 @@ const toUploadProxyPath = (value: unknown): string | null => {
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     try {
       const parsed = new URL(raw);
+      if (parsed.pathname.startsWith('/upload/')) {
+        return `${parsed.pathname}${parsed.search}`;
+      }
       if (parsed.pathname.startsWith('/uploads/')) {
         return `${parsed.pathname}${parsed.search}`;
       }
@@ -33,9 +40,9 @@ const toUploadProxyPath = (value: unknown): string | null => {
     }
   }
 
-  const uploadsPathIndex = raw.indexOf('/uploads/');
-  if (uploadsPathIndex >= 0) {
-    return raw.slice(uploadsPathIndex);
+  const uploadPathMatch = raw.match(/\/uploads?\/.+$/);
+  if (uploadPathMatch) {
+    return uploadPathMatch[0];
   }
 
   return null;
@@ -272,6 +279,7 @@ const safeFetch = async <T>(
 
 export const fetchProducts = async (limit?: number): Promise<ApiProduct[]> => {
   const query = new URLSearchParams();
+  query.set('isPublished', 'true');
   if (limit) {
     query.set('limit', String(limit));
   }

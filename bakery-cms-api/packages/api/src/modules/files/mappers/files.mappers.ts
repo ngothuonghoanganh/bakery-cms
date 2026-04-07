@@ -11,11 +11,11 @@ import { toIsoString } from '../../../utils/date';
 /**
  * Build static file URL from storage path
  * Pure function that constructs the static serving path
- * Extracts filename from storage path and returns /uploads/filename
+ * Extracts filename from storage path and returns /upload/filename
  */
 export const buildFileUrl = (storagePath: string): string => {
   const filename = path.basename(storagePath);
-  return `/uploads/${filename}`;
+  return `/upload/${filename}`;
 };
 
 /**

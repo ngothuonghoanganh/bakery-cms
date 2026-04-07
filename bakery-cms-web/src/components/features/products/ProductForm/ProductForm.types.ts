@@ -1,5 +1,17 @@
-import type { Product, BusinessType, ProductStatus } from '../../../../types/models/product.model';
+import type {
+  Product,
+  BusinessType,
+  ProductStatus,
+  ProductType,
+} from '../../../../types/models/product.model';
 import type { ProductImageItem } from '../../../shared/MultiFileUpload';
+
+export interface ProductComboItemFormValue {
+  id?: string;
+  itemProductId: string;
+  quantity: number;
+  displayOrder?: number;
+}
 
 export interface ProductFormValues {
   name: string;
@@ -8,6 +20,9 @@ export interface ProductFormValues {
   category?: string;
   businessType: BusinessType;
   status: ProductStatus;
+  productType: ProductType;
+  isPublished: boolean;
+  comboItems?: ProductComboItemFormValue[];
   imageUrl?: string;
   imageFileId?: string | null;
   images?: ProductImageItem[];

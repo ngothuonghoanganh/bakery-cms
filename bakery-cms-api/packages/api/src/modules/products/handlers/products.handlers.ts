@@ -12,6 +12,8 @@ import {
   ProductListQueryDto,
 } from '../dto/products.dto';
 import { getLogger } from '../../../utils/logger';
+import { createNotFoundError } from '../../../utils/error-factory';
+import { AuthenticatedRequest } from '../../../middleware/jwt-auth';
 
 const logger = getLogger();
 
@@ -35,6 +37,24 @@ export interface ProductHandlers {
 export const createProductHandlers = (
   service: ProductService
 ): ProductHandlers => {
+  const parseBooleanQueryParam = (value: unknown): boolean | undefined => {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim().toLowerCase();
+      if (normalizedValue === 'true') {
+        return true;
+      }
+      if (normalizedValue === 'false') {
+        return false;
+      }
+    }
+
+    return undefined;
+  };
+
   /**
    * Handle create product request
    * POST /api/products
@@ -87,6 +107,11 @@ export const createProductHandlers = (
         return next(result.error);
       }
 
+      const authenticatedReq = req as AuthenticatedRequest;
+      if (!authenticatedReq.user && !result.value.isPublished) {
+        return next(createNotFoundError('Product', id));
+      }
+
       res.status(200).json({
         success: true,
         data: result.value,
@@ -112,9 +137,16 @@ export const createProductHandlers = (
         limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
         businessType: req.query['businessType'] as any,
         status: req.query['status'] as any,
+        productType: req.query['productType'] as any,
+        isPublished: parseBooleanQueryParam(req.query['isPublished']),
         category: req.query['category'] as string,
         search: req.query['search'] as string,
       };
+
+      const authenticatedReq = req as AuthenticatedRequest;
+      if (!authenticatedReq.user) {
+        query.isPublished = true;
+      }
 
       const result = await service.getAllProducts(query);
 

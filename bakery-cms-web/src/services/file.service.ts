@@ -105,19 +105,22 @@ const deleteFile = async (id: string): Promise<Result<boolean, AppError>> => {
  * Uses relative URL so Vite proxy can forward to backend
  */
 const getStaticUrl = (filename: string): string => {
-  if (filename.startsWith('/uploads')) {
+  if (filename.startsWith('/upload/')) {
     return filename;
   }
-  if (filename.includes('/uploads/')) {
+  if (filename.startsWith('/uploads/')) {
+    return filename;
+  }
+  if (filename.includes('/upload/') || filename.includes('/uploads/')) {
     // Extract path from full URL if present
-    const match = filename.match(/\/uploads\/.+$/);
+    const match = filename.match(/\/uploads?\/.+$/);
     if (match) return match[0];
   }
-  return `/uploads/${filename}`;
+  return `/upload/${filename}`;
 };
 
 /**
- * Get download URL for a file using the static uploads path
+ * Get download URL for a file using the static upload path
  * Uses relative URL so Vite proxy can forward to backend
  */
 const getDownloadUrl = (fileIdOrUrl: string, download: boolean = false): string => {
@@ -130,7 +133,10 @@ const getDownloadUrl = (fileIdOrUrl: string, download: boolean = false): string 
       return fileIdOrUrl;
     }
   }
-  // If it starts with /uploads, return as-is
+  // If it starts with /upload or /uploads, return as-is
+  if (fileIdOrUrl.startsWith('/upload/')) {
+    return fileIdOrUrl;
+  }
   if (fileIdOrUrl.startsWith('/uploads/')) {
     return fileIdOrUrl;
   }

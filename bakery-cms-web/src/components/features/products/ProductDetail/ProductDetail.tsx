@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Descriptions, Button, Space, Tag, Image, Row, Col } from 'antd';
+import { Card, Descriptions, Button, Space, Tag, Image, Row, Col, List, Typography } from 'antd';
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined, StarFilled } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { BusinessType, ProductStatus } from '../../../../types/models/product.model';
+import { BusinessType, ProductStatus, ProductType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import { ProductRecipe } from '../../stock/ProductRecipe';
 import { fileService } from '../../../../services/file.service';
@@ -33,6 +33,18 @@ const getStatusKey = (status: string): 'available' | 'outOfStock' => {
   return keyMap[status] || status;
 };
 
+const getProductTypeKey = (type: string): 'single' | 'combo' => {
+  const keyMap: Record<string, 'single' | 'combo'> = {
+    [ProductType.SINGLE]: 'single',
+    [ProductType.COMBO]: 'combo',
+  };
+  return keyMap[type] || 'single';
+};
+
+const getVisibilityColor = (isPublished: boolean): string => {
+  return isPublished ? 'green' : 'volcano';
+};
+
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   product,
   loading = false,
@@ -41,7 +53,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onBack,
 }) => {
   const { t } = useTranslation();
+  const { Text } = Typography;
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const storefrontVisible = product.isPublished !== false;
+  const isComboProduct = product.productType === ProductType.COMBO;
 
   // Get all images (multi-images + legacy image)
   const allImages = React.useMemo(() => {
@@ -194,10 +209,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <Descriptions.Item label={t('products.detail.businessType')}>
             <Tag color="blue">{t(`products.businessType.${getBusinessTypeKey(product.businessType)}`)}</Tag>
           </Descriptions.Item>
+          <Descriptions.Item label={t('products.detail.productType')}>
+            <Tag color={isComboProduct ? 'purple' : 'geekblue'}>
+              {t(`products.productType.${getProductTypeKey(product.productType)}`)}
+            </Tag>
+          </Descriptions.Item>
 
           <Descriptions.Item label={t('products.detail.status')}>
             <Tag color={getStatusColor(product.status)}>
               {t(`products.status.${getStatusKey(product.status)}`)}
+            </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('products.detail.visibility')}>
+            <Tag color={getVisibilityColor(storefrontVisible)}>
+              {storefrontVisible
+                ? t('products.visibility.published')
+                : t('products.visibility.hidden')}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t('products.detail.createdAt')}>
@@ -225,6 +252,29 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {product.description || t('products.detail.noDescription')}
           </Descriptions.Item>
         </Descriptions>
+
+        {isComboProduct && (
+          <Card
+            size="small"
+            style={{ marginTop: 16 }}
+            title={t('products.detail.comboItems')}
+          >
+            <List
+              locale={{ emptyText: t('products.detail.noComboItems') }}
+              dataSource={product.comboItems}
+              renderItem={(comboItem) => (
+                <List.Item>
+                  <Space direction="vertical" size={0}>
+                    <Text strong>{comboItem.itemProduct?.name || comboItem.itemProductId}</Text>
+                    <Text type="secondary">
+                      {t('products.detail.comboQuantityLabel')}: {comboItem.quantity}
+                    </Text>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
       </Card>
 
       {/* Product Recipe Section */}

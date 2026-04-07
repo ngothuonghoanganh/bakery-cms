@@ -3,7 +3,7 @@
  * Type definitions for API request/response payloads
  */
 
-import { BusinessType, ProductStatus } from '@bakery-cms/common';
+import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
 import { FileResponseDto } from '../../files/dto/files.dto';
 import { ProductImageResponseDto } from './product-images.dto';
 
@@ -20,10 +20,37 @@ export interface ProductResponseDto {
   category: string | null;
   businessType: BusinessType;
   status: ProductStatus;
+  productType: ProductType;
+  isPublished: boolean;
+  comboItems: ProductComboItemResponseDto[];
   imageUrl: string | null;
   imageFileId: string | null;
   imageFile: FileResponseDto | null;
   images: ProductImageResponseDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductComboItemInputDto {
+  id?: string;
+  itemProductId: string;
+  quantity: number;
+  displayOrder?: number;
+}
+
+export interface ProductComboItemResponseDto {
+  id: string;
+  comboProductId: string;
+  itemProductId: string;
+  quantity: number;
+  displayOrder: number;
+  itemProduct: {
+    id: string;
+    productCode: string;
+    name: string;
+    imageUrl: string | null;
+    imageFileId: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +77,9 @@ export interface CreateProductDto {
   category?: string;
   businessType: BusinessType;
   status?: ProductStatus;
+  productType?: ProductType;
+  isPublished?: boolean;
+  comboItems?: ProductComboItemInputDto[];
   imageUrl?: string;
   imageFileId?: string;
   images?: ProductImageInputDto[];
@@ -67,6 +97,9 @@ export interface UpdateProductDto {
   category?: string;
   businessType?: BusinessType;
   status?: ProductStatus;
+  productType?: ProductType;
+  isPublished?: boolean;
+  comboItems?: ProductComboItemInputDto[];
   imageUrl?: string;
   imageFileId?: string | null;
   images?: ProductImageInputDto[];
@@ -81,6 +114,8 @@ export interface ProductListQueryDto {
   limit?: number;
   businessType?: BusinessType;
   status?: ProductStatus;
+  productType?: ProductType;
+  isPublished?: boolean;
   category?: string;
   search?: string;
 }

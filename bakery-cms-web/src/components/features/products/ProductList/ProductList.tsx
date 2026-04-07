@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Button } from 'antd';
+import { Button, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
@@ -17,6 +17,7 @@ import type {
   Product,
   ProductFilters as ProductFiltersType,
 } from '../../../../types/models/product.model';
+import { ProductType } from '../../../../types/models/product.model';
 import type { ProductFormValues } from '../ProductForm/ProductForm.types';
 
 interface ProductListProps {
@@ -53,6 +54,8 @@ export const ProductList: React.FC<ProductListProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const { success, error } = useNotification();
+  const activeProductType =
+    filters.productType === ProductType.COMBO ? ProductType.COMBO : ProductType.SINGLE;
 
   const handleCreate = useCallback(() => {
     setSelectedProduct(null);
@@ -102,8 +105,19 @@ export const ProductList: React.FC<ProductListProps> = ({
   );
 
   const handleFiltersReset = useCallback(() => {
-    onFiltersChange({});
-  }, [onFiltersChange]);
+    onFiltersChange({ productType: activeProductType });
+  }, [onFiltersChange, activeProductType]);
+
+  const handleProductTypeTabChange = useCallback(
+    (key: string) => {
+      const nextProductType = key === ProductType.COMBO ? ProductType.COMBO : ProductType.SINGLE;
+      onFiltersChange({
+        ...filters,
+        productType: nextProductType,
+      });
+    },
+    [filters, onFiltersChange]
+  );
 
   return (
     <div>
@@ -115,6 +129,22 @@ export const ProductList: React.FC<ProductListProps> = ({
             {t('products.add')}
           </Button>
         }
+      />
+
+      <Tabs
+        activeKey={activeProductType}
+        onChange={handleProductTypeTabChange}
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            key: ProductType.SINGLE,
+            label: t('products.productType.single'),
+          },
+          {
+            key: ProductType.COMBO,
+            label: t('products.productType.combo'),
+          },
+        ]}
       />
 
       <ProductFilters

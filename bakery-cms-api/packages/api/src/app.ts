@@ -80,15 +80,24 @@ export const createApp = (): Express => {
     });
   });
 
-  // Static file serving for uploads
-  // Serves files from uploads directory at /uploads path
+  // Static file serving for uploaded files
+  // Canonical path: /upload
+  // Backward compatibility path: /uploads
   const envConfig = getEnvConfig();
-  const uploadsPath = path.resolve(envConfig.UPLOAD_DIR);
-  app.use('/uploads', express.static(uploadsPath, {
+  const uploadPath = path.resolve(envConfig.UPLOAD_DIR);
+  const legacyUploadsPath = path.resolve(path.dirname(uploadPath), 'uploads');
+  const staticOptions = {
     maxAge: '1y', // Cache for 1 year since files are immutable (unique names)
     etag: true,
     lastModified: true,
-  }));
+  };
+  app.use('/upload', express.static(uploadPath, staticOptions));
+  app.use('/uploads', express.static(uploadPath, staticOptions));
+
+  if (legacyUploadsPath !== uploadPath) {
+    app.use('/upload', express.static(legacyUploadsPath, staticOptions));
+    app.use('/uploads', express.static(legacyUploadsPath, staticOptions));
+  }
 
   // Get API base path with version
   const apiBasePath = `${config.apiPrefix}/${config.apiVersion}`;

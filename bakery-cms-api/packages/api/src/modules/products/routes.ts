@@ -9,12 +9,13 @@ import { createProductRepository } from './repositories/products.repositories';
 import { createProductService } from './services/products.services';
 import { createProductHandlers } from './handlers/products.handlers';
 import { createProductImageRepository } from './repositories/product-images.repositories';
+import { createProductComboItemRepository } from './repositories/product-combo-items.repositories';
 import { createProductImageService } from './services/product-images.services';
 import { createProductImageHandlers } from './handlers/product-images.handlers';
 import { createFileRepository } from '../files/repositories/files.repositories';
 import { createFileService } from '../files/services/files.services';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
-import { authenticateJWT } from '../../middleware';
+import { authenticateJWT, authenticateJWTOptional } from '../../middleware';
 import { requireManager, requireSeller } from '../../middleware/rbac.middleware';
 import {
   createProductSchema,
@@ -36,12 +37,18 @@ export const createProductsRouter = (): Router => {
   const repository = createProductRepository(models.Product);
   const fileRepository = createFileRepository(models.File);
   const productImageRepository = createProductImageRepository(models.ProductImage);
+  const productComboItemRepository = createProductComboItemRepository(models.ProductComboItem);
 
   // Create file service for cleanup operations
   const fileService = createFileService(fileRepository);
 
   // Create product service and handlers (dependency injection)
-  const service = createProductService({ repository, fileService, productImageRepository });
+  const service = createProductService({
+    repository,
+    fileService,
+    productImageRepository,
+    productComboItemRepository,
+  });
   const handlers = createProductHandlers(service);
 
   // Create product images service and handlers
@@ -58,6 +65,7 @@ export const createProductsRouter = (): Router => {
    */
   router.get(
     '/',
+    authenticateJWTOptional as any,
     validateQuery(productListQuerySchema),
     handlers.handleGetAllProducts as any
   );
@@ -69,6 +77,7 @@ export const createProductsRouter = (): Router => {
    */
   router.get(
     '/:id',
+    authenticateJWTOptional as any,
     validateParams(productIdParamSchema),
     handlers.handleGetProduct as any
   );

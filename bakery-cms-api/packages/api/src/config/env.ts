@@ -9,6 +9,9 @@ import * as path from 'path';
 // Load .env from project root (monorepo root)
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
+// API package root directory (stable regardless of process working directory)
+const API_PACKAGE_ROOT = path.resolve(__dirname, '../..');
+
 /**
  * Environment configuration type
  */
@@ -59,6 +62,18 @@ const getRequiredEnv = (key: string): string => {
  */
 const getOptionalEnv = (key: string, defaultValue: string): string => {
   return process.env[key] || defaultValue;
+};
+
+/**
+ * Resolve upload directory to an absolute path.
+ * Relative values are resolved from API package root.
+ */
+const resolveUploadDir = (value: string): string => {
+  if (path.isAbsolute(value)) {
+    return path.normalize(value);
+  }
+
+  return path.resolve(API_PACKAGE_ROOT, value);
 };
 
 /**
@@ -123,7 +138,7 @@ export const loadEnvConfig = (): EnvConfig => {
     FACEBOOK_CLIENT_SECRET: getOptionalEnv('FACEBOOK_CLIENT_SECRET', ''),
     VIETQR_CLIENT_ID: getOptionalEnv('VIETQR_CLIENT_ID', ''),
     VIETQR_API_KEY: getOptionalEnv('VIETQR_API_KEY', ''),
-    UPLOAD_DIR: getOptionalEnv('UPLOAD_DIR', './uploads'),
+    UPLOAD_DIR: resolveUploadDir(getOptionalEnv('UPLOAD_DIR', 'upload')),
     MAX_IMAGE_SIZE: parseIntEnv('MAX_IMAGE_SIZE', 10 * 1024 * 1024), // 10MB
     MAX_VIDEO_SIZE: parseIntEnv('MAX_VIDEO_SIZE', 100 * 1024 * 1024), // 100MB
   };

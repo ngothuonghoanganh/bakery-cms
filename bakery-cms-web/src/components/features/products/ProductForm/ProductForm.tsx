@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, InputNumber, Select, Row, Col, Tabs, Divider } from 'antd';
+import { Form, Input, InputNumber, Select, Row, Col, Tabs, Divider, Switch, Button } from 'antd';
+import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { AntModal } from '../../../core';
 import { FileUpload } from '../../../shared/FileUpload';
 import { MultiFileUpload, type ProductImageItem } from '../../../shared/MultiFileUpload';
-import { BusinessType, ProductStatus } from '../../../../types/models/product.model';
+import { BusinessType, ProductStatus, ProductType } from '../../../../types/models/product.model';
 import { fileService } from '../../../../services/file.service';
-import type { ProductFormProps, ProductFormValues } from './ProductForm.types';
+import { productService } from '../../../../services/product.service';
+import type { ProductFormProps, ProductFormValues, ProductComboItemFormValue } from './ProductForm.types';
 
 const { TextArea } = Input;
 const { Option } = Select;
+
+type ComboProductOption = {
+  id: string;
+  label: string;
+};
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   visible,
@@ -23,6 +30,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
   const [uploadedFileId, setUploadedFileId] = useState<string | undefined>(undefined);
   const [productImages, setProductImages] = useState<ProductImageItem[]>([]);
+  const [comboProductOptions, setComboProductOptions] = useState<ComboProductOption[]>([]);
+  const [comboOptionsLoading, setComboOptionsLoading] = useState(false);
   const isEditMode = Boolean(product);
 
   useEffect(() => {
@@ -34,6 +43,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         category: product.category || undefined,
         businessType: product.businessType,
         status: product.status,
+        productType: product.productType ?? ProductType.SINGLE,
+        isPublished: product.isPublished ?? true,
+        comboItems: (product.comboItems ?? []).map((comboItem) => ({
+          id: comboItem.id,
+          itemProductId: comboItem.itemProductId,
+          quantity: comboItem.quantity,
+          displayOrder: comboItem.displayOrder,
+        })),
         imageUrl: product.imageUrl || undefined,
       });
       // If product has an imageFile, use upload mode
@@ -65,12 +82,55 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       form.setFieldsValue({
         businessType: BusinessType.READY_TO_SELL,
         status: ProductStatus.AVAILABLE,
+        productType: ProductType.SINGLE,
+        isPublished: true,
+        comboItems: [],
       });
       setUploadedFileId(undefined);
       setImageMode('upload');
       setProductImages([]);
     }
   }, [visible, product, form]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadComboProductOptions = async () => {
+      if (!visible) {
+        return;
+      }
+
+      setComboOptionsLoading(true);
+      const result = await productService.getAll({
+        page: 1,
+        limit: 100,
+        productType: ProductType.SINGLE,
+      });
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (result.success) {
+        const options = result.data.products
+          .filter((item) => item.id !== product?.id)
+          .map((item) => ({
+            id: item.id,
+            label: `${item.name} (${item.productCode})`,
+          }));
+        setComboProductOptions(options);
+      } else {
+        setComboProductOptions([]);
+      }
+      setComboOptionsLoading(false);
+    };
+
+    void loadComboProductOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, product?.id]);
 
   const handleSubmit = async () => {
     try {
@@ -87,6 +147,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
       // Add product images to values
       values.images = productImages;
+
+      if (values.productType === ProductType.COMBO) {
+        values.comboItems = (values.comboItems ?? []).map((comboItem, index) => ({
+          ...comboItem,
+          displayOrder: comboItem.displayOrder ?? index,
+        }));
+      } else {
+        values.comboItems = [];
+      }
 
       await onSubmit(values);
       form.resetFields();
@@ -194,6 +263,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           <Col span={12}>
             <Form.Item
+              name="productType"
+              label={t('products.form.productType')}
+              rules={[{ required: true, message: t('products.form.validation.productTypeRequired') }]}
+            >
+              <Select placeholder={t('products.form.productTypePlaceholder')}>
+                <Option value={ProductType.SINGLE}>{t('products.productType.single')}</Option>
+                <Option value={ProductType.COMBO}>{t('products.productType.combo')}</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
               name="businessType"
               label={t('products.form.businessType')}
               rules={[{ required: true, message: t('products.form.validation.businessTypeRequired') }]}
@@ -206,7 +288,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </Form.Item>
           </Col>
 
-          <Col span={12}>
+          <Col span={24}>
             <Form.Item
               name="status"
               label={t('products.form.status')}
@@ -216,6 +298,113 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Option value={ProductStatus.AVAILABLE}>{t('products.status.available')}</Option>
                 <Option value={ProductStatus.OUT_OF_STOCK}>{t('products.status.outOfStock')}</Option>
               </Select>
+            </Form.Item>
+          </Col>
+
+          <Form.Item noStyle shouldUpdate={(prev, next) => prev.productType !== next.productType}>
+            {({ getFieldValue }) =>
+              getFieldValue('productType') === ProductType.COMBO ? (
+                <Col span={24}>
+                  <Divider>{t('products.form.comboItems')}</Divider>
+                  <Form.List
+                    name="comboItems"
+                    rules={[
+                      {
+                        validator: async (_, value: ProductComboItemFormValue[] | undefined) => {
+                          if (!value || value.length === 0) {
+                            throw new Error(t('products.form.validation.comboItemsRequired'));
+                          }
+                        },
+                      },
+                    ]}
+                  >
+                    {(fields, { add, remove }, { errors }) => (
+                      <>
+                        {fields.map((field) => (
+                          <Row key={field.key} gutter={8} align="middle">
+                            <Col span={14}>
+                              <Form.Item
+                                {...field}
+                                name={[field.name, 'itemProductId']}
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: t('products.form.validation.comboProductRequired'),
+                                  },
+                                ]}
+                              >
+                                <Select
+                                  showSearch
+                                  loading={comboOptionsLoading}
+                                  placeholder={t('products.form.comboProductPlaceholder')}
+                                  optionFilterProp="label"
+                                  options={comboProductOptions.map((option) => ({
+                                    value: option.id,
+                                    label: option.label,
+                                  }))}
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                              <Form.Item
+                                {...field}
+                                name={[field.name, 'quantity']}
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: t('products.form.validation.comboQuantityRequired'),
+                                  },
+                                  {
+                                    type: 'number',
+                                    min: 0.001,
+                                    message: t('products.form.validation.comboQuantityMin'),
+                                  },
+                                ]}
+                              >
+                                <InputNumber
+                                  min={0.001}
+                                  step={0.001}
+                                  precision={3}
+                                  style={{ width: '100%' }}
+                                  placeholder={t('products.form.comboQuantityPlaceholder')}
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col span={2}>
+                              <MinusCircleOutlined onClick={() => remove(field.name)} />
+                            </Col>
+                          </Row>
+                        ))}
+                        <Form.ErrorList errors={errors} />
+                        <Form.Item>
+                          <Button
+                            type="dashed"
+                            onClick={() => add({ quantity: 1 } as ProductComboItemFormValue)}
+                            icon={<PlusOutlined />}
+                            block
+                          >
+                            {t('products.form.addComboItem')}
+                          </Button>
+                        </Form.Item>
+                      </>
+                    )}
+                  </Form.List>
+                </Col>
+              ) : null
+            }
+          </Form.Item>
+
+          <Col span={24}>
+            <Form.Item
+              name="isPublished"
+              label={t('products.form.storefrontVisibility')}
+              valuePropName="checked"
+              extra={t('products.form.storefrontVisibilityHint')}
+            >
+              <Switch
+                checkedChildren={t('products.visibility.published')}
+                unCheckedChildren={t('products.visibility.hidden')}
+              />
             </Form.Item>
           </Col>
 

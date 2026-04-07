@@ -19,6 +19,23 @@ export type ProductImageAPIResponse = {
   readonly updatedAt: string;
 };
 
+export type ProductComboItemAPIResponse = {
+  readonly id: string;
+  readonly comboProductId: string;
+  readonly itemProductId: string;
+  readonly quantity: number;
+  readonly displayOrder: number;
+  readonly itemProduct: {
+    readonly id: string;
+    readonly productCode: string;
+    readonly name: string;
+    readonly imageUrl: string | null;
+    readonly imageFileId: string | null;
+  } | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
 export type ProductAPIResponse = {
   readonly id: string;
   readonly name: string;
@@ -27,6 +44,9 @@ export type ProductAPIResponse = {
   readonly category: string | null;
   readonly businessType: string;
   readonly status: string;
+  readonly productType: string;
+  readonly isPublished: boolean;
+  readonly comboItems?: readonly ProductComboItemAPIResponse[];
   readonly imageUrl: string | null;
   readonly imageFileId: string | null;
   readonly imageFile: FileAPIResponse | null;
@@ -52,6 +72,14 @@ export type CreateProductRequest = {
   readonly category?: string;
   readonly businessType: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
+  readonly comboItems?: readonly {
+    readonly id?: string;
+    readonly itemProductId: string;
+    readonly quantity: number;
+    readonly displayOrder?: number;
+  }[];
   readonly imageUrl?: string;
   readonly imageFileId?: string | null;
   readonly images?: readonly {
@@ -69,6 +97,14 @@ export type UpdateProductRequest = {
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
+  readonly comboItems?: readonly {
+    readonly id?: string;
+    readonly itemProductId: string;
+    readonly quantity: number;
+    readonly displayOrder?: number;
+  }[];
   readonly imageUrl?: string;
   readonly imageFileId?: string | null;
   readonly images?: readonly {
@@ -83,6 +119,8 @@ export type ProductFiltersRequest = {
   readonly category?: string;
   readonly businessType?: string;
   readonly status?: string;
+  readonly productType?: string;
+  readonly isPublished?: boolean;
   readonly minPrice?: number;
   readonly maxPrice?: number;
   readonly search?: string;

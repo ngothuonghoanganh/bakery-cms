@@ -87,16 +87,20 @@ export const createFileService = (
       // Generate unique filename
       const ext = path.extname(file.originalname).toLowerCase();
       const uniqueFilename = `${crypto.randomUUID()}${ext}`;
-      const storagePath = path.join(config.UPLOAD_DIR, uniqueFilename);
+      const uploadDirectory = path.resolve(config.UPLOAD_DIR);
+      const storagePath = path.join(uploadDirectory, uniqueFilename);
 
       // Move file from temp to permanent location (if using memory storage, write buffer)
       if (file.buffer) {
         // Memory storage - write buffer to disk
-        await fs.mkdir(config.UPLOAD_DIR, { recursive: true });
+        await fs.mkdir(uploadDirectory, { recursive: true });
         await fs.writeFile(storagePath, file.buffer);
       } else if (file.path) {
-        // Disk storage - file is already in the right place
-        // Just update the storage path if needed
+        // Disk storage - ensure file ends up in the canonical upload directory
+        await fs.mkdir(uploadDirectory, { recursive: true });
+        if (path.resolve(file.path) !== storagePath) {
+          await fs.rename(file.path, storagePath);
+        }
       }
 
       // Create file record

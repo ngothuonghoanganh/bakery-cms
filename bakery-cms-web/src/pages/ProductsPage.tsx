@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProductList } from '@/components/features/products/ProductList/ProductList';
 import { useProducts } from '@/hooks/useProducts';
 import { createProduct, updateProduct, deleteProduct } from '@/services/product.service';
+import { ProductType } from '@/types/models/product.model';
 import type { ProductFilters } from '@/types/models/product.model';
 import type { ProductFormValues } from '@/components/features/products/ProductForm/ProductForm.types';
 
@@ -16,9 +17,13 @@ export const ProductsPage = (): React.JSX.Element => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   // Filters state (immediate updates for UI)
-  const [filters, setFilters] = useState<ProductFilters>({});
+  const [filters, setFilters] = useState<ProductFilters>({
+    productType: ProductType.SINGLE,
+  });
   // Debounced filters state (delayed updates for API)
-  const [debouncedFilters, setDebouncedFilters] = useState<ProductFilters>({});
+  const [debouncedFilters, setDebouncedFilters] = useState<ProductFilters>({
+    productType: ProductType.SINGLE,
+  });
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -42,6 +47,8 @@ export const ProductsPage = (): React.JSX.Element => {
       debouncedFilters.category,
       debouncedFilters.businessType,
       debouncedFilters.status,
+      debouncedFilters.productType,
+      debouncedFilters.isPublished,
     ]
   );
 
@@ -91,6 +98,14 @@ export const ProductsPage = (): React.JSX.Element => {
         category: values.category,
         businessType: values.businessType,
         status: values.status,
+        productType: values.productType,
+        isPublished: values.isPublished,
+        comboItems: values.comboItems?.map((comboItem, index) => ({
+          id: comboItem.id,
+          itemProductId: comboItem.itemProductId,
+          quantity: comboItem.quantity,
+          displayOrder: comboItem.displayOrder ?? index,
+        })),
         imageUrl: values.imageUrl,
         imageFileId: values.imageFileId,
         images: values.images?.map((image) => ({
@@ -119,6 +134,14 @@ export const ProductsPage = (): React.JSX.Element => {
         category: values.category,
         businessType: values.businessType,
         status: values.status,
+        productType: values.productType,
+        isPublished: values.isPublished,
+        comboItems: values.comboItems?.map((comboItem, index) => ({
+          id: comboItem.id,
+          itemProductId: comboItem.itemProductId,
+          quantity: comboItem.quantity,
+          displayOrder: comboItem.displayOrder ?? index,
+        })),
         imageUrl: values.imageUrl,
         imageFileId: values.imageFileId,
         images: values.images?.map((image) => ({

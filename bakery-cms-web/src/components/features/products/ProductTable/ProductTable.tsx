@@ -3,7 +3,7 @@ import { Space, Button, Popconfirm, Tag, Image } from 'antd';
 import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '../../../shared';
-import { ProductStatus, BusinessType } from '../../../../types/models/product.model';
+import { ProductStatus, BusinessType, ProductType } from '../../../../types/models/product.model';
 import { formatCurrency, formatDateTime } from '../../../../utils/format.utils';
 import { fileService } from '../../../../services/file.service';
 import type { ProductTableProps, ProductColumn } from './ProductTable.types';
@@ -32,6 +32,18 @@ const getStatusKey = (status: string): 'available' | 'outOfStock' => {
     [ProductStatus.OUT_OF_STOCK]: 'outOfStock',
   };
   return keyMap[status] || status;
+};
+
+const getProductTypeKey = (type: string): 'single' | 'combo' => {
+  const keyMap: Record<string, 'single' | 'combo'> = {
+    [ProductType.SINGLE]: 'single',
+    [ProductType.COMBO]: 'combo',
+  };
+  return keyMap[type] || 'single';
+};
+
+const getVisibilityColor = (isPublished: boolean): string => {
+  return isPublished ? 'green' : 'volcano';
 };
 
 const ProductTableComponent: React.FC<ProductTableProps> = ({
@@ -152,6 +164,17 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         ),
       },
       {
+        title: t('products.table.productType'),
+        dataIndex: 'productType',
+        key: 'productType',
+        width: 130,
+        render: (type: string) => (
+          <Tag color={type === ProductType.COMBO ? 'purple' : 'geekblue'}>
+            {t(`products.productType.${getProductTypeKey(type)}`)}
+          </Tag>
+        ),
+      },
+      {
         title: t('products.table.status'),
         dataIndex: 'status',
         key: 'status',
@@ -159,6 +182,22 @@ const ProductTableComponent: React.FC<ProductTableProps> = ({
         render: (status: string) => (
           <Tag color={getStatusColor(status)}>{t(`products.status.${getStatusKey(status)}`)}</Tag>
         ),
+      },
+      {
+        title: t('products.table.visibility'),
+        dataIndex: 'isPublished',
+        key: 'isPublished',
+        width: 170,
+        render: (isPublished: boolean) => {
+          const storefrontVisible = isPublished !== false;
+          return (
+            <Tag color={getVisibilityColor(storefrontVisible)}>
+              {storefrontVisible
+                ? t('products.visibility.published')
+                : t('products.visibility.hidden')}
+            </Tag>
+          );
+        },
       },
       {
         title: t('products.table.createdAt'),

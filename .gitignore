@@ -18,6 +18,10 @@ build/
 .turbo/
 .vite/
 
+# Uploaded files
+bakery-cms-api/packages/api/upload/
+bakery-cms-api/packages/api/uploads/
+
 # Environment variables
 .env
 .env.local

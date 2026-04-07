@@ -18,6 +18,7 @@ import { ProductStockItemModel, initProductStockItemModel } from './product-stoc
 import { StockMovementModel, initStockMovementModel } from './stock-movement.model';
 import { FileModel, initFileModel } from './file.model';
 import { ProductImageModel, initProductImageModel } from './product-image.model';
+import { ProductComboItemModel, initProductComboItemModel } from './product-combo-item.model';
 import { SystemSettingModel, initSystemSettingModel } from './system-setting.model';
 
 // Re-export TokenType for convenience
@@ -42,6 +43,7 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly StockMovement: typeof StockMovementModel;
   readonly File: typeof FileModel;
   readonly ProductImage: typeof ProductImageModel;
+  readonly ProductComboItem: typeof ProductComboItemModel;
   readonly SystemSetting: typeof SystemSettingModel;
 } => {
   // Initialize all models
@@ -59,6 +61,7 @@ export const initializeModels = (sequelize: Sequelize): {
   const StockMovement = initStockMovementModel(sequelize);
   const File = initFileModel(sequelize);
   const ProductImage = initProductImageModel(sequelize);
+  const ProductComboItem = initProductComboItemModel(sequelize);
   const SystemSetting = initSystemSettingModel(sequelize);
 
   // Define associations
@@ -300,6 +303,35 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  // Product combo associations
+  Product.hasMany(ProductComboItem, {
+    foreignKey: 'comboProductId',
+    as: 'comboItems',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  Product.hasMany(ProductComboItem, {
+    foreignKey: 'itemProductId',
+    as: 'includedInCombos',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductComboItem.belongsTo(Product, {
+    foreignKey: 'comboProductId',
+    as: 'comboProduct',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  ProductComboItem.belongsTo(Product, {
+    foreignKey: 'itemProductId',
+    as: 'itemProduct',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
   ProductImage.belongsTo(Product, {
     foreignKey: 'productId',
     as: 'product',
@@ -336,6 +368,7 @@ export const initializeModels = (sequelize: Sequelize): {
     StockMovement,
     File,
     ProductImage,
+    ProductComboItem,
     SystemSetting,
   };
 };
@@ -356,5 +389,6 @@ export {
   StockMovementModel,
   FileModel,
   ProductImageModel,
+  ProductComboItemModel,
   SystemSettingModel,
 };

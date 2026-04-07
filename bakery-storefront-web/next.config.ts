@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/upload/:path*',
+        destination: `${apiOrigin}/upload/:path*`,
+      },
+      {
         source: '/uploads/:path*',
         destination: `${apiOrigin}/uploads/:path*`,
       },

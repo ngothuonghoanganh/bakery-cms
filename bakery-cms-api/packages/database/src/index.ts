@@ -27,6 +27,7 @@ export {
   StockMovementModel,
   FileModel,
   ProductImageModel,
+  ProductComboItemModel,
   SystemSettingModel,
   TokenType,
 } from './models';

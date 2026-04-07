@@ -49,6 +49,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: false,
       proxy: {
+        '/upload': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+        },
         '/uploads': {
           target: apiProxyTarget,
           changeOrigin: true,

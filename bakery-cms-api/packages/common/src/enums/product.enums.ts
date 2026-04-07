@@ -20,6 +20,16 @@ export enum ProductStatus {
 }
 
 /**
+ * Product type
+ * - single: standalone product
+ * - combo: bundle of multiple products with custom quantities
+ */
+export enum ProductType {
+  SINGLE = 'single',
+  COMBO = 'combo',
+}
+
+/**
  * Helper to check if a value is a valid BusinessType
  */
 export const isValidBusinessType = (value: string): value is BusinessType => {
@@ -31,4 +41,11 @@ export const isValidBusinessType = (value: string): value is BusinessType => {
  */
 export const isValidProductStatus = (value: string): value is ProductStatus => {
   return Object.values(ProductStatus).includes(value as ProductStatus);
+};
+
+/**
+ * Helper to check if a value is a valid ProductType
+ */
+export const isValidProductType = (value: string): value is ProductType => {
+  return Object.values(ProductType).includes(value as ProductType);
 };

@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { BusinessType, ProductStatus } from '@bakery-cms/common';
+import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -84,6 +84,21 @@ export const createProductSchema = Joi.object({
       'any.only': `Status must be one of: ${Object.values(ProductStatus).join(', ')}`,
     }),
 
+  productType: Joi.string()
+    .valid(...Object.values(ProductType))
+    .optional()
+    .default(ProductType.SINGLE)
+    .messages({
+      'any.only': `Product type must be one of: ${Object.values(ProductType).join(', ')}`,
+    }),
+
+  isPublished: Joi.boolean()
+    .optional()
+    .default(true)
+    .messages({
+      'boolean.base': 'isPublished must be a boolean',
+    }),
+
   imageUrl: Joi.string()
     .uri()
     .max(500)
@@ -120,6 +135,34 @@ export const createProductSchema = Joi.object({
     .optional()
     .messages({
       'array.base': 'Images must be an array',
+    }),
+
+  comboItems: Joi.array()
+    .items(
+      Joi.object({
+        id: Joi.string().optional(),
+        itemProductId: Joi.string()
+          .uuid({ version: 'uuidv4' })
+          .required()
+          .messages({
+            'string.guid': 'Item product ID must be a valid UUID',
+            'any.required': 'Item product ID is required for each combo item',
+          }),
+        quantity: Joi.number()
+          .positive()
+          .precision(3)
+          .required()
+          .messages({
+            'number.base': 'Quantity must be a number',
+            'number.positive': 'Quantity must be greater than 0',
+            'any.required': 'Quantity is required for each combo item',
+          }),
+        displayOrder: Joi.number().integer().min(0).optional(),
+      })
+    )
+    .optional()
+    .messages({
+      'array.base': 'Combo items must be an array',
     }),
 });
 
@@ -182,6 +225,19 @@ export const updateProductSchema = Joi.object({
       'any.only': `Status must be one of: ${Object.values(ProductStatus).join(', ')}`,
     }),
 
+  productType: Joi.string()
+    .valid(...Object.values(ProductType))
+    .optional()
+    .messages({
+      'any.only': `Product type must be one of: ${Object.values(ProductType).join(', ')}`,
+    }),
+
+  isPublished: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'isPublished must be a boolean',
+    }),
+
   imageUrl: Joi.string()
     .uri()
     .max(500)
@@ -218,6 +274,34 @@ export const updateProductSchema = Joi.object({
     .optional()
     .messages({
       'array.base': 'Images must be an array',
+    }),
+
+  comboItems: Joi.array()
+    .items(
+      Joi.object({
+        id: Joi.string().optional(),
+        itemProductId: Joi.string()
+          .uuid({ version: 'uuidv4' })
+          .required()
+          .messages({
+            'string.guid': 'Item product ID must be a valid UUID',
+            'any.required': 'Item product ID is required for each combo item',
+          }),
+        quantity: Joi.number()
+          .positive()
+          .precision(3)
+          .required()
+          .messages({
+            'number.base': 'Quantity must be a number',
+            'number.positive': 'Quantity must be greater than 0',
+            'any.required': 'Quantity is required for each combo item',
+          }),
+        displayOrder: Joi.number().integer().min(0).optional(),
+      })
+    )
+    .optional()
+    .messages({
+      'array.base': 'Combo items must be an array',
     }),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',
@@ -275,6 +359,19 @@ export const productListQuerySchema = Joi.object({
     .optional()
     .messages({
       'any.only': `Status must be one of: ${Object.values(ProductStatus).join(', ')}`,
+    }),
+
+  productType: Joi.string()
+    .valid(...Object.values(ProductType))
+    .optional()
+    .messages({
+      'any.only': `Product type must be one of: ${Object.values(ProductType).join(', ')}`,
+    }),
+
+  isPublished: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'isPublished must be a boolean',
     }),
 
   category: Joi.string()

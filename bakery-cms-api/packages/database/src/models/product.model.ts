@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize, Op } from 'sequelize';
-import { BusinessType, ProductStatus } from '@bakery-cms/common';
+import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
 
 /**
  * Product model class
@@ -19,6 +19,8 @@ export class ProductModel extends Model {
   declare category: string | null;
   declare businessType: string;
   declare status: string;
+  declare productType: string;
+  declare isPublished: boolean;
   declare imageUrl: string | null;
   declare imageFileId: string | null;
   declare deletedAt: Date | null;
@@ -85,6 +87,18 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         type: DataTypes.ENUM(...Object.values(ProductStatus)),
         allowNull: false,
         defaultValue: ProductStatus.AVAILABLE,
+      },
+      productType: {
+        type: DataTypes.ENUM(...Object.values(ProductType)),
+        allowNull: false,
+        defaultValue: ProductType.SINGLE,
+        field: 'product_type',
+      },
+      isPublished: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        field: 'is_published',
       },
       imageUrl: {
         type: DataTypes.STRING(500),
@@ -154,6 +168,14 @@ export const initProductModel = (sequelize: Sequelize): typeof ProductModel => {
         },
         {
           fields: ['status'],
+        },
+        {
+          fields: ['product_type'],
+          name: 'idx_products_product_type',
+        },
+        {
+          fields: ['is_published'],
+          name: 'idx_products_is_published',
         },
         {
           fields: ['deleted_at'],

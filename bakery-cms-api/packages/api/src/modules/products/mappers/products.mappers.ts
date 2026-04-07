@@ -3,8 +3,13 @@
  * Transform between Sequelize models and DTOs
  */
 
-import { ProductModel, FileModel, ProductImageModel } from '@bakery-cms/database';
-import { BusinessType, ProductStatus } from '@bakery-cms/common';
+import {
+  ProductModel,
+  FileModel,
+  ProductImageModel,
+  ProductComboItemModel,
+} from '@bakery-cms/database';
+import { BusinessType, ProductStatus, ProductType } from '@bakery-cms/common';
 import {
   ProductResponseDto,
   CreateProductDto,
@@ -20,6 +25,11 @@ import { toIsoString } from '../../../utils/date';
 type ProductWithAssociations = ProductModel & {
   imageFile?: FileModel | null;
   images?: ProductImageModel[];
+  comboItems?: Array<
+    ProductComboItemModel & {
+      itemProduct?: ProductModel | null;
+    }
+  >;
 };
 
 /**
@@ -27,6 +37,25 @@ type ProductWithAssociations = ProductModel & {
  * Pure function that transforms database entity to API response
  */
 export const toProductResponseDto = (model: ProductWithAssociations): ProductResponseDto => {
+  const comboItems = (model.comboItems ?? []).map((comboItem) => ({
+    id: comboItem.id,
+    comboProductId: comboItem.comboProductId,
+    itemProductId: comboItem.itemProductId,
+    quantity: Number(comboItem.quantity),
+    displayOrder: comboItem.displayOrder,
+    itemProduct: comboItem.itemProduct
+      ? {
+          id: comboItem.itemProduct.id,
+          productCode: comboItem.itemProduct.productCode,
+          name: comboItem.itemProduct.name,
+          imageUrl: comboItem.itemProduct.imageUrl,
+          imageFileId: comboItem.itemProduct.imageFileId,
+        }
+      : null,
+    createdAt: toIsoString(comboItem.createdAt),
+    updatedAt: toIsoString(comboItem.updatedAt),
+  }));
+
   return {
     id: model.id,
     productCode: model.productCode,
@@ -36,6 +65,9 @@ export const toProductResponseDto = (model: ProductWithAssociations): ProductRes
     category: model.category,
     businessType: model.businessType as BusinessType,
     status: model.status as ProductStatus,
+    productType: (model.productType as ProductType) ?? ProductType.SINGLE,
+    isPublished: model.isPublished ?? true,
+    comboItems,
     imageUrl: model.imageUrl,
     imageFileId: model.imageFileId,
     imageFile: model.imageFile ? toFileResponseDto(model.imageFile) : null,
@@ -70,6 +102,8 @@ export const toProductCreationAttributes = (
     category: dto.category ?? null,
     businessType: dto.businessType,
     status: dto.status ?? ProductStatus.AVAILABLE,
+    productType: dto.productType ?? ProductType.SINGLE,
+    isPublished: dto.isPublished ?? true,
     imageUrl: dto.imageUrl ?? null,
     imageFileId: dto.imageFileId ?? null,
   };
@@ -105,6 +139,12 @@ export const toProductUpdateAttributes = (
   }
   if (dto.status !== undefined) {
     attributes.status = dto.status;
+  }
+  if (dto.productType !== undefined) {
+    attributes.productType = dto.productType;
+  }
+  if (dto.isPublished !== undefined) {
+    attributes.isPublished = dto.isPublished;
   }
   if (dto.imageUrl !== undefined) {
     attributes.imageUrl = dto.imageUrl ?? null;

@@ -97,5 +97,5 @@ export type FileService = {
 export const FILE_UPLOAD_CONFIG = {
   MAX_IMAGE_SIZE: 10 * 1024 * 1024, // 10MB
   MAX_VIDEO_SIZE: 100 * 1024 * 1024, // 100MB
-  DEFAULT_UPLOAD_DIR: './uploads',
+  DEFAULT_UPLOAD_DIR: './upload',
 } as const;

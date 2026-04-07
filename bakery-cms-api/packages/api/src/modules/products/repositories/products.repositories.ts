@@ -4,7 +4,12 @@
  */
 
 import { Op } from 'sequelize';
-import { ProductModel, FileModel, ProductImageModel } from '@bakery-cms/database';
+import {
+  ProductModel,
+  FileModel,
+  ProductImageModel,
+  ProductComboItemModel,
+} from '@bakery-cms/database';
 import { ProductListQueryDto } from '../dto/products.dto';
 
 /**
@@ -44,6 +49,19 @@ export const createProductRepository = (
           include: [{ model: FileModel, as: 'file' }],
           order: [['displayOrder', 'ASC']],
         },
+        {
+          model: ProductComboItemModel,
+          as: 'comboItems',
+          include: [
+            {
+              model: ProductModel,
+              as: 'itemProduct',
+              include: [{ model: FileModel, as: 'imageFile' }],
+            },
+          ],
+          separate: true,
+          order: [['displayOrder', 'ASC']],
+        },
       ],
     });
   };
@@ -69,6 +87,8 @@ export const createProductRepository = (
       limit = 10,
       businessType,
       status,
+      productType,
+      isPublished,
       category,
       search,
     } = query;
@@ -82,6 +102,14 @@ export const createProductRepository = (
 
     if (status) {
       where['status'] = status;
+    }
+
+    if (productType) {
+      where['productType'] = productType;
+    }
+
+    if (isPublished !== undefined) {
+      where['isPublished'] = isPublished;
     }
 
     if (category) {
@@ -110,6 +138,19 @@ export const createProductRepository = (
           model: ProductImageModel,
           as: 'images',
           include: [{ model: FileModel, as: 'file' }],
+          separate: true,
+          order: [['displayOrder', 'ASC']],
+        },
+        {
+          model: ProductComboItemModel,
+          as: 'comboItems',
+          include: [
+            {
+              model: ProductModel,
+              as: 'itemProduct',
+              include: [{ model: FileModel, as: 'imageFile' }],
+            },
+          ],
           separate: true,
           order: [['displayOrder', 'ASC']],
         },
@@ -152,6 +193,19 @@ export const createProductRepository = (
           model: ProductImageModel,
           as: 'images',
           include: [{ model: FileModel, as: 'file' }],
+          order: [['displayOrder', 'ASC']],
+        },
+        {
+          model: ProductComboItemModel,
+          as: 'comboItems',
+          include: [
+            {
+              model: ProductModel,
+              as: 'itemProduct',
+              include: [{ model: FileModel, as: 'imageFile' }],
+            },
+          ],
+          separate: true,
           order: [['displayOrder', 'ASC']],
         },
       ],

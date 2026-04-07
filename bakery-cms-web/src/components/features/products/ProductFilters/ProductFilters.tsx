@@ -38,6 +38,13 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
     });
   };
 
+  const handleVisibilityChange = (value?: boolean) => {
+    onChange({
+      ...filters,
+      isPublished: value,
+    });
+  };
+
   return (
     <FilterPanel onReset={onReset}>
       <Row gutter={[16, 16]} style={{ width: '100%' }}>
@@ -88,6 +95,20 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           >
             <Option value={ProductStatus.AVAILABLE}>{t('products.status.available')}</Option>
             <Option value={ProductStatus.OUT_OF_STOCK}>{t('products.status.outOfStock')}</Option>
+          </Select>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} lg={6}>
+          <Select
+            placeholder={t('products.filter.visibility')}
+            value={filters.isPublished}
+            onChange={handleVisibilityChange}
+            disabled={loading}
+            allowClear
+            style={{ width: '100%' }}
+          >
+            <Option value={true}>{t('products.visibility.published')}</Option>
+            <Option value={false}>{t('products.visibility.hidden')}</Option>
           </Select>
         </Col>
       </Row>
