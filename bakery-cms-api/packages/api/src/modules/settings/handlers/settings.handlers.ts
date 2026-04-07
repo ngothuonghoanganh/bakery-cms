@@ -9,6 +9,7 @@ import {
   UpdateBankReceiverDto,
   UpdateInvoiceLanguageDto,
   UpdateOrderExtraFeesDto,
+  UpdateStorefrontHomeContentDto,
   UpdateStoreProfileDto,
 } from '../dto/settings.dto';
 import { getLogger } from '../../../utils/logger';
@@ -20,6 +21,11 @@ const logger = getLogger();
  */
 export interface SettingsHandlers {
   handleGetSystemSettings(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void>;
+  handleGetPublicStorefrontSettings(
     req: Request,
     res: Response,
     next: NextFunction
@@ -40,6 +46,11 @@ export interface SettingsHandlers {
     next: NextFunction
   ): Promise<void>;
   handleUpdateStoreProfile(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void>;
+  handleUpdateStorefrontHomeContent(
     req: Request,
     res: Response,
     next: NextFunction
@@ -75,6 +86,28 @@ export const createSettingsHandlers = (
       });
     } catch (error) {
       logger.error('Unhandled error in handleGetSystemSettings', { error });
+      next(error);
+    }
+  };
+
+  const handleGetPublicStorefrontSettings = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const result = await service.getPublicStorefrontSettings();
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleGetPublicStorefrontSettings', { error });
       next(error);
     }
   };
@@ -207,12 +240,39 @@ export const createSettingsHandlers = (
     }
   };
 
+  const handleUpdateStorefrontHomeContent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const dto: UpdateStorefrontHomeContentDto = req.body;
+      const result = await service.updateStorefrontHomeContent(dto);
+
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Updated storefront home content settings');
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleUpdateStorefrontHomeContent', { error });
+      next(error);
+    }
+  };
+
   return {
     handleGetSystemSettings,
+    handleGetPublicStorefrontSettings,
     handleUpdateBankReceiver,
     handleUpdateOrderExtraFees,
     handleUpdateInvoiceLanguage,
     handleUpdateStoreProfile,
+    handleUpdateStorefrontHomeContent,
     handleGetVietQRBanks,
   };
 };

@@ -10,11 +10,15 @@ import {
   BankReceiverConfigDto,
   InvoiceLanguageDto,
   OrderExtraFeeTemplateDto,
+  PublicStorefrontSettingsResponseDto,
+  StorefrontHomeContentDto,
+  StorefrontHomeContentLocaleDto,
   StoreProfileDto,
   SystemSettingsResponseDto,
   UpdateBankReceiverDto,
   UpdateInvoiceLanguageDto,
   UpdateOrderExtraFeesDto,
+  UpdateStorefrontHomeContentDto,
   UpdateStoreProfileDto,
   VietQRBankDto,
 } from '../dto/settings.dto';
@@ -30,11 +34,73 @@ export const BANK_RECEIVER_SETTING_KEY = 'vietqr.bank_receiver';
 export const ORDER_EXTRA_FEES_SETTING_KEY = 'orders.extra_fee_templates';
 export const ORDER_INVOICE_LANGUAGE_SETTING_KEY = 'orders.invoice_language';
 export const ORDER_STORE_PROFILE_SETTING_KEY = 'orders.store_profile';
+export const STOREFRONT_HOME_CONTENT_SETTING_KEY = 'storefront.home_content';
 const DEFAULT_RECEIVER_ACCOUNT_NAME = 'BAKERY CMS';
 const DEFAULT_INVOICE_LANGUAGE: InvoiceLanguageDto = 'en';
 const DEFAULT_STORE_NAME = 'BAKERY CMS';
 const VIETQR_BANKS_API_URL = 'https://api.vietqr.io/v2/banks';
 const VIETQR_BANKS_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+const DEFAULT_STOREFRONT_HOME_CONTENT: StorefrontHomeContentDto = {
+  vi: {
+    tagline: 'Tiệm bánh thủ công mỗi ngày',
+    heroEyebrow: 'Bánh mới ra lò mỗi sáng',
+    heroTitle: 'Bánh tươi mỗi ngày, đặt online nhanh và dễ',
+    heroDescription:
+      'Chọn bánh ngọt, bánh mì và set theo mùa chỉ trong vài chạm. Tiệm xác nhận nhanh và giao trong ngày tại nội thành.',
+    heroBackgroundImageUrl: '',
+    heroPrimaryCta: 'Xem thực đơn',
+    heroSecondaryCta: 'Khám phá bánh theo mùa',
+    highlightHandcrafted: '100% làm thủ công theo mẻ nhỏ',
+    highlightSeasonal: 'Menu thay đổi theo mùa',
+    highlightFastDelivery: 'Giao nhanh 2 giờ trong ngày',
+    productsSectionTitle: 'Sản phẩm nổi bật',
+    productsSectionDescription: 'Những món được yêu thích nhất tuần này tại tiệm.',
+    storySectionTitle: 'Câu chuyện tiệm bánh',
+    storyHeading: 'Một không gian ấm áp, nơi hương bơ và men tự nhiên lên tiếng.',
+    storyBody:
+      'Chúng tôi bắt đầu từ căn bếp nhỏ với triết lý dùng nguyên liệu tốt, công thức tinh gọn và nướng mới mỗi ngày. Từng chiếc bánh đều được chăm chút để vừa đẹp mắt vừa đúng vị.',
+    storyStatOne: '8 năm làm bánh thủ công',
+    storyStatTwo: '35+ món bánh theo mùa',
+    storyStatThree: '4.9/5 đánh giá từ khách hàng',
+    promoTitle: 'Đặt bánh sinh nhật hoặc set tea-break cho sự kiện',
+    promoDescription: 'Tùy chỉnh hương vị, màu sắc và thông điệp riêng cho từng dịp.',
+    promoCta: 'Yêu cầu tư vấn',
+    promoCtaHref: '#contact',
+    footerAddress: '12 Pasteur, Quận 1, TP.HCM',
+    footerPhone: '0901 234 567',
+    footerHours: 'Mở cửa: 07:00 - 21:00 mỗi ngày',
+  },
+  en: {
+    tagline: 'Handcrafted bakery, baked fresh daily',
+    heroEyebrow: 'Fresh batches every morning',
+    heroTitle: 'Fresh bakery favorites, easy to order online',
+    heroDescription:
+      'Pick pastries, breads, and seasonal sets in a few taps. We confirm quickly and deliver locally the same day.',
+    heroBackgroundImageUrl: '',
+    heroPrimaryCta: 'Browse menu',
+    heroSecondaryCta: 'Explore seasonal picks',
+    highlightHandcrafted: 'Small-batch handcrafted recipes',
+    highlightSeasonal: 'Seasonal menu rotation',
+    highlightFastDelivery: 'Same-day delivery in the city',
+    productsSectionTitle: 'Featured products',
+    productsSectionDescription: 'Top-loved bakery picks this week.',
+    storySectionTitle: 'Bakery story',
+    storyHeading: 'A warm corner where butter, flour, and fermentation lead the way.',
+    storyBody:
+      'We started from a tiny kitchen with a strict craft-first approach. Every loaf and cake is baked daily with carefully selected ingredients and balanced textures.',
+    storyStatOne: '8 years of artisan baking',
+    storyStatTwo: '35+ rotating seasonal items',
+    storyStatThree: '4.9/5 average customer rating',
+    promoTitle: 'Need a birthday cake or tea-break set for your event?',
+    promoDescription: 'Customize flavor, palette, and message for every occasion.',
+    promoCta: 'Request consultation',
+    promoCtaHref: '#contact',
+    footerAddress: '12 Pasteur Street, District 1, Ho Chi Minh City',
+    footerPhone: '+84 901 234 567',
+    footerHours: 'Open daily: 07:00 - 21:00',
+  },
+};
 
 let banksCache: { data: VietQRBankDto[]; fetchedAt: number } | null = null;
 
@@ -157,6 +223,117 @@ const parseStoreProfile = (value: string | null): StoreProfileDto => {
   }
 };
 
+const normalizeText = (
+  value: unknown,
+  fallback: string,
+  maxLength = 2000
+): string => {
+  const normalized = String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  return normalized.slice(0, maxLength);
+};
+
+const normalizeStorefrontHomeContentLocale = (
+  value: Partial<StorefrontHomeContentLocaleDto> | null | undefined,
+  fallback: StorefrontHomeContentLocaleDto
+): StorefrontHomeContentLocaleDto => {
+  return {
+    tagline: normalizeText(value?.tagline, fallback.tagline, 200),
+    heroEyebrow: normalizeText(value?.heroEyebrow, fallback.heroEyebrow, 200),
+    heroTitle: normalizeText(value?.heroTitle, fallback.heroTitle, 280),
+    heroDescription: normalizeText(
+      value?.heroDescription,
+      fallback.heroDescription,
+      1200
+    ),
+    heroBackgroundImageUrl: normalizeText(
+      value?.heroBackgroundImageUrl,
+      fallback.heroBackgroundImageUrl,
+      1000
+    ),
+    heroPrimaryCta: normalizeText(value?.heroPrimaryCta, fallback.heroPrimaryCta, 120),
+    heroSecondaryCta: normalizeText(
+      value?.heroSecondaryCta,
+      fallback.heroSecondaryCta,
+      120
+    ),
+    highlightHandcrafted: normalizeText(
+      value?.highlightHandcrafted,
+      fallback.highlightHandcrafted,
+      180
+    ),
+    highlightSeasonal: normalizeText(
+      value?.highlightSeasonal,
+      fallback.highlightSeasonal,
+      180
+    ),
+    highlightFastDelivery: normalizeText(
+      value?.highlightFastDelivery,
+      fallback.highlightFastDelivery,
+      180
+    ),
+    productsSectionTitle: normalizeText(
+      value?.productsSectionTitle,
+      fallback.productsSectionTitle,
+      220
+    ),
+    productsSectionDescription: normalizeText(
+      value?.productsSectionDescription,
+      fallback.productsSectionDescription,
+      1000
+    ),
+    storySectionTitle: normalizeText(
+      value?.storySectionTitle,
+      fallback.storySectionTitle,
+      220
+    ),
+    storyHeading: normalizeText(value?.storyHeading, fallback.storyHeading, 320),
+    storyBody: normalizeText(value?.storyBody, fallback.storyBody, 3000),
+    storyStatOne: normalizeText(value?.storyStatOne, fallback.storyStatOne, 240),
+    storyStatTwo: normalizeText(value?.storyStatTwo, fallback.storyStatTwo, 240),
+    storyStatThree: normalizeText(value?.storyStatThree, fallback.storyStatThree, 240),
+    promoTitle: normalizeText(value?.promoTitle, fallback.promoTitle, 320),
+    promoDescription: normalizeText(
+      value?.promoDescription,
+      fallback.promoDescription,
+      1200
+    ),
+    promoCta: normalizeText(value?.promoCta, fallback.promoCta, 120),
+    promoCtaHref: normalizeText(value?.promoCtaHref, fallback.promoCtaHref, 1000),
+    footerAddress: normalizeText(value?.footerAddress, fallback.footerAddress, 280),
+    footerPhone: normalizeText(value?.footerPhone, fallback.footerPhone, 120),
+    footerHours: normalizeText(value?.footerHours, fallback.footerHours, 220),
+  };
+};
+
+const parseStorefrontHomeContent = (value: string | null): StorefrontHomeContentDto => {
+  if (!value) {
+    return DEFAULT_STOREFRONT_HOME_CONTENT;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<StorefrontHomeContentDto>;
+    return {
+      vi: normalizeStorefrontHomeContentLocale(
+        parsed.vi,
+        DEFAULT_STOREFRONT_HOME_CONTENT.vi
+      ),
+      en: normalizeStorefrontHomeContentLocale(
+        parsed.en,
+        DEFAULT_STOREFRONT_HOME_CONTENT.en
+      ),
+    };
+  } catch {
+    return DEFAULT_STOREFRONT_HOME_CONTENT;
+  }
+};
+
 const normalizeOrderExtraFeesPayload = (
   fees: readonly OrderExtraFeeTemplateDto[]
 ): OrderExtraFeeTemplateDto[] => {
@@ -243,6 +420,9 @@ const mapVietQRBank = (raw: unknown): VietQRBankDto | null => {
  */
 export interface SettingsService {
   getSystemSettings(): Promise<Result<SystemSettingsResponseDto, AppError>>;
+  getPublicStorefrontSettings(): Promise<
+    Result<PublicStorefrontSettingsResponseDto, AppError>
+  >;
   updateBankReceiver(
     dto: UpdateBankReceiverDto
   ): Promise<Result<BankReceiverConfigDto, AppError>>;
@@ -255,6 +435,9 @@ export interface SettingsService {
   updateStoreProfile(
     dto: UpdateStoreProfileDto
   ): Promise<Result<StoreProfileDto, AppError>>;
+  updateStorefrontHomeContent(
+    dto: UpdateStorefrontHomeContentDto
+  ): Promise<Result<StorefrontHomeContentDto, AppError>>;
   getVietQRBanks(): Promise<Result<VietQRBankDto[], AppError>>;
 }
 
@@ -273,11 +456,13 @@ export const createSettingsService = (
         orderExtraFeesSetting,
         invoiceLanguageSetting,
         storeProfileSetting,
+        storefrontHomeContentSetting,
       ] = await Promise.all([
         repository.findByKey(BANK_RECEIVER_SETTING_KEY),
         repository.findByKey(ORDER_EXTRA_FEES_SETTING_KEY),
         repository.findByKey(ORDER_INVOICE_LANGUAGE_SETTING_KEY),
         repository.findByKey(ORDER_STORE_PROFILE_SETTING_KEY),
+        repository.findByKey(STOREFRONT_HOME_CONTENT_SETTING_KEY),
       ]);
 
       return ok({
@@ -285,10 +470,36 @@ export const createSettingsService = (
         orderExtraFees: parseOrderExtraFees(orderExtraFeesSetting?.value ?? null),
         invoiceLanguage: parseInvoiceLanguage(invoiceLanguageSetting?.value ?? null),
         storeProfile: parseStoreProfile(storeProfileSetting?.value ?? null),
+        storefrontHomeContent: parseStorefrontHomeContent(
+          storefrontHomeContentSetting?.value ?? null
+        ),
       });
     } catch (error) {
       logger.error('Failed to fetch system settings', { error });
       return err(createDatabaseError('Failed to fetch system settings', error));
+    }
+  };
+
+  const getPublicStorefrontSettings = async (): Promise<
+    Result<PublicStorefrontSettingsResponseDto, AppError>
+  > => {
+    try {
+      const [storeProfileSetting, storefrontHomeContentSetting] = await Promise.all([
+        repository.findByKey(ORDER_STORE_PROFILE_SETTING_KEY),
+        repository.findByKey(STOREFRONT_HOME_CONTENT_SETTING_KEY),
+      ]);
+
+      return ok({
+        storeProfile: parseStoreProfile(storeProfileSetting?.value ?? null),
+        storefrontHomeContent: parseStorefrontHomeContent(
+          storefrontHomeContentSetting?.value ?? null
+        ),
+      });
+    } catch (error) {
+      logger.error('Failed to fetch public storefront settings', { error });
+      return err(
+        createDatabaseError('Failed to fetch public storefront settings', error)
+      );
     }
   };
 
@@ -392,6 +603,45 @@ export const createSettingsService = (
     }
   };
 
+  const updateStorefrontHomeContent = async (
+    dto: UpdateStorefrontHomeContentDto
+  ): Promise<Result<StorefrontHomeContentDto, AppError>> => {
+    try {
+      if (!dto.content || typeof dto.content !== 'object') {
+        return err(createInvalidInputError('content is required'));
+      }
+
+      const payload: StorefrontHomeContentDto = {
+        vi: normalizeStorefrontHomeContentLocale(
+          dto.content.vi,
+          DEFAULT_STOREFRONT_HOME_CONTENT.vi
+        ),
+        en: normalizeStorefrontHomeContentLocale(
+          dto.content.en,
+          DEFAULT_STOREFRONT_HOME_CONTENT.en
+        ),
+      };
+
+      await repository.setByKey(
+        STOREFRONT_HOME_CONTENT_SETTING_KEY,
+        JSON.stringify(payload)
+      );
+
+      return ok(payload);
+    } catch (error) {
+      logger.error('Failed to update storefront home content settings', {
+        error,
+        dto,
+      });
+      return err(
+        createDatabaseError(
+          'Failed to update storefront home content settings',
+          error
+        )
+      );
+    }
+  };
+
   const getVietQRBanks = async (): Promise<Result<VietQRBankDto[], AppError>> => {
     try {
       const now = Date.now();
@@ -440,10 +690,12 @@ export const createSettingsService = (
 
   return {
     getSystemSettings,
+    getPublicStorefrontSettings,
     updateBankReceiver,
     updateOrderExtraFees,
     updateInvoiceLanguage,
     updateStoreProfile,
+    updateStorefrontHomeContent,
     getVietQRBanks,
   };
 };

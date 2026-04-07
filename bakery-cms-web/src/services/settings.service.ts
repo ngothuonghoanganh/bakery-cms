@@ -9,6 +9,8 @@ import { ok, err } from '@/types/common/result.types';
 import type { AppError } from '@/types/common/error.types';
 import type {
   InvoiceLanguageAPIResponse,
+  StorefrontHomeContentAPIResponse,
+  StorefrontHomeContentLocaleAPIResponse,
   SystemSettingsAPIResponse,
   StoreProfileAPIResponse,
   VietQRBankAPIResponse,
@@ -18,6 +20,8 @@ import type {
   UpdateInvoiceLanguageRequest,
   UpdateInvoiceLanguageResponse,
   UpdateOrderExtraFeesRequest,
+  UpdateStorefrontHomeContentRequest,
+  UpdateStorefrontHomeContentResponse,
   UpdateStoreProfileRequest,
   UpdateStoreProfileResponse,
 } from '@/types/api/settings.api';
@@ -28,6 +32,8 @@ import type {
   InvoiceLanguage,
   OrderExtraFeeTemplate,
   StoreProfile,
+  StorefrontHomeContent,
+  StorefrontHomeContentLocale,
 } from '@/types/models/settings.model';
 
 const mapBankReceiverConfig = (
@@ -56,6 +62,99 @@ const mapStoreProfile = (
   };
 };
 
+const mapStorefrontLocaleContent = (
+  content: StorefrontHomeContentLocaleAPIResponse
+): StorefrontHomeContentLocale => ({
+  tagline: content.tagline,
+  heroEyebrow: content.heroEyebrow,
+  heroTitle: content.heroTitle,
+  heroDescription: content.heroDescription,
+  heroBackgroundImageUrl: content.heroBackgroundImageUrl,
+  heroPrimaryCta: content.heroPrimaryCta,
+  heroSecondaryCta: content.heroSecondaryCta,
+  highlightHandcrafted: content.highlightHandcrafted,
+  highlightSeasonal: content.highlightSeasonal,
+  highlightFastDelivery: content.highlightFastDelivery,
+  productsSectionTitle: content.productsSectionTitle,
+  productsSectionDescription: content.productsSectionDescription,
+  storySectionTitle: content.storySectionTitle,
+  storyHeading: content.storyHeading,
+  storyBody: content.storyBody,
+  storyStatOne: content.storyStatOne,
+  storyStatTwo: content.storyStatTwo,
+  storyStatThree: content.storyStatThree,
+  promoTitle: content.promoTitle,
+  promoDescription: content.promoDescription,
+  promoCta: content.promoCta,
+  promoCtaHref: content.promoCtaHref,
+  footerAddress: content.footerAddress,
+  footerPhone: content.footerPhone,
+  footerHours: content.footerHours,
+});
+
+const mapStorefrontHomeContent = (
+  content: StorefrontHomeContentAPIResponse | null | undefined
+): StorefrontHomeContent => ({
+  vi: mapStorefrontLocaleContent(
+    content?.vi ?? {
+      tagline: '',
+      heroEyebrow: '',
+      heroTitle: '',
+      heroDescription: '',
+      heroBackgroundImageUrl: '',
+      heroPrimaryCta: '',
+      heroSecondaryCta: '',
+      highlightHandcrafted: '',
+      highlightSeasonal: '',
+      highlightFastDelivery: '',
+      productsSectionTitle: '',
+      productsSectionDescription: '',
+      storySectionTitle: '',
+      storyHeading: '',
+      storyBody: '',
+      storyStatOne: '',
+      storyStatTwo: '',
+      storyStatThree: '',
+      promoTitle: '',
+      promoDescription: '',
+      promoCta: '',
+      promoCtaHref: '',
+      footerAddress: '',
+      footerPhone: '',
+      footerHours: '',
+    }
+  ),
+  en: mapStorefrontLocaleContent(
+    content?.en ?? {
+      tagline: '',
+      heroEyebrow: '',
+      heroTitle: '',
+      heroDescription: '',
+      heroBackgroundImageUrl: '',
+      heroPrimaryCta: '',
+      heroSecondaryCta: '',
+      highlightHandcrafted: '',
+      highlightSeasonal: '',
+      highlightFastDelivery: '',
+      productsSectionTitle: '',
+      productsSectionDescription: '',
+      storySectionTitle: '',
+      storyHeading: '',
+      storyBody: '',
+      storyStatOne: '',
+      storyStatTwo: '',
+      storyStatThree: '',
+      promoTitle: '',
+      promoDescription: '',
+      promoCta: '',
+      promoCtaHref: '',
+      footerAddress: '',
+      footerPhone: '',
+      footerHours: '',
+    }
+  ),
+});
+
 const mapSystemSettings = (response: SystemSettingsAPIResponse): SystemSettings => ({
   bankReceiver: mapBankReceiverConfig(response.bankReceiver),
   orderExtraFees: (response.orderExtraFees || []).map((fee) => ({
@@ -68,6 +167,7 @@ const mapSystemSettings = (response: SystemSettingsAPIResponse): SystemSettings 
       ? response.invoiceLanguage
       : 'en',
   storeProfile: mapStoreProfile(response.storeProfile),
+  storefrontHomeContent: mapStorefrontHomeContent(response.storefrontHomeContent),
 });
 
 const mapVietQRBank = (bank: VietQRBankAPIResponse): VietQRBank => ({
@@ -113,6 +213,9 @@ export type SettingsService = {
   readonly updateStoreProfile: (
     payload: UpdateStoreProfileRequest
   ) => Promise<Result<StoreProfile, AppError>>;
+  readonly updateStorefrontHomeContent: (
+    payload: UpdateStorefrontHomeContentRequest
+  ) => Promise<Result<StorefrontHomeContent, AppError>>;
   readonly getVietQRBanks: () => Promise<Result<VietQRBank[], AppError>>;
 };
 
@@ -206,11 +309,27 @@ const updateStoreProfile = async (
   }
 };
 
+const updateStorefrontHomeContent = async (
+  payload: UpdateStorefrontHomeContentRequest
+): Promise<Result<StorefrontHomeContent, AppError>> => {
+  try {
+    const response = await apiClient.put<{
+      success: boolean;
+      data: UpdateStorefrontHomeContentResponse;
+    }>('/settings/system/storefront-home-content', payload);
+
+    return ok(mapStorefrontHomeContent(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
 export const settingsService: SettingsService = {
   getSystemSettings,
   updateBankReceiver,
   updateOrderExtraFees,
   updateInvoiceLanguage,
   updateStoreProfile,
+  updateStorefrontHomeContent,
   getVietQRBanks,
 };

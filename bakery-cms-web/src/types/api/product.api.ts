@@ -53,6 +53,13 @@ export type CreateProductRequest = {
   readonly businessType: string;
   readonly status?: string;
   readonly imageUrl?: string;
+  readonly imageFileId?: string | null;
+  readonly images?: readonly {
+    readonly id?: string;
+    readonly fileId: string;
+    readonly displayOrder?: number;
+    readonly isPrimary?: boolean;
+  }[];
 };
 
 export type UpdateProductRequest = {
@@ -64,6 +71,12 @@ export type UpdateProductRequest = {
   readonly status?: string;
   readonly imageUrl?: string;
   readonly imageFileId?: string | null;
+  readonly images?: readonly {
+    readonly id?: string;
+    readonly fileId: string;
+    readonly displayOrder?: number;
+    readonly isPrimary?: boolean;
+  }[];
 };
 
 export type ProductFiltersRequest = {

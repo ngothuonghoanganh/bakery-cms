@@ -15,6 +15,7 @@ import {
   updateBankReceiverSchema,
   updateInvoiceLanguageSchema,
   updateOrderExtraFeesSchema,
+  updateStorefrontHomeContentSchema,
   updateStoreProfileSchema,
 } from './validators/settings.validators';
 
@@ -29,6 +30,16 @@ export const createSettingsRouter = (): Router => {
   const repository = createSettingsRepository(models.SystemSetting);
   const service = createSettingsService(repository);
   const handlers = createSettingsHandlers(service);
+
+  /**
+   * GET /api/settings/public/storefront
+   * Get public storefront settings
+   * Public endpoint for storefront web
+   */
+  router.get(
+    '/public/storefront',
+    handlers.handleGetPublicStorefrontSettings as any
+  );
 
   /**
    * GET /api/settings/system
@@ -92,6 +103,19 @@ export const createSettingsRouter = (): Router => {
     requireAdmin as any,
     validateBody(updateStoreProfileSchema),
     handlers.handleUpdateStoreProfile as any
+  );
+
+  /**
+   * PUT /api/settings/system/storefront-home-content
+   * Update storefront home content
+   * Requires: Admin role
+   */
+  router.put(
+    '/system/storefront-home-content',
+    authenticateJWT as any,
+    requireAdmin as any,
+    validateBody(updateStorefrontHomeContentSchema),
+    handlers.handleUpdateStorefrontHomeContent as any
   );
 
   /**

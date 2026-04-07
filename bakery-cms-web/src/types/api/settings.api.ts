@@ -15,11 +15,45 @@ export type StoreProfileAPIResponse = {
   readonly logoUrl: string | null;
 };
 
+export type StorefrontHomeContentLocaleAPIResponse = {
+  readonly tagline: string;
+  readonly heroEyebrow: string;
+  readonly heroTitle: string;
+  readonly heroDescription: string;
+  readonly heroBackgroundImageUrl: string;
+  readonly heroPrimaryCta: string;
+  readonly heroSecondaryCta: string;
+  readonly highlightHandcrafted: string;
+  readonly highlightSeasonal: string;
+  readonly highlightFastDelivery: string;
+  readonly productsSectionTitle: string;
+  readonly productsSectionDescription: string;
+  readonly storySectionTitle: string;
+  readonly storyHeading: string;
+  readonly storyBody: string;
+  readonly storyStatOne: string;
+  readonly storyStatTwo: string;
+  readonly storyStatThree: string;
+  readonly promoTitle: string;
+  readonly promoDescription: string;
+  readonly promoCta: string;
+  readonly promoCtaHref: string;
+  readonly footerAddress: string;
+  readonly footerPhone: string;
+  readonly footerHours: string;
+};
+
+export type StorefrontHomeContentAPIResponse = {
+  readonly vi: StorefrontHomeContentLocaleAPIResponse;
+  readonly en: StorefrontHomeContentLocaleAPIResponse;
+};
+
 export type SystemSettingsAPIResponse = {
   readonly bankReceiver: BankReceiverConfigAPIResponse | null;
   readonly orderExtraFees: readonly OrderExtraFeeTemplateAPIResponse[];
   readonly invoiceLanguage: InvoiceLanguageAPIResponse;
   readonly storeProfile: StoreProfileAPIResponse;
+  readonly storefrontHomeContent: StorefrontHomeContentAPIResponse;
 };
 
 export type OrderExtraFeeTemplateAPIResponse = {
@@ -63,3 +97,9 @@ export type UpdateStoreProfileRequest = {
 };
 
 export type UpdateStoreProfileResponse = StoreProfileAPIResponse;
+
+export type UpdateStorefrontHomeContentRequest = {
+  readonly content: StorefrontHomeContentAPIResponse;
+};
+
+export type UpdateStorefrontHomeContentResponse = StorefrontHomeContentAPIResponse;

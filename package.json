@@ -4,27 +4,32 @@
   "description": "Bakery CMS Monorepo",
   "private": true,
   "scripts": {
-    "install:all": "yarn install && cd bakery-cms-api && yarn install && cd ../bakery-cms-web && yarn install && cd ..",
-    "dev": "concurrently \"yarn dev:api\" \"yarn dev:web\"",
+    "install:all": "yarn install && cd bakery-cms-api && yarn install && cd ../bakery-cms-web && yarn install && cd ../bakery-storefront-web && yarn install && cd ..",
+    "dev": "concurrently \"yarn dev:api\" \"yarn dev:web\" \"yarn dev:storefront\"",
     "dev:api": "cd bakery-cms-api && yarn dev",
     "dev:web": "cd bakery-cms-web && yarn dev",
-    "build": "yarn build:api && yarn build:web",
+    "dev:storefront": "cd bakery-storefront-web && yarn dev",
+    "build": "yarn build:api && yarn build:web && yarn build:storefront",
     "build:api": "cd bakery-cms-api && yarn build",
     "build:web": "cd bakery-cms-web && yarn build",
+    "build:storefront": "cd bakery-storefront-web && yarn build",
     "test": "yarn test:api && yarn test:web",
     "test:api": "cd bakery-cms-api && yarn test",
     "test:web": "cd bakery-cms-web && yarn test",
-    "lint": "yarn lint:api && yarn lint:web",
+    "lint": "yarn lint:api && yarn lint:web && yarn lint:storefront",
     "lint:api": "cd bakery-cms-api && yarn lint",
     "lint:web": "cd bakery-cms-web && yarn lint",
-    "clean": "yarn clean:api && yarn clean:web",
+    "lint:storefront": "cd bakery-storefront-web && yarn lint",
+    "clean": "yarn clean:api && yarn clean:web && yarn clean:storefront",
     "clean:api": "cd bakery-cms-api && rm -rf node_modules dist",
-    "clean:web": "cd bakery-cms-web && rm -rf node_modules dist"
+    "clean:web": "cd bakery-cms-web && rm -rf node_modules dist",
+    "clean:storefront": "cd bakery-storefront-web && rm -rf node_modules .next"
   },
   "workspaces": [
     "bakery-cms-api",
     "bakery-cms-api/packages/*",
-    "bakery-cms-web"
+    "bakery-cms-web",
+    "bakery-storefront-web"
   ],
   "devDependencies": {
     "concurrently": "^8.2.2"

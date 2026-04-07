@@ -28,6 +28,39 @@ export interface StoreProfileDto {
   logoUrl: string | null;
 }
 
+export interface StorefrontHomeContentLocaleDto {
+  tagline: string;
+  heroEyebrow: string;
+  heroTitle: string;
+  heroDescription: string;
+  heroBackgroundImageUrl: string;
+  heroPrimaryCta: string;
+  heroSecondaryCta: string;
+  highlightHandcrafted: string;
+  highlightSeasonal: string;
+  highlightFastDelivery: string;
+  productsSectionTitle: string;
+  productsSectionDescription: string;
+  storySectionTitle: string;
+  storyHeading: string;
+  storyBody: string;
+  storyStatOne: string;
+  storyStatTwo: string;
+  storyStatThree: string;
+  promoTitle: string;
+  promoDescription: string;
+  promoCta: string;
+  promoCtaHref: string;
+  footerAddress: string;
+  footerPhone: string;
+  footerHours: string;
+}
+
+export interface StorefrontHomeContentDto {
+  vi: StorefrontHomeContentLocaleDto;
+  en: StorefrontHomeContentLocaleDto;
+}
+
 /**
  * System settings response DTO
  */
@@ -36,6 +69,7 @@ export interface SystemSettingsResponseDto {
   orderExtraFees: OrderExtraFeeTemplateDto[];
   invoiceLanguage: InvoiceLanguageDto;
   storeProfile: StoreProfileDto;
+  storefrontHomeContent: StorefrontHomeContentDto;
 }
 
 /**
@@ -67,6 +101,15 @@ export interface UpdateInvoiceLanguageDto {
 export interface UpdateStoreProfileDto {
   name: string;
   logoUrl?: string | null;
+}
+
+export interface UpdateStorefrontHomeContentDto {
+  content: StorefrontHomeContentDto;
+}
+
+export interface PublicStorefrontSettingsResponseDto {
+  storeProfile: StoreProfileDto;
+  storefrontHomeContent: StorefrontHomeContentDto;
 }
 
 /**

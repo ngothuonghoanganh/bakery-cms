@@ -4,12 +4,13 @@ A comprehensive Content Management System for bakery businesses, built with mode
 
 ## 🏗️ Project Structure
 
-This is a monorepo containing two main applications:
+This is a monorepo containing three main applications:
 
 ```
 bakery-cms/
 ├── bakery-cms-api/      # Backend API (Node.js + TypeScript)
-├── bakery-cms-web/      # Frontend Web App (React + TypeScript)
+├── bakery-cms-web/      # CMS Admin App (React + TypeScript)
+├── bakery-storefront-web/ # Customer Storefront (Next.js + TypeScript)
 ├── specs/               # Technical specifications
 └── docs/               # Documentation
 ```
@@ -47,6 +48,19 @@ React application with TypeScript:
 - Axios
 - Tailwind CSS
 - Vitest for testing
+
+### Storefront (bakery-storefront-web)
+
+Next.js application for customer-facing online sales:
+
+- SEO-first SSR pages with metadata, sitemap, and robots
+- Multilingual routing with localized URLs (`/vi`, `/en`)
+- Bakery-branded responsive shopping UI
+
+**Tech Stack**:
+- Next.js App Router
+- React 19
+- TypeScript
 
 ## 🚀 Getting Started
 
@@ -133,6 +147,14 @@ cd bakery-cms-web
 yarn dev
 ```
 
+**Start Storefront** (runs on http://localhost:4000):
+```bash
+yarn dev:storefront
+# OR
+cd bakery-storefront-web
+yarn dev
+```
+
 ### Available Root Commands
 
 From the root directory, you can run:
@@ -142,9 +164,11 @@ yarn install:all    # Install dependencies in all projects
 yarn dev           # Run both dev servers concurrently
 yarn dev:api       # Run backend only
 yarn dev:web       # Run frontend only
+yarn dev:storefront # Run storefront only
 yarn build         # Build all projects
 yarn build:api     # Build backend only
 yarn build:web     # Build frontend only
+yarn build:storefront # Build storefront only
 yarn test          # Test all projects
 yarn test:api      # Test backend only
 yarn test:web      # Test frontend only

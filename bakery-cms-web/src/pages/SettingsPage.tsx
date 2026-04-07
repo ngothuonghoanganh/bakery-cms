@@ -29,6 +29,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/services/auth.service';
 import type {
   InvoiceLanguage,
+  StorefrontHomeContent,
   StoreProfile,
   VietQRBank,
 } from '@/types/models/settings.model';
@@ -54,6 +55,7 @@ type InvoiceLanguageFormValues = {
 };
 
 type StoreProfileFormValues = StoreProfile;
+type StorefrontHomeContentFormValues = StorefrontHomeContent;
 
 const normalizeAccountName = (value: string): string => {
   return value
@@ -81,12 +83,14 @@ export const SettingsPage: React.FC = () => {
   const [extraFeesForm] = Form.useForm<OrderExtraFeesFormValues>();
   const [invoiceLanguageForm] = Form.useForm<InvoiceLanguageFormValues>();
   const [storeProfileForm] = Form.useForm<StoreProfileFormValues>();
+  const [storefrontContentForm] = Form.useForm<StorefrontHomeContentFormValues>();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingExtraFees, setSavingExtraFees] = useState(false);
   const [savingInvoiceLanguage, setSavingInvoiceLanguage] = useState(false);
   const [savingStoreProfile, setSavingStoreProfile] = useState(false);
+  const [savingStorefrontContent, setSavingStorefrontContent] = useState(false);
   const [banks, setBanks] = useState<VietQRBank[]>([]);
   const storeLogoUrl = String(Form.useWatch('logoUrl', storeProfileForm) ?? '').trim();
 
@@ -132,6 +136,7 @@ export const SettingsPage: React.FC = () => {
         name: settingsResult.data.storeProfile.name,
         logoUrl: settingsResult.data.storeProfile.logoUrl || '',
       });
+      storefrontContentForm.setFieldsValue(settingsResult.data.storefrontHomeContent);
     } else {
       notifyError(
         t('settings.bankReceiver.loadSettingsFailed'),
@@ -149,7 +154,15 @@ export const SettingsPage: React.FC = () => {
     }
 
     setLoading(false);
-  }, [extraFeesForm, form, invoiceLanguageForm, notifyError, storeProfileForm, t]);
+  }, [
+    extraFeesForm,
+    form,
+    invoiceLanguageForm,
+    notifyError,
+    storeProfileForm,
+    storefrontContentForm,
+    t,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -246,6 +259,375 @@ export const SettingsPage: React.FC = () => {
     }
 
     setSavingStoreProfile(false);
+  };
+
+  const handleSaveStorefrontContent = async (
+    values: StorefrontHomeContentFormValues
+  ) => {
+    setSavingStorefrontContent(true);
+
+    const result = await settingsService.updateStorefrontHomeContent({
+      content: values,
+    });
+
+    if (result.success) {
+      storefrontContentForm.setFieldsValue(result.data);
+      success(
+        t(
+          'settings.storefrontContent.saveSuccess',
+          'Storefront homepage content updated'
+        )
+      );
+    } else {
+      notifyError(
+        t(
+          'settings.storefrontContent.saveFailed',
+          'Failed to save storefront homepage content'
+        ),
+        result.error.message
+      );
+    }
+
+    setSavingStorefrontContent(false);
+  };
+
+  const renderStorefrontLocaleFields = (locale: 'vi' | 'en') => {
+    const title =
+      locale === 'vi'
+        ? t('settings.storefrontContent.localeVi', 'Vietnamese content')
+        : t('settings.storefrontContent.localeEn', 'English content');
+
+    return (
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <h3 style={{ margin: 0 }}>{title}</h3>
+
+        <Form.Item
+          label={t('settings.storefrontContent.taglineLabel', 'Tagline')}
+          name={[locale, 'tagline']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={200} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.heroEyebrowLabel', 'Hero Eyebrow')}
+          name={[locale, 'heroEyebrow']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={200} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.heroTitleLabel', 'Hero Title')}
+          name={[locale, 'heroTitle']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={280} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.heroDescriptionLabel', 'Hero Description')}
+          name={[locale, 'heroDescription']}
+          rules={[{ required: true }]}
+        >
+          <Input.TextArea rows={3} maxLength={1200} />
+        </Form.Item>
+
+        <Form.Item
+          label={t(
+            'settings.storefrontContent.heroBackgroundImageUploadLabel',
+            'Hero Background Image Upload'
+          )}
+          extra={t(
+            'settings.storefrontContent.heroBackgroundImageUploadHint',
+            'Optional image shown as soft background on the right side of hero section.'
+          )}
+        >
+          <FileUpload
+            accept="image"
+            disabled={isReadOnly || savingStorefrontContent}
+            showPreview={false}
+            placeholder={t(
+              'settings.storefrontContent.heroBackgroundImageUploadPlaceholder',
+              'Upload hero background image'
+            )}
+            onUploadSuccess={(file) => {
+              const imageUrl = fileService.getStaticUrl(file.url);
+              storefrontContentForm.setFieldValue(
+                [locale, 'heroBackgroundImageUrl'],
+                imageUrl
+              );
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={t(
+            'settings.storefrontContent.heroBackgroundImageUrlLabel',
+            'Hero Background Image URL'
+          )}
+          name={[locale, 'heroBackgroundImageUrl']}
+          rules={[{ max: 1000 }]}
+          extra={t(
+            'settings.storefrontContent.heroBackgroundImageUrlHint',
+            'Leave empty to hide hero background image.'
+          )}
+        >
+          <Input
+            maxLength={1000}
+            placeholder={t(
+              'settings.storefrontContent.heroBackgroundImageUrlPlaceholder',
+              '/uploads/... or https://...'
+            )}
+          />
+        </Form.Item>
+
+        <Form.Item shouldUpdate noStyle>
+          {() => {
+            const heroBackgroundImageUrl = String(
+              storefrontContentForm.getFieldValue([locale, 'heroBackgroundImageUrl']) ??
+                ''
+            ).trim();
+
+            if (!heroBackgroundImageUrl) {
+              return null;
+            }
+
+            return (
+              <Form.Item
+                label={t(
+                  'settings.storefrontContent.heroBackgroundImagePreviewLabel',
+                  'Hero Background Preview'
+                )}
+              >
+                <Space direction="vertical" size={8}>
+                  <Image
+                    src={heroBackgroundImageUrl}
+                    alt={t(
+                      'settings.storefrontContent.heroBackgroundImagePreviewAlt',
+                      'Hero background preview'
+                    )}
+                    style={{ maxWidth: 320, maxHeight: 180, objectFit: 'cover' }}
+                  />
+                  {!isReadOnly && (
+                    <Button
+                      htmlType="button"
+                      onClick={() =>
+                        storefrontContentForm.setFieldValue(
+                          [locale, 'heroBackgroundImageUrl'],
+                          ''
+                        )
+                      }
+                    >
+                      {t(
+                        'settings.storefrontContent.heroBackgroundImageClearButton',
+                        'Clear Hero Background Image'
+                      )}
+                    </Button>
+                  )}
+                </Space>
+              </Form.Item>
+            );
+          }}
+        </Form.Item>
+
+        <Space size={12} style={{ width: '100%' }} wrap>
+          <Form.Item
+            label={t('settings.storefrontContent.heroPrimaryCtaLabel', 'Hero Primary CTA')}
+            name={[locale, 'heroPrimaryCta']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 240, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={120} />
+          </Form.Item>
+          <Form.Item
+            label={t(
+              'settings.storefrontContent.heroSecondaryCtaLabel',
+              'Hero Secondary CTA'
+            )}
+            name={[locale, 'heroSecondaryCta']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 240, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={120} />
+          </Form.Item>
+        </Space>
+
+        <Space size={12} style={{ width: '100%' }} wrap>
+          <Form.Item
+            label={t(
+              'settings.storefrontContent.highlightHandcraftedLabel',
+              'Highlight: Handcrafted'
+            )}
+            name={[locale, 'highlightHandcrafted']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={180} />
+          </Form.Item>
+          <Form.Item
+            label={t(
+              'settings.storefrontContent.highlightSeasonalLabel',
+              'Highlight: Seasonal'
+            )}
+            name={[locale, 'highlightSeasonal']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={180} />
+          </Form.Item>
+          <Form.Item
+            label={t(
+              'settings.storefrontContent.highlightFastDeliveryLabel',
+              'Highlight: Fast Delivery'
+            )}
+            name={[locale, 'highlightFastDelivery']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={180} />
+          </Form.Item>
+        </Space>
+
+        <Form.Item
+          label={t(
+            'settings.storefrontContent.productsSectionTitleLabel',
+            'Featured Products Title'
+          )}
+          name={[locale, 'productsSectionTitle']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={220} />
+        </Form.Item>
+
+        <Form.Item
+          label={t(
+            'settings.storefrontContent.productsSectionDescriptionLabel',
+            'Featured Products Description'
+          )}
+          name={[locale, 'productsSectionDescription']}
+          rules={[{ required: true }]}
+        >
+          <Input.TextArea rows={2} maxLength={1000} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.storySectionTitleLabel', 'Story Section Label')}
+          name={[locale, 'storySectionTitle']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={220} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.storyHeadingLabel', 'Story Heading')}
+          name={[locale, 'storyHeading']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={320} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.storyBodyLabel', 'Story Description')}
+          name={[locale, 'storyBody']}
+          rules={[{ required: true }]}
+        >
+          <Input.TextArea rows={4} maxLength={3000} />
+        </Form.Item>
+
+        <Space size={12} style={{ width: '100%' }} wrap>
+          <Form.Item
+            label={t('settings.storefrontContent.storyStatOneLabel', 'Story Stat 1')}
+            name={[locale, 'storyStatOne']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={240} />
+          </Form.Item>
+          <Form.Item
+            label={t('settings.storefrontContent.storyStatTwoLabel', 'Story Stat 2')}
+            name={[locale, 'storyStatTwo']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={240} />
+          </Form.Item>
+          <Form.Item
+            label={t('settings.storefrontContent.storyStatThreeLabel', 'Story Stat 3')}
+            name={[locale, 'storyStatThree']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={240} />
+          </Form.Item>
+        </Space>
+
+        <Form.Item
+          label={t('settings.storefrontContent.promoTitleLabel', 'Promo Title')}
+          name={[locale, 'promoTitle']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={320} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.promoDescriptionLabel', 'Promo Description')}
+          name={[locale, 'promoDescription']}
+          rules={[{ required: true }]}
+        >
+          <Input.TextArea rows={3} maxLength={1200} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.promoCtaLabel', 'Promo CTA')}
+          name={[locale, 'promoCta']}
+          rules={[{ required: true }]}
+        >
+          <Input maxLength={120} />
+        </Form.Item>
+
+        <Form.Item
+          label={t('settings.storefrontContent.promoCtaHrefLabel', 'Promo CTA Link')}
+          name={[locale, 'promoCtaHref']}
+          rules={[{ required: true }]}
+        >
+          <Input
+            maxLength={1000}
+            placeholder={t(
+              'settings.storefrontContent.promoCtaHrefPlaceholder',
+              '#contact, https://..., mailto:..., tel:...'
+            )}
+          />
+        </Form.Item>
+
+        <Space size={12} style={{ width: '100%' }} wrap>
+          <Form.Item
+            label={t('settings.storefrontContent.footerAddressLabel', 'Footer Address')}
+            name={[locale, 'footerAddress']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 280, flex: 2, marginBottom: 0 }}
+          >
+            <Input maxLength={280} />
+          </Form.Item>
+          <Form.Item
+            label={t('settings.storefrontContent.footerPhoneLabel', 'Footer Phone')}
+            name={[locale, 'footerPhone']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={120} />
+          </Form.Item>
+          <Form.Item
+            label={t('settings.storefrontContent.footerHoursLabel', 'Footer Hours')}
+            name={[locale, 'footerHours']}
+            rules={[{ required: true }]}
+            style={{ minWidth: 220, flex: 1, marginBottom: 0 }}
+          >
+            <Input maxLength={220} />
+          </Form.Item>
+        </Space>
+      </Space>
+    );
   };
 
   const bankReceiverTabContent = (
@@ -594,6 +976,59 @@ export const SettingsPage: React.FC = () => {
     </Card>
   );
 
+  const storefrontContentTabContent = (
+    <Card>
+      {isReadOnly && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={t(
+            'settings.storefrontContent.readOnlyWarning',
+            'You have read-only access to storefront homepage content settings.'
+          )}
+        />
+      )}
+
+      <Form<StorefrontHomeContentFormValues>
+        form={storefrontContentForm}
+        layout="vertical"
+        onFinish={handleSaveStorefrontContent}
+        disabled={isReadOnly}
+      >
+        <Tabs
+          defaultActiveKey="vi"
+          items={[
+            {
+              key: 'vi',
+              label: t('settings.storefrontContent.localeViTab', 'Vietnamese'),
+              children: renderStorefrontLocaleFields('vi'),
+            },
+            {
+              key: 'en',
+              label: t('settings.storefrontContent.localeEnTab', 'English'),
+              children: renderStorefrontLocaleFields('en'),
+            },
+          ]}
+        />
+
+        <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 8 }}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={savingStorefrontContent}
+            disabled={isReadOnly}
+          >
+            {t(
+              'settings.storefrontContent.saveButton',
+              'Save Storefront Homepage Content'
+            )}
+          </Button>
+        </Space>
+      </Form>
+    </Card>
+  );
+
   if (loading) {
     return <Spin />;
   }
@@ -627,6 +1062,11 @@ export const SettingsPage: React.FC = () => {
             key: 'store-profile',
             label: t('settings.tabs.storeProfile'),
             children: storeProfileTabContent,
+          },
+          {
+            key: 'storefront-home-content',
+            label: t('settings.tabs.storefrontContent', 'Storefront Homepage'),
+            children: storefrontContentTabContent,
           },
         ]}
       />

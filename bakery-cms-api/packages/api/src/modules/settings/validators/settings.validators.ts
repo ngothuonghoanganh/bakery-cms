@@ -91,3 +91,42 @@ export const updateStoreProfileSchema = Joi.object({
     'string.max': 'Logo URL must not exceed 1000 characters',
   }),
 });
+
+const storefrontHomeContentLocaleSchema = Joi.object({
+  tagline: Joi.string().trim().min(1).max(200).required(),
+  heroEyebrow: Joi.string().trim().min(1).max(200).required(),
+  heroTitle: Joi.string().trim().min(1).max(280).required(),
+  heroDescription: Joi.string().trim().min(1).max(1200).required(),
+  heroBackgroundImageUrl: Joi.string().trim().max(1000).allow('').optional(),
+  heroPrimaryCta: Joi.string().trim().min(1).max(120).required(),
+  heroSecondaryCta: Joi.string().trim().min(1).max(120).required(),
+  highlightHandcrafted: Joi.string().trim().min(1).max(180).required(),
+  highlightSeasonal: Joi.string().trim().min(1).max(180).required(),
+  highlightFastDelivery: Joi.string().trim().min(1).max(180).required(),
+  productsSectionTitle: Joi.string().trim().min(1).max(220).required(),
+  productsSectionDescription: Joi.string().trim().min(1).max(1000).required(),
+  storySectionTitle: Joi.string().trim().min(1).max(220).required(),
+  storyHeading: Joi.string().trim().min(1).max(320).required(),
+  storyBody: Joi.string().trim().min(1).max(3000).required(),
+  storyStatOne: Joi.string().trim().min(1).max(240).required(),
+  storyStatTwo: Joi.string().trim().min(1).max(240).required(),
+  storyStatThree: Joi.string().trim().min(1).max(240).required(),
+  promoTitle: Joi.string().trim().min(1).max(320).required(),
+  promoDescription: Joi.string().trim().min(1).max(1200).required(),
+  promoCta: Joi.string().trim().min(1).max(120).required(),
+  promoCtaHref: Joi.string().trim().min(1).max(1000).required(),
+  footerAddress: Joi.string().trim().min(1).max(280).required(),
+  footerPhone: Joi.string().trim().min(1).max(120).required(),
+  footerHours: Joi.string().trim().min(1).max(220).required(),
+});
+
+/**
+ * Update storefront home content schema
+ * Validates PUT /settings/system/storefront-home-content request body
+ */
+export const updateStorefrontHomeContentSchema = Joi.object({
+  content: Joi.object({
+    vi: storefrontHomeContentLocaleSchema.required(),
+    en: storefrontHomeContentLocaleSchema.required(),
+  }).required(),
+});

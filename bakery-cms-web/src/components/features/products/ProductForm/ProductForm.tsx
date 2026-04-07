@@ -52,7 +52,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           displayOrder: img.displayOrder,
           isPrimary: img.isPrimary,
           file: img.file,
-          previewUrl: img.file?.id ? fileService.getStaticUrl(img.file.id) : undefined,
+          previewUrl: img.file?.url
+            ? fileService.getStaticUrl(img.file.url)
+            : fileService.getDownloadUrl(img.fileId),
         }));
         setProductImages(images);
       } else {

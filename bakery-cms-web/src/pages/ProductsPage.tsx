@@ -92,6 +92,13 @@ export const ProductsPage = (): React.JSX.Element => {
         businessType: values.businessType,
         status: values.status,
         imageUrl: values.imageUrl,
+        imageFileId: values.imageFileId,
+        images: values.images?.map((image) => ({
+          id: image.id,
+          fileId: image.fileId,
+          displayOrder: image.displayOrder,
+          isPrimary: image.isPrimary,
+        })),
       });
 
       if (result.success) {
@@ -113,6 +120,13 @@ export const ProductsPage = (): React.JSX.Element => {
         businessType: values.businessType,
         status: values.status,
         imageUrl: values.imageUrl,
+        imageFileId: values.imageFileId,
+        images: values.images?.map((image) => ({
+          id: image.id,
+          fileId: image.fileId,
+          displayOrder: image.displayOrder,
+          isPrimary: image.isPrimary,
+        })),
       });
 
       if (result.success) {
