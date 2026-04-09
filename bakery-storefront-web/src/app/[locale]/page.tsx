@@ -53,7 +53,9 @@ export default async function HomePage({
 
   return (
     <>
-      <section className="hero-section">
+      <section
+        className={`hero-section${storefrontContent.heroBackgroundImageUrl ? ' has-hero-art' : ''}`}
+      >
         {storefrontContent.heroBackgroundImageUrl && (
           <div className="hero-bg-art" aria-hidden="true">
             <img
@@ -73,13 +75,10 @@ export default async function HomePage({
             <Link href={`/${locale}/products`} className="btn-primary">
               {storefrontContent.heroPrimaryCta}
             </Link>
-            <Link href={`/${locale}/products`} className="btn-secondary">
-              {storefrontContent.heroSecondaryCta}
-            </Link>
           </div>
         </div>
 
-        <div className="highlight-list">
+        <div className="trust-row" aria-label="Store highlights">
           <span>{storefrontContent.highlightHandcrafted}</span>
           <span>{storefrontContent.highlightSeasonal}</span>
           <span>{storefrontContent.highlightFastDelivery}</span>
@@ -93,10 +92,11 @@ export default async function HomePage({
         title={storefrontContent.productsSectionTitle}
         description={storefrontContent.productsSectionDescription}
         showMenuLink
+        variant="featured"
       />
 
       <section className="story-section" id="story">
-        <div className="story-copy">
+        <div className="story-panel">
           <header>
             <span>{storefrontContent.storySectionTitle}</span>
             <h2>{storefrontContent.storyHeading}</h2>
@@ -104,19 +104,20 @@ export default async function HomePage({
           <p>{storefrontContent.storyBody}</p>
         </div>
 
-        <div className="story-stats">
-          <div className="story-stat">{storefrontContent.storyStatOne}</div>
-          <div className="story-stat">{storefrontContent.storyStatTwo}</div>
-          <div className="story-stat">{storefrontContent.storyStatThree}</div>
-        </div>
+        <ul className="story-facts" aria-label="Bakery highlights">
+          <li>{storefrontContent.storyStatOne}</li>
+          <li>{storefrontContent.storyStatTwo}</li>
+          <li>{storefrontContent.storyStatThree}</li>
+        </ul>
       </section>
 
-      <section className="promo-banner">
-        <div className="promo-copy">
+      <section className="contact-strip">
+        <div className="contact-strip-copy">
+          <span>{dictionary.nav.contact}</span>
           <h2>{storefrontContent.promoTitle}</h2>
           <p>{storefrontContent.promoDescription}</p>
         </div>
-        <a href={storefrontContent.promoCtaHref} className="btn-primary promo-cta">
+        <a href={storefrontContent.promoCtaHref} className="btn-secondary contact-strip-cta">
           {storefrontContent.promoCta}
         </a>
       </section>

@@ -58,7 +58,12 @@ export default async function ProductsPage({
         <p>{storefrontContent.productsSectionDescription}</p>
       </header>
 
-      <ProductGrid locale={locale} dictionary={dictionary} products={products} />
+      <ProductGrid
+        locale={locale}
+        dictionary={dictionary}
+        products={products}
+        variant="catalog"
+      />
     </section>
   );
 }

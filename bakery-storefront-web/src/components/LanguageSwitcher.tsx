@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { localeLabels, locales, type Locale } from '@/i18n/config';
 
 type LanguageSwitcherProps = {
@@ -10,7 +10,6 @@ type LanguageSwitcherProps = {
 
 const buildPathForLocale = (
   pathname: string,
-  search: URLSearchParams,
   targetLocale: Locale
 ): string => {
   const segments = pathname.split('/').filter(Boolean);
@@ -26,14 +25,11 @@ const buildPathForLocale = (
   }
 
   const nextPathname = `/${segments.join('/')}`;
-  const query = search.toString();
-
-  return query.length > 0 ? `${nextPathname}?${query}` : nextPathname;
+  return nextPathname;
 };
 
 export const LanguageSwitcher = ({ currentLocale }: LanguageSwitcherProps) => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   return (
     <div className="language-switcher" aria-label="Language switcher">
@@ -43,7 +39,7 @@ export const LanguageSwitcher = ({ currentLocale }: LanguageSwitcherProps) => {
         return (
           <Link
             key={locale}
-            href={buildPathForLocale(pathname, searchParams, locale)}
+            href={buildPathForLocale(pathname, locale)}
             className={`language-chip ${isActive ? 'active' : ''}`}
             aria-current={isActive ? 'page' : undefined}
           >

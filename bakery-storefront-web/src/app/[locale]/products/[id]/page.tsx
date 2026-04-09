@@ -8,6 +8,7 @@ import { getDictionary } from '@/i18n/getDictionary';
 import { fetchProductById, fetchProducts } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { buildMetadata } from '@/lib/metadata';
+import { normalizeStorefrontAssetUrl } from '@/lib/storefront-assets';
 import { getResolvedStorefrontContent } from '@/lib/storefront-content';
 
 const statusText = (status: string, availableText: string, outText: string): string => {
@@ -33,7 +34,7 @@ const resolveDetailImageUrls = (
   const seen = new Set<string>();
 
   const pushUrl = (value: string | null | undefined): void => {
-    const normalized = String(value ?? '').trim();
+    const normalized = normalizeStorefrontAssetUrl(value);
     if (!normalized || seen.has(normalized)) {
       return;
     }
@@ -146,9 +147,20 @@ export default async function ProductDetailPage({
               </span>
             </div>
 
-            <button type="button" className="btn-primary">
-              {dictionary.products.addToCart}
-            </button>
+            <div className="detail-support">
+              <div className="detail-support-item">
+                <span>{dictionary.footer.contactTitle}</span>
+                <strong>{storefrontContent.footerPhone}</strong>
+              </div>
+              <div className="detail-support-item">
+                <span>{dictionary.footer.hoursTitle}</span>
+                <strong>{storefrontContent.footerHours}</strong>
+              </div>
+            </div>
+
+            <Link href={`/${locale}#contact`} className="btn-primary">
+              {dictionary.products.contactToOrder}
+            </Link>
           </div>
         </div>
       </section>
@@ -160,6 +172,7 @@ export default async function ProductDetailPage({
           products={relatedProducts}
           title={storefrontContent.productsSectionTitle}
           description={storefrontContent.productsSectionDescription}
+          variant="related"
         />
       )}
     </>

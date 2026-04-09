@@ -28,6 +28,7 @@ export type Dictionary = {
     outOfStock: string;
     empty: string;
     addToCart: string;
+    contactToOrder: string;
   };
   story: {
     sectionTitle: string;

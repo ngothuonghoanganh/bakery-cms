@@ -2,7 +2,7 @@ import type { Dictionary } from './types';
 
 export const enDictionary: Dictionary = {
   siteName: 'Boulangerie May',
-  tagline: 'Handcrafted bakery, baked fresh daily',
+  tagline: 'Handcrafted bakery, baked fresh every day',
   nav: {
     home: 'Home',
     menu: 'Menu',
@@ -11,40 +11,41 @@ export const enDictionary: Dictionary = {
   },
   hero: {
     eyebrow: 'Fresh batches every morning',
-    title: 'Fresh bakery favorites, easy to order online',
+    title: 'Fresh bakery favorites, easier to browse online',
     description:
-      'Pick pastries, breads, and seasonal sets in a few taps. We confirm quickly and deliver locally the same day.',
+      'Browse pastries, breads, and seasonal picks in a calmer layout that is easier to scan and order from.',
     primaryCta: 'Browse menu',
     secondaryCta: 'Explore seasonal picks',
   },
   highlights: {
-    handcrafted: 'Small-batch handcrafted recipes',
+    handcrafted: 'Small-batch handcrafted bakes',
     seasonal: 'Seasonal menu rotation',
-    fastDelivery: 'Same-day delivery in the city',
+    fastDelivery: 'Same-day local delivery',
   },
   products: {
     sectionTitle: 'Featured products',
-    sectionDescription: 'Top-loved bakery picks this week.',
+    sectionDescription: 'Bakery picks customers come back for most often.',
     seeAll: 'View full menu',
     viewDetail: 'View details',
     available: 'Available',
     outOfStock: 'Out of stock',
     empty: 'No products are available yet.',
     addToCart: 'Add to cart',
+    contactToOrder: 'Contact to order',
   },
   story: {
     sectionTitle: 'Bakery story',
-    heading: 'A warm corner where butter, flour, and fermentation lead the way.',
+    heading: 'A small bakery that mixes and bakes fresh every day.',
     body:
-      'We started from a tiny kitchen with a strict craft-first approach. Every loaf and cake is baked daily with carefully selected ingredients and balanced textures.',
+      'We keep the process simple: good ingredients, small batches, and fresh baking so each item feels familiar and worth returning for.',
     statOne: '8 years of artisan baking',
     statTwo: '35+ rotating seasonal items',
     statThree: '4.9/5 average customer rating',
   },
   promo: {
-    title: 'Need a birthday cake or tea-break set for your event?',
-    description: 'Customize flavor, palette, and message for every occasion.',
-    cta: 'Request consultation',
+    title: 'Need a birthday cake or a tea-break set?',
+    description: 'Send a quick brief and the bakery will suggest the right flavor and quantity.',
+    cta: 'Contact the bakery',
   },
   footer: {
     address: '12 Pasteur Street, District 1, Ho Chi Minh City',

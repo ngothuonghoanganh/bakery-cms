@@ -1,20 +1,22 @@
 import type { Metadata } from 'next';
-import { Fraunces, Manrope } from 'next/font/google';
+import { Be_Vietnam_Pro, Lora } from 'next/font/google';
 import './globals.css';
 
-const fraunces = Fraunces({
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4000';
+
+const displayFont = Lora({
   subsets: ['latin', 'vietnamese'],
   variable: '--font-display',
-  weight: ['500', '600', '700', '800'],
+  weight: ['500', '600', '700'],
+  display: 'swap',
 });
 
-const manrope = Manrope({
+const bodyFont = Be_Vietnam_Pro({
   subsets: ['latin', 'vietnamese'],
   variable: '--font-body',
   weight: ['400', '500', '600', '700'],
+  display: 'swap',
 });
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:4000';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -32,7 +34,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} ${manrope.variable}`}>
+      <body className={`${displayFont.variable} ${bodyFont.variable}`}>
         <div className="bg-gradient-orb" aria-hidden="true" />
         <div className="bg-grid" aria-hidden="true" />
         {children}

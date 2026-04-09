@@ -11,6 +11,7 @@ type ProductGridProps = {
   title?: string;
   description?: string;
   showMenuLink?: boolean;
+  variant?: 'featured' | 'catalog' | 'related';
 };
 
 const getStatusLabel = (status: string, dictionary: Dictionary): string => {
@@ -36,9 +37,16 @@ export const ProductGrid = ({
   title,
   description,
   showMenuLink,
+  variant = 'catalog',
 }: ProductGridProps) => {
+  const showCategory = variant === 'catalog';
+  const showDescription = variant !== 'related';
+
   return (
-    <section className="product-section" id="menu">
+    <section
+      className={`product-section product-section-${variant}`}
+      id={variant === 'featured' ? 'menu' : undefined}
+    >
       {(title || description || showMenuLink) && (
         <header className="section-heading">
           <div>
@@ -56,47 +64,50 @@ export const ProductGrid = ({
       {products.length === 0 ? (
         <p className="empty-state">{dictionary.products.empty}</p>
       ) : (
-        <div className="product-grid">
+        <div className={`product-grid product-grid-${variant}`}>
           {products.map((product, index) => (
-            <article key={product.id} className="product-card" style={{ animationDelay: `${Math.min(index * 80, 320)}ms` }}>
+            <article
+              key={product.id}
+              className={`product-card product-card-${variant}`}
+              style={{ animationDelay: `${Math.min(index * 70, 280)}ms` }}
+            >
               <Link
                 href={`/${locale}/products/${product.id}`}
-                className="product-image-wrap"
+                className="product-card-link"
                 aria-label={`${dictionary.products.viewDetail}: ${product.name}`}
               >
-                {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} className="product-image" loading="lazy" />
-                ) : (
-                  <div className="product-image product-image-fallback" aria-hidden="true" />
-                )}
-              </Link>
-
-              <div className="product-content">
-                <div className="product-topline">
-                  {product.category && (
-                    <span className="product-category">{product.category}</span>
+                <div className="product-image-wrap">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="product-image" loading="lazy" />
+                  ) : (
+                    <div className="product-image product-image-fallback" aria-hidden="true" />
                   )}
-                  <span className={getStatusClassName(product.status)}>
-                    {getStatusLabel(product.status, dictionary)}
-                  </span>
                 </div>
 
-                <h3>{product.name}</h3>
-                {product.description && <p>{product.description}</p>}
+                <div className="product-content">
+                  <div className="product-topline">
+                    {showCategory && product.category ? (
+                      <span className="product-category">{product.category}</span>
+                    ) : (
+                      <span className="product-spacer" aria-hidden="true" />
+                    )}
+                    <span className={getStatusClassName(product.status)}>
+                      {getStatusLabel(product.status, dictionary)}
+                    </span>
+                  </div>
 
-                <div className="product-footer">
-                  <strong>
-                    {formatPrice(product.price, locale)} {getPriceSuffix(product.saleUnitType, locale)}
-                  </strong>
-                  <Link
-                    href={`/${locale}/products/${product.id}`}
-                    className="btn-light"
-                    aria-label={`${dictionary.products.viewDetail}: ${product.name}`}
-                  >
-                    {dictionary.products.viewDetail}
-                  </Link>
+                  <div className="product-text">
+                    <h3>{product.name}</h3>
+                    {showDescription && product.description && <p>{product.description}</p>}
+                  </div>
+
+                  <div className="product-footer">
+                    <strong>
+                      {formatPrice(product.price, locale)} {getPriceSuffix(product.saleUnitType, locale)}
+                    </strong>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </article>
           ))}
         </div>

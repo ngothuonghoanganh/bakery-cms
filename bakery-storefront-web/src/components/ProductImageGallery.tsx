@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { normalizeStorefrontAssetUrl } from '@/lib/storefront-assets';
 
 type ProductImageGalleryProps = {
   productName: string;
@@ -16,7 +17,7 @@ export const ProductImageGallery = ({
     const seen = new Set<string>();
 
     for (const value of images) {
-      const normalized = String(value ?? '').trim();
+      const normalized = normalizeStorefrontAssetUrl(value);
       if (!normalized || seen.has(normalized)) {
         continue;
       }

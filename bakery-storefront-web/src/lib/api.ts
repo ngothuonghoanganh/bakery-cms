@@ -8,59 +8,9 @@ import type {
   StorefrontSettings,
   StorefrontSettingsResponse,
 } from './types';
+import { normalizeStorefrontAssetUrl } from './storefront-assets';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1';
-
-const toUploadProxyPath = (value: unknown): string | null => {
-  const raw = String(value ?? '').trim();
-
-  if (!raw) {
-    return null;
-  }
-
-  if (raw.startsWith('/upload/')) {
-    return raw;
-  }
-
-  if (raw.startsWith('/uploads/')) {
-    return raw;
-  }
-
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    try {
-      const parsed = new URL(raw);
-      if (parsed.pathname.startsWith('/upload/')) {
-        return `${parsed.pathname}${parsed.search}`;
-      }
-      if (parsed.pathname.startsWith('/uploads/')) {
-        return `${parsed.pathname}${parsed.search}`;
-      }
-    } catch {
-      // Keep fallback behavior below
-    }
-  }
-
-  const uploadPathMatch = raw.match(/\/uploads?\/.+$/);
-  if (uploadPathMatch) {
-    return uploadPathMatch[0];
-  }
-
-  return null;
-};
-
-const normalizeImageSource = (value: unknown): string | null => {
-  const proxyPath = toUploadProxyPath(value);
-  if (proxyPath) {
-    return proxyPath;
-  }
-
-  const raw = String(value ?? '').trim();
-  if (!raw) {
-    return null;
-  }
-
-  return raw;
-};
 
 const normalizeProductImages = (
   images: ApiProduct['images']
@@ -72,7 +22,7 @@ const normalizeProductImages = (
   const normalizedImages: ApiProductImage[] = [];
 
   for (const [index, item] of images.entries()) {
-    const normalizedUrl = normalizeImageSource(item?.url ?? item?.file?.url);
+    const normalizedUrl = normalizeStorefrontAssetUrl(item?.url ?? item?.file?.url);
 
     if (!normalizedUrl) {
       continue;
@@ -116,19 +66,26 @@ const resolveProductImageUrl = ({
 
   return (
     primaryImage?.url ??
-    normalizeImageSource(product.imageFile?.url) ??
-    normalizeImageSource(product.imageUrl)
+    normalizeStorefrontAssetUrl(product.imageFile?.url) ??
+    normalizeStorefrontAssetUrl(product.imageUrl)
   );
 };
 
 const normalizeProduct = (product: ApiProduct): ApiProduct => {
   const normalizedImages = normalizeProductImages(product.images);
+  const normalizedImageFileUrl = normalizeStorefrontAssetUrl(product.imageFile?.url);
 
   return {
     ...product,
     saleUnitType: product.saleUnitType === 'weight' ? 'weight' : 'piece',
     description: product.description ?? '',
     imageUrl: resolveProductImageUrl({ product, normalizedImages }),
+    imageFile: product.imageFile
+      ? {
+          ...product.imageFile,
+          url: normalizedImageFileUrl ?? product.imageFile.url,
+        }
+      : product.imageFile,
     category: product.category ?? null,
     images: normalizedImages,
   };
@@ -151,7 +108,7 @@ const normalizeStorefrontLocale = (
     heroTitle: normalizeText(locale.heroTitle),
     heroDescription: normalizeText(locale.heroDescription),
     heroBackgroundImageUrl:
-      normalizeImageSource(locale.heroBackgroundImageUrl) ??
+      normalizeStorefrontAssetUrl(locale.heroBackgroundImageUrl) ??
       normalizeText(locale.heroBackgroundImageUrl),
     heroPrimaryCta: normalizeText(locale.heroPrimaryCta),
     heroSecondaryCta: normalizeText(locale.heroSecondaryCta),
@@ -215,7 +172,7 @@ const normalizeStorefrontSettings = (
 
   const storeName = normalizeText(payload.data.storeProfile?.name);
   const logoUrl =
-    toUploadProxyPath(payload.data.storeProfile?.logoUrl) ??
+    normalizeStorefrontAssetUrl(payload.data.storeProfile?.logoUrl) ??
     normalizeText(payload.data.storeProfile?.logoUrl);
 
   if (!storeName) {
@@ -273,7 +230,7 @@ const safeFetch = async <T>(
     }
 
     return (await response.json()) as T;
-  } catch (_error) {
+  } catch {
     return null;
   }
 };
