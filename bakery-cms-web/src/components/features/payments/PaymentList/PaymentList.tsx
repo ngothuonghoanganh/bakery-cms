@@ -14,6 +14,7 @@ import { PaymentForm } from '../PaymentForm/PaymentForm';
 import { PaymentFilters } from '../PaymentFilters/PaymentFilters';
 import { useModal } from '../../../../hooks/useModal';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useCrudErrorNotification } from '../../../../hooks/useCrudErrorNotification';
 import type { Payment } from '../../../../types/models/payment.model';
 import type { PaymentFormValues } from '../PaymentForm/PaymentForm.types';
 import type { PaymentFiltersValue } from '../PaymentFilters/PaymentFilters.types';
@@ -42,7 +43,8 @@ export const PaymentList: React.FC<PaymentListProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { visible, open, close } = useModal();
-  const { success, error } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
 
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +76,7 @@ export const PaymentList: React.FC<PaymentListProps> = ({
       close();
       setSelectedPayment(null);
     } catch (err) {
-      error(t('payments.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
+      showCrudError(err);
     } finally {
       setSubmitting(false);
     }
@@ -87,7 +89,7 @@ export const PaymentList: React.FC<PaymentListProps> = ({
       await onDelete(id);
       success(t('payments.notifications.deleted', 'Payment Deleted'), t('payments.notifications.deletedMessage', 'Payment has been deleted successfully'));
     } catch (err) {
-      error(t('payments.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('payments.notifications.deleteError', 'Failed to delete payment'));
+      showCrudError(err);
     }
   };
 
@@ -98,7 +100,7 @@ export const PaymentList: React.FC<PaymentListProps> = ({
       await onMarkAsPaid(id);
       success(t('payments.notifications.markedAsPaid', 'Payment Marked as Paid'), t('payments.notifications.markedAsPaidMessage', 'Payment status has been updated to paid'));
     } catch (err) {
-      error(t('payments.notifications.updateFailed', 'Update Failed'), err instanceof Error ? err.message : t('payments.notifications.markAsPaidError', 'Failed to mark payment as paid'));
+      showCrudError(err);
     }
   };
 

@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { PaymentList } from '../components/features/payments/PaymentList/PaymentList';
 import { usePayments } from '../hooks/usePayments';
@@ -14,7 +13,6 @@ import {
   deletePayment,
   markPaymentAsPaid,
 } from '../services/payment.service';
-import { useNotification } from '../hooks/useNotification';
 import type { PaymentFormValues } from '../components/features/payments/PaymentForm/PaymentForm.types';
 import type { PaymentFiltersValue } from '../components/features/payments/PaymentFilters/PaymentFilters.types';
 
@@ -36,8 +34,6 @@ const areFiltersEqual = (
 };
 
 export const PaymentsPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { error } = useNotification();
   const [searchParams] = useSearchParams();
   const orderIdFromQuery = searchParams.get('orderId')?.trim() || undefined;
   // Filters state (immediate updates for UI)
@@ -105,8 +101,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error(t('payments.notifications.operationFailed', 'Create Failed'), result.error.message);
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -122,8 +117,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -133,8 +127,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error(t('payments.notifications.deleteFailed', 'Delete Failed'), result.error.message);
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -144,8 +137,7 @@ export const PaymentsPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 

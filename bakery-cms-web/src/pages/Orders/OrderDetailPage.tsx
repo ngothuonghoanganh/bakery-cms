@@ -15,6 +15,7 @@ import { LoadingSpinner } from '../../components/shared/LoadingSpinner/LoadingSp
 import { EmptyState } from '../../components/shared/EmptyState/EmptyState';
 import { useModal } from '../../hooks/useModal';
 import { useNotification } from '../../hooks/useNotification';
+import { useCrudErrorNotification } from '../../hooks/useCrudErrorNotification';
 import {
   getOrderById,
   updateOrder,
@@ -800,6 +801,7 @@ export const OrderDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { visible, open, close } = useModal();
   const { success, error: showError } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -985,18 +987,14 @@ export const OrderDetailPage: React.FC = () => {
       if (result.success) {
         setOrderBills([...(result.data || [])]);
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('orders.bill.notifications.loadFailed', 'Failed to load order bills');
-      showError(message);
+      showCrudError(err);
     } finally {
       setLoadingBills(false);
     }
-  }, [showError, t]);
+  }, [showCrudError]);
 
   const fetchPayments = useCallback(async (orderId: string) => {
     try {
@@ -1006,18 +1004,14 @@ export const OrderDetailPage: React.FC = () => {
       if (result.success) {
         setOrderPayments([...(result.data.payments || [])]);
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('payments.notifications.operationFailed', 'Failed to fetch payments');
-      showError(message);
+      showCrudError(err);
     } finally {
       setOrderPaymentsLoading(false);
     }
-  }, [showError, t]);
+  }, [showCrudError]);
 
   // Fetch order data
   useEffect(() => {
@@ -1035,18 +1029,17 @@ export const OrderDetailPage: React.FC = () => {
           setOrder(result.data);
           await fetchBills(result.data.id);
         } else {
-          showError(result.error.message);
+          showCrudError(result.error);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : t('orders.notifications.operationFailed', 'Failed to fetch order');
-        showError(message);
+        showCrudError(err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrder();
-  }, [fetchBills, id, showError, t]);
+  }, [fetchBills, id, showCrudError]);
 
   useEffect(() => {
     if (activeTab !== 'payments' || !order?.id || orderPaymentsLoading) {
@@ -1112,11 +1105,10 @@ export const OrderDetailPage: React.FC = () => {
         success(t('orders.notifications.updated', 'Order updated successfully'));
         close();
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('orders.notifications.operationFailed', 'Failed to update order');
-      showError(message);
+      showCrudError(err);
     } finally {
       setSubmitting(false);
     }
@@ -1133,11 +1125,10 @@ export const OrderDetailPage: React.FC = () => {
         success(t('orders.notifications.deleted', 'Order deleted successfully'));
         navigate('/orders');
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('orders.notifications.deleteFailed', 'Failed to delete order');
-      showError(message);
+      showCrudError(err);
     }
   };
 
@@ -1171,11 +1162,10 @@ export const OrderDetailPage: React.FC = () => {
           setVietQRModalVisible(true);
         }
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('orders.notifications.confirmFailed', 'Failed to confirm order');
-      showError(message);
+      showCrudError(err);
     } finally {
       setConfirmingPayment(false);
     }
@@ -1192,11 +1182,10 @@ export const OrderDetailPage: React.FC = () => {
         setOrder(result.data);
         success(t('orders.notifications.cancelled', 'Order cancelled successfully'));
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('orders.notifications.cancelFailed', 'Failed to cancel order');
-      showError(message);
+      showCrudError(err);
     }
   };
 
@@ -1284,7 +1273,7 @@ export const OrderDetailPage: React.FC = () => {
       });
 
       if (!result.success) {
-        showError(result.error.message);
+        showCrudError(result.error);
         return;
       }
 
@@ -1304,14 +1293,7 @@ export const OrderDetailPage: React.FC = () => {
         await fetchPayments(order.id);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t(
-              'orders.notifications.extrasUpdateFailed',
-              'Failed to update order extras'
-            );
-      showError(message);
+      showCrudError(err);
     } finally {
       setExtrasSubmitting(false);
     }
@@ -1345,7 +1327,7 @@ export const OrderDetailPage: React.FC = () => {
       const result = await getAllPayments({ orderId: order.id });
 
       if (!result.success) {
-        showError(result.error.message);
+        showCrudError(result.error);
         return;
       }
 
@@ -1369,14 +1351,7 @@ export const OrderDetailPage: React.FC = () => {
       });
       setRefundModalVisible(true);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t(
-              'orders.notifications.operationFailed',
-              'Failed to calculate refundable amount'
-            );
-      showError(message);
+      showCrudError(err);
     } finally {
       setLoadingRefundable(false);
     }
@@ -1411,14 +1386,10 @@ export const OrderDetailPage: React.FC = () => {
           await fetchPayments(order.id);
         }
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('orders.notifications.refundFailed', 'Failed to create refund');
-      showError(message);
+      showCrudError(err);
     } finally {
       setRefundSubmitting(false);
     }
@@ -1457,14 +1428,10 @@ export const OrderDetailPage: React.FC = () => {
         setPreviewBill(null);
         await fetchBills(order.id);
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('orders.bill.notifications.saveFailed', 'Failed to save bill');
-      showError(message);
+      showCrudError(err);
     } finally {
       setSavingBill(false);
     }
@@ -1496,14 +1463,10 @@ export const OrderDetailPage: React.FC = () => {
         setVoidReason('');
         await fetchBills(order.id);
       } else {
-        showError(result.error.message);
+        showCrudError(result.error);
       }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : t('orders.bill.notifications.voidFailed', 'Failed to void bill');
-      showError(message);
+      showCrudError(err);
     } finally {
       setVoidingBill(false);
     }

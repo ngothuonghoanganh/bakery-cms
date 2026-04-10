@@ -161,24 +161,6 @@ const createAPIClient = (): AxiosInstance => {
         }
       }
 
-      // Handle authorization errors
-      if (error.response?.status === 403) {
-        const notificationState = useNotificationStore.getState();
-        notificationState.error(
-          'Authorization Error',
-          'You do not have permission to perform this action.'
-        );
-      }
-
-      // Handle server errors
-      if (error.response?.status && error.response.status >= 500) {
-        const notificationState = useNotificationStore.getState();
-        notificationState.error(
-          'Server Error',
-          'An error occurred on the server. Please try again later.'
-        );
-      }
-
       // Re-throw with structured error
       return Promise.reject(error);
     }

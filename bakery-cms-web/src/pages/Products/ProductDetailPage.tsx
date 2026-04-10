@@ -7,6 +7,7 @@ import { ProductForm } from '../../components/features/products/ProductForm/Prod
 import { LoadingSpinner, EmptyState } from '../../components/shared';
 import { useNotification } from '../../hooks/useNotification';
 import { useModal } from '../../hooks/useModal';
+import { useCrudErrorNotification } from '../../hooks/useCrudErrorNotification';
 import { getProductById, updateProduct, deleteProduct } from '../../services/product.service';
 import type { Product } from '../../types/models/product.model';
 import type { ProductFormValues } from '../../components/features/products/ProductForm/ProductForm.types';
@@ -15,7 +16,8 @@ export const ProductDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { success, error } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const { visible, open, close } = useModal();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -31,10 +33,10 @@ export const ProductDetailPage: React.FC = () => {
     if (result.success) {
       setProduct(result.data);
     } else {
-      error(t('products.notifications.operationFailed', 'Operation Failed'), result.error.message);
+      showCrudError(result.error);
     }
     setLoading(false);
-  }, [id, error, t]);
+  }, [id, showCrudError]);
 
   useEffect(() => {
     fetchProduct();
@@ -57,15 +59,15 @@ export const ProductDetailPage: React.FC = () => {
           setProduct(result.data);
           close();
         } else {
-          throw new Error(result.error.message);
+          throw result.error;
         }
       } catch (err) {
-        error(t('products.notifications.operationFailed', 'Update Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
+        showCrudError(err);
       } finally {
         setFormLoading(false);
       }
     },
-    [id, success, error, close, t]
+    [close, id, showCrudError, success, t]
   );
 
   const handleDelete = useCallback(async () => {
@@ -77,9 +79,9 @@ export const ProductDetailPage: React.FC = () => {
       success(t('products.notifications.deleted', 'Product Deleted'), t('products.notifications.deletedMessage', 'Product has been deleted successfully'));
       navigate('/products');
     } else {
-      error(t('products.notifications.deleteFailed', 'Delete Failed'), result.error.message);
+      showCrudError(result.error);
     }
-  }, [id, success, error, navigate, t]);
+  }, [id, navigate, showCrudError, success, t]);
 
   const handleBack = useCallback(() => {
     navigate('/products');

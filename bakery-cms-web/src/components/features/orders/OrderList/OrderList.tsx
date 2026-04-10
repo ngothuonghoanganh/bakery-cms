@@ -15,6 +15,7 @@ import { OrderFilters } from '../OrderFilters/OrderFilters';
 import { PageHeader } from '../../../shared/PageHeader/PageHeader';
 import { useModal } from '../../../../hooks/useModal';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useCrudErrorNotification } from '../../../../hooks/useCrudErrorNotification';
 import type { Order } from '../../../../types/models/order.model';
 import type { VietQRData } from '../../../../types/models/payment.model';
 import type { OrderFormValues } from '../OrderForm/OrderForm.types';
@@ -50,7 +51,8 @@ export const OrderList: React.FC<OrderListProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { visible, open, close } = useModal();
-  const { success, error: showError } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
@@ -94,8 +96,7 @@ export const OrderList: React.FC<OrderListProps> = ({
       close();
       setSelectedOrder(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('orders.notifications.operationFailed', 'Operation failed');
-      showError(message);
+      showCrudError(error);
     } finally {
       setSubmitting(false);
     }
@@ -107,8 +108,7 @@ export const OrderList: React.FC<OrderListProps> = ({
       await onDelete(orderId);
       success(t('orders.notifications.deleted', 'Order deleted successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('orders.notifications.deleteFailed', 'Failed to delete order');
-      showError(message);
+      showCrudError(error);
     }
   };
 
@@ -143,8 +143,7 @@ export const OrderList: React.FC<OrderListProps> = ({
         setVietQRModalVisible(true);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('orders.notifications.confirmFailed', 'Failed to confirm order');
-      showError(message);
+      showCrudError(error);
     } finally {
       setConfirmingPayment(false);
     }
@@ -156,8 +155,7 @@ export const OrderList: React.FC<OrderListProps> = ({
       await onCancel(orderId);
       success(t('orders.notifications.cancelled', 'Order cancelled successfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('orders.notifications.cancelFailed', 'Failed to cancel order');
-      showError(message);
+      showCrudError(error);
     }
   };
 

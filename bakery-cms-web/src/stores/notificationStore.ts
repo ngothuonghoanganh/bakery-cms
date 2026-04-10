@@ -1,15 +1,19 @@
 import { create } from 'zustand';
 import { notification } from 'antd';
 import type { ArgsProps } from 'antd/es/notification';
+import type { ReactNode } from 'react';
+import type { NotificationInstance } from 'antd/es/notification/interface';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 type NotificationStore = {
-  show: (type: NotificationType, message: string, description?: string) => void;
-  success: (message: string, description?: string) => void;
-  error: (message: string, description?: string) => void;
-  warning: (message: string, description?: string) => void;
-  info: (message: string, description?: string) => void;
+  api: NotificationInstance | null;
+  setApi: (api: NotificationInstance) => void;
+  show: (type: NotificationType, message: ReactNode, description?: ReactNode) => void;
+  success: (message: ReactNode, description?: ReactNode) => void;
+  error: (message: ReactNode, description?: ReactNode) => void;
+  warning: (message: ReactNode, description?: ReactNode) => void;
+  info: (message: ReactNode, description?: ReactNode) => void;
 };
 
 const defaultConfig: Partial<ArgsProps> = {
@@ -17,45 +21,53 @@ const defaultConfig: Partial<ArgsProps> = {
   duration: 3,
 };
 
-export const useNotificationStore = create<NotificationStore>(() => ({
-  show: (type: NotificationType, message: string, description?: string) => {
-    notification[type]({
-      message,
-      description,
-      ...defaultConfig,
-    });
+const openNotification = (
+  api: NotificationInstance | null,
+  type: NotificationType,
+  message: ReactNode,
+  description?: ReactNode,
+  extraConfig?: Partial<ArgsProps>
+): void => {
+  const config: ArgsProps = {
+    message,
+    description,
+    ...defaultConfig,
+    ...extraConfig,
+  };
+
+  if (api) {
+    api[type](config);
+    return;
+  }
+
+  notification[type](config);
+};
+
+export const useNotificationStore = create<NotificationStore>((set, get) => ({
+  api: null,
+  setApi: (api: NotificationInstance) => {
+    set({ api });
   },
 
-  success: (message: string, description?: string) => {
-    notification.success({
-      message,
-      description,
-      ...defaultConfig,
-    });
+  show: (type: NotificationType, message: ReactNode, description?: ReactNode) => {
+    openNotification(get().api, type, message, description);
   },
 
-  error: (message: string, description?: string) => {
-    notification.error({
-      message,
-      description,
-      ...defaultConfig,
+  success: (message: ReactNode, description?: ReactNode) => {
+    openNotification(get().api, 'success', message, description);
+  },
+
+  error: (message: ReactNode, description?: ReactNode) => {
+    openNotification(get().api, 'error', message, description, {
       duration: 4, // Longer duration for errors
     });
   },
 
-  warning: (message: string, description?: string) => {
-    notification.warning({
-      message,
-      description,
-      ...defaultConfig,
-    });
+  warning: (message: ReactNode, description?: ReactNode) => {
+    openNotification(get().api, 'warning', message, description);
   },
 
-  info: (message: string, description?: string) => {
-    notification.info({
-      message,
-      description,
-      ...defaultConfig,
-    });
+  info: (message: ReactNode, description?: ReactNode) => {
+    openNotification(get().api, 'info', message, description);
   },
 }));

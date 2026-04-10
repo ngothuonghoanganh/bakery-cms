@@ -12,6 +12,7 @@ import { ProductTable } from '../ProductTable/ProductTable';
 import { ProductForm } from '../ProductForm/ProductForm';
 import { ProductFilters } from '../ProductFilters/ProductFilters';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useCrudErrorNotification } from '../../../../hooks/useCrudErrorNotification';
 import { useModal } from '../../../../hooks/useModal';
 import type {
   Product,
@@ -53,7 +54,8 @@ export const ProductList: React.FC<ProductListProps> = ({
   const { visible, open, close } = useModal();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-  const { success, error } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const activeProductType =
     filters.productType === ProductType.COMBO ? ProductType.COMBO : ProductType.SINGLE;
 
@@ -84,12 +86,12 @@ export const ProductList: React.FC<ProductListProps> = ({
         close();
         setSelectedProduct(null);
       } catch (err) {
-        error(t('products.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
+        showCrudError(err);
       } finally {
         setFormLoading(false);
       }
     },
-    [selectedProduct, onCreate, onUpdate, close, success, error, t]
+    [close, onCreate, onUpdate, selectedProduct, showCrudError, success, t]
   );
 
   const handleDelete = useCallback(
@@ -98,10 +100,10 @@ export const ProductList: React.FC<ProductListProps> = ({
         await onDelete(id);
         success(t('products.notifications.deleted', 'Product Deleted'), t('products.notifications.deletedMessage', 'Product has been deleted successfully'));
       } catch (err) {
-        error(t('products.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('products.notifications.deleteError', 'Failed to delete product'));
+        showCrudError(err);
       }
     },
-    [onDelete, success, error, t]
+    [onDelete, showCrudError, success, t]
   );
 
   const handleFiltersReset = useCallback(() => {

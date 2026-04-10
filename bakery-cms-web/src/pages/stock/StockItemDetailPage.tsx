@@ -46,6 +46,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PageHeader, FileUpload } from '@/components/shared';
 import { StockMovementHistory } from '@/components/features/stock/StockMovementHistory/StockMovementHistory';
 import { useNotification } from '@/hooks/useNotification';
+import { useCrudErrorNotification } from '@/hooks/useCrudErrorNotification';
 import { useBrands } from '@/hooks/useBrands';
 import { fileService } from '@/services/file.service';
 import {
@@ -65,6 +66,7 @@ import {
   StockUnitType,
 } from '@/types/models/stock.model';
 import type { StockItem, StockItemBrand, Brand } from '@/types/models/stock.model';
+import { ErrorCode } from '@/types/common/error.types';
 import { formatCurrency } from '@/utils/format.utils';
 
 const { Title, Text } = Typography;
@@ -97,7 +99,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { success, error: notifyError } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
 
   const getStatusLabel = (status: StockItemStatus): string => {
     switch (status) {
@@ -171,15 +174,28 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       const result = await getStockItemById(id);
       if (result.success && result.data) {
         setStockItem(result.data);
+      } else if (!result.success) {
+        showCrudError(result.error);
       } else {
-        notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
+        showCrudError({
+          code: ErrorCode.NOT_FOUND,
+          message: t('stock.notifications.operationFailed', 'Failed to load stock item'),
+          statusCode: 404,
+          timestamp: new Date(),
+          details: [
+            {
+              field: 'stockItemId',
+              message: t('stock.notifications.operationFailed', 'Failed to load stock item'),
+            },
+          ],
+        });
       }
-    } catch (_err) {
-      notifyError(t('common.status.error', 'Error'), t('stock.notifications.operationFailed', 'Failed to load stock item'));
+    } catch (err) {
+      showCrudError(err);
     } finally {
       setLoading(false);
     }
-  }, [id, notifyError, t]);
+  }, [id, showCrudError, t]);
 
   const fetchStockItemBrands = useCallback(async () => {
     if (!id) return;
@@ -216,14 +232,14 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         fetchStockItem();
         setRefreshKey((prev) => prev + 1);
       } else {
-        throw new Error(result.error.message);
+        throw result.error;
       }
     } catch (err) {
-      notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
+      showCrudError(err);
     } finally {
       setOperationLoading(false);
     }
-  }, [id, success, notifyError, receiveForm, fetchStockItem, t]);
+  }, [fetchStockItem, id, receiveForm, showCrudError, success, t]);
 
   const handleAdjustStock = useCallback(
     async (values: { quantity: number; reason: string }) => {
@@ -243,15 +259,15 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           fetchStockItem();
           setRefreshKey((prev) => prev + 1);
         } else {
-          throw new Error(result.error.message);
+          throw result.error;
         }
       } catch (err) {
-        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('errors.generic', 'An error occurred'));
+        showCrudError(err);
       } finally {
         setOperationLoading(false);
       }
     },
-    [id, success, notifyError, adjustForm, fetchStockItem, t]
+    [adjustForm, fetchStockItem, id, showCrudError, success, t]
   );
 
   // Brand CRUD handlers
@@ -310,7 +326,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           imageFileId: values.newBrandImageFileId,
         });
         if (!createResult.success) {
-          notifyError(t('stock.detail.brandCreateFailed', 'Failed to Create Brand'), createResult.error.message);
+          showCrudError(createResult.error);
           return;
         }
         brandId = createResult.data.id;
@@ -318,7 +334,18 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       }
 
       if (!brandId) {
-        notifyError(t('common.status.error', 'Error'), t('stock.detail.selectOrCreateBrand', 'Please select or create a brand'));
+        showCrudError({
+          code: ErrorCode.MISSING_REQUIRED_FIELD,
+          message: t('stock.detail.selectOrCreateBrand', 'Please select or create a brand'),
+          statusCode: 400,
+          timestamp: new Date(),
+          details: [
+            {
+              field: 'brandId',
+              message: t('stock.detail.selectOrCreateBrand', 'Please select or create a brand'),
+            },
+          ],
+        });
         return;
       }
 
@@ -336,7 +363,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           handleBrandModalCancel();
           fetchStockItemBrands();
         } else {
-          notifyError(t('stock.notifications.operationFailed', 'Update Failed'), result.error.message);
+          showCrudError(result.error);
         }
       } else {
         // Add new brand to stock item
@@ -353,7 +380,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           handleBrandModalCancel();
           fetchStockItemBrands();
         } else {
-          notifyError(t('stock.notifications.operationFailed', 'Add Failed'), result.error.message);
+          showCrudError(result.error);
         }
       }
     } catch (err) {
@@ -367,7 +394,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     isCreatingNewBrand,
     editingBrandPrice,
     success,
-    notifyError,
+    showCrudError,
     handleBrandModalCancel,
     fetchStockItemBrands,
     refetchAllBrands,
@@ -383,10 +410,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         success(t('stock.detail.brandRemoved', 'Brand Removed'), t('stock.detail.brandRemovedMessage', 'Brand "{{brandName}}" has been removed from this stock item.', { brandName: brandPrice.brandName }));
         fetchStockItemBrands();
       } else {
-        notifyError(t('stock.notifications.operationFailed', 'Remove Failed'), result.error.message);
+        showCrudError(result.error);
       }
     },
-    [id, success, notifyError, fetchStockItemBrands, t]
+    [fetchStockItemBrands, id, showCrudError, success, t]
   );
 
   const handleSetPreferred = useCallback(
@@ -398,10 +425,10 @@ export const StockItemDetailPage = (): React.JSX.Element => {
         success(t('stock.detail.preferredBrandSet', 'Preferred Brand Set'), t('stock.detail.preferredBrandSetMessage', '"{{brandName}}" is now the preferred brand.', { brandName: brandPrice.brandName }));
         fetchStockItemBrands();
       } else {
-        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), result.error.message);
+        showCrudError(result.error);
       }
     },
-    [id, success, notifyError, fetchStockItemBrands, t]
+    [fetchStockItemBrands, id, showCrudError, success, t]
   );
 
   // Filter out already associated brands from the dropdown

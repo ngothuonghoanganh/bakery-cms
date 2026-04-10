@@ -10,6 +10,7 @@ import type { TableProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
 import { useNotification } from '../../../../hooks/useNotification';
+import { useCrudErrorNotification } from '../../../../hooks/useCrudErrorNotification';
 import { StockItemStatus } from '../../../../types/models/stock.model';
 import type { StockItem } from '../../../../types/models/stock.model';
 import type { StockItemListProps } from './StockItemList.types';
@@ -47,7 +48,8 @@ export const StockItemList: React.FC<StockItemListProps> = ({
   onView,
 }) => {
   const { t } = useTranslation();
-  const { success, error } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
 
   const getStatusLabel = useMemo(
     () => (status: StockItemStatus): string => {
@@ -84,10 +86,10 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         await onDelete(id);
         success(t('stock.notifications.deleted', 'Stock Item Deleted'), t('stock.notifications.deletedMessage', 'Stock item has been deleted successfully'));
       } catch (err) {
-        error(t('stock.notifications.deleteFailed', 'Delete Failed'), err instanceof Error ? err.message : t('stock.notifications.deleteError', 'Failed to delete stock item'));
+        showCrudError(err);
       }
     },
-    [onDelete, success, error, t]
+    [onDelete, showCrudError, success, t]
   );
 
   const handleSearch = useCallback(

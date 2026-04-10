@@ -16,6 +16,7 @@ import {
 } from '@/services/stock.service';
 import { useModal } from '@/hooks/useModal';
 import { useNotification } from '@/hooks/useNotification';
+import { useCrudErrorNotification } from '@/hooks/useCrudErrorNotification';
 import type { StockItemFilters } from '@/types/models/stock.model';
 import type { StockItemFormValues } from '@/components/features/stock/StockItemList/StockItemList.types';
 import type { StockItem } from '@/types/models/stock.model';
@@ -24,7 +25,8 @@ export const StockItemsPage = (): React.JSX.Element => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { visible, open, close } = useModal();
-  const { success, error: notifyError } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
 
   // Filters state (immediate updates for UI)
   const [filters, setFilters] = useState<StockItemFilters>({});
@@ -121,15 +123,15 @@ export const StockItemsPage = (): React.JSX.Element => {
           close();
           setSelectedStockItem(null);
         } else {
-          throw new Error(result.error.message);
+          throw result.error;
         }
       } catch (err) {
-        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
+        showCrudError(err);
       } finally {
         setFormLoading(false);
       }
     },
-    [refetch, close, success, notifyError]
+    [close, refetch, showCrudError, success, t]
   );
 
   const handleUpdate = useCallback(
@@ -149,15 +151,15 @@ export const StockItemsPage = (): React.JSX.Element => {
           close();
           setSelectedStockItem(null);
         } else {
-          throw new Error(result.error.message);
+          throw result.error;
         }
       } catch (err) {
-        notifyError(t('stock.notifications.operationFailed', 'Operation Failed'), err instanceof Error ? err.message : t('common.status.error'));
+        showCrudError(err);
       } finally {
         setFormLoading(false);
       }
     },
-    [refetch, close, success, notifyError]
+    [close, refetch, showCrudError, success, t]
   );
 
   const handleDelete = useCallback(
@@ -167,7 +169,7 @@ export const StockItemsPage = (): React.JSX.Element => {
       if (result.success) {
         await refetch();
       } else {
-        throw new Error(result.error.message);
+        throw result.error;
       }
     },
     [refetch]

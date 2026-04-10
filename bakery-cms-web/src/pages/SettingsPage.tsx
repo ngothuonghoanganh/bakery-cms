@@ -25,6 +25,7 @@ import { FileUpload } from '@/components/shared/FileUpload';
 import { fileService } from '@/services/file.service';
 import { settingsService } from '@/services/settings.service';
 import { useNotification } from '@/hooks/useNotification';
+import { useCrudErrorNotification } from '@/hooks/useCrudErrorNotification';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/services/auth.service';
 import type {
@@ -78,6 +79,7 @@ const createFeeId = (): string => {
 export const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
   const { success, error: notifyError } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const { user } = useAuthStore();
   const [form] = Form.useForm<BankReceiverFormValues>();
   const [extraFeesForm] = Form.useForm<OrderExtraFeesFormValues>();
@@ -179,7 +181,7 @@ export const SettingsPage: React.FC = () => {
     if (result.success) {
       success(t('settings.bankReceiver.saveSuccess'));
     } else {
-      notifyError(t('settings.bankReceiver.saveFailed'), result.error.message);
+      showCrudError(result.error);
     }
 
     setSaving(false);
@@ -210,7 +212,7 @@ export const SettingsPage: React.FC = () => {
       });
       success(t('settings.orderExtraFees.saveSuccess'));
     } else {
-      notifyError(t('settings.orderExtraFees.saveFailed'), result.error.message);
+      showCrudError(result.error);
     }
 
     setSavingExtraFees(false);
@@ -231,10 +233,7 @@ export const SettingsPage: React.FC = () => {
       });
       success(t('settings.invoiceLanguage.saveSuccess'));
     } else {
-      notifyError(
-        t('settings.invoiceLanguage.saveFailed'),
-        result.error.message
-      );
+      showCrudError(result.error);
     }
 
     setSavingInvoiceLanguage(false);
@@ -255,7 +254,7 @@ export const SettingsPage: React.FC = () => {
       });
       success(t('settings.storeProfile.saveSuccess'));
     } else {
-      notifyError(t('settings.storeProfile.saveFailed'), result.error.message);
+      showCrudError(result.error);
     }
 
     setSavingStoreProfile(false);
@@ -279,13 +278,7 @@ export const SettingsPage: React.FC = () => {
         )
       );
     } else {
-      notifyError(
-        t(
-          'settings.storefrontContent.saveFailed',
-          'Failed to save storefront homepage content'
-        ),
-        result.error.message
-      );
+      showCrudError(result.error);
     }
 
     setSavingStorefrontContent(false);

@@ -101,7 +101,7 @@ export const OrdersPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -134,7 +134,7 @@ export const OrdersPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -145,7 +145,7 @@ export const OrdersPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -157,7 +157,7 @@ export const OrdersPage: React.FC = () => {
       await refetch();
       return { vietqr: result.data.vietqr };
     } else {
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 
@@ -168,7 +168,7 @@ export const OrdersPage: React.FC = () => {
     if (result.success) {
       await refetch();
     } else {
-      throw new Error(result.error.message);
+      throw result.error;
     }
   };
 

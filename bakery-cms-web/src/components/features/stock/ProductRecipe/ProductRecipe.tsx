@@ -11,6 +11,8 @@ import { useProductRecipe } from '@/hooks/useProductRecipe';
 import { useStockItems } from '@/hooks/useStockItems';
 import { stockService } from '@/services/stock.service';
 import { useNotification } from '@/hooks/useNotification';
+import { useCrudErrorNotification } from '@/hooks/useCrudErrorNotification';
+import { ErrorCode } from '@/types/common/error.types';
 import type { ProductRecipeProps, ProductStockItemFormValues } from './ProductRecipe.types';
 import type { ProductStockItem, StockItemBrand } from '@/types/models/stock.model';
 
@@ -21,7 +23,8 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
   const { t } = useTranslation();
   const { recipe, cost, loading, error, refetchAll } = useProductRecipe({ productId });
   const { stockItems } = useStockItems({ pagination: { limit: 100 } });
-  const { success, error: showError } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const [form] = Form.useForm<ProductStockItemFormValues>();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<ProductStockItem | null>(null);
@@ -86,7 +89,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
         }
       } else {
         setBrandOptions([]);
-        showError(t('common.status.failed'), t('stock.recipe.loadBrandsError'));
+        showCrudError(result.error);
       }
 
       setBrandsLoading(false);
@@ -97,7 +100,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
     return () => {
       isMounted = false;
     };
-  }, [modalVisible, selectedStockItemId, form, showError, t]);
+  }, [form, modalVisible, selectedStockItemId, showCrudError]);
 
   const handleDelete = useCallback(async (stockItemId: string) => {
     try {
@@ -107,12 +110,12 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
         refetchAll();
         onRecipeChange?.();
       } else {
-        showError(t('common.status.failed'), result.error.message);
+        showCrudError(result.error);
       }
-    } catch (_err) {
-      showError(t('common.status.error'), t('stock.recipe.removeError'));
+    } catch (err) {
+      showCrudError(err);
     }
-  }, [productId, refetchAll, onRecipeChange, success, showError, t]);
+  }, [onRecipeChange, productId, refetchAll, showCrudError, success, t]);
 
   const handleSubmit = useCallback(async (values: ProductStockItemFormValues) => {
     setSubmitting(true);
@@ -130,12 +133,23 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
           refetchAll();
           onRecipeChange?.();
         } else {
-          showError(t('common.status.failed'), result.error.message);
+          showCrudError(result.error);
         }
       } else {
         // Add new
         if (!values.preferredBrandId) {
-          showError(t('common.status.failed'), t('stock.recipe.selectPreferredBrandRequired'));
+          showCrudError({
+            code: ErrorCode.MISSING_REQUIRED_FIELD,
+            message: t('stock.recipe.selectPreferredBrandRequired'),
+            statusCode: 400,
+            timestamp: new Date(),
+            details: [
+              {
+                field: 'preferredBrandId',
+                message: t('stock.recipe.selectPreferredBrandRequired'),
+              },
+            ],
+          });
           return;
         }
 
@@ -151,15 +165,15 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({ productId, onRecip
           refetchAll();
           onRecipeChange?.();
         } else {
-          showError(t('common.status.failed'), result.error.message);
+          showCrudError(result.error);
         }
       }
-    } catch (_err) {
-      showError(t('common.status.error'), t('stock.recipe.saveError'));
+    } catch (err) {
+      showCrudError(err);
     } finally {
       setSubmitting(false);
     }
-  }, [editingItem, productId, refetchAll, onRecipeChange, success, showError, t]);
+  }, [editingItem, onRecipeChange, productId, refetchAll, showCrudError, success, t]);
 
   const columns = useMemo(
     () => [

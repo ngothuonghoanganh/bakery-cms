@@ -3,7 +3,7 @@
  * Centralized error handling and transformation
  */
 
-import type { AppError } from '@/types/common/error.types';
+import type { AppError, ErrorCode } from '@/types/common/error.types';
 import { extractErrorFromAxiosError } from '@/services/api/client';
 
 /**
@@ -26,6 +26,6 @@ export const getErrorMessage = (error: AppError): string => {
 /**
  * Check if error is a specific type
  */
-export const isErrorCode = (error: AppError, code: string): boolean => {
+export const isErrorCode = (error: AppError, code: ErrorCode): boolean => {
   return error.code === code;
 };

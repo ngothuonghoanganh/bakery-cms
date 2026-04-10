@@ -11,6 +11,7 @@ import { PaymentForm } from '../../components/features/payments/PaymentForm/Paym
 import { LoadingSpinner, EmptyState } from '../../components/shared';
 import { useNotification } from '../../hooks/useNotification';
 import { useModal } from '../../hooks/useModal';
+import { useCrudErrorNotification } from '../../hooks/useCrudErrorNotification';
 import {
   getPaymentById,
   updatePayment,
@@ -26,7 +27,8 @@ export const PaymentDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { success, error } = useNotification();
+  const { success } = useNotification();
+  const { showCrudError } = useCrudErrorNotification();
   const { visible, open, close } = useModal();
 
   const [payment, setPayment] = useState<Payment | null>(null);
@@ -43,10 +45,10 @@ export const PaymentDetailPage: React.FC = () => {
     if (result.success) {
       setPayment(result.data);
     } else {
-      error(t('payments.notifications.operationFailed', 'Failed to Load'), result.error.message);
+      showCrudError(result.error);
     }
     setLoading(false);
-  }, [id, error, t]);
+  }, [id, showCrudError]);
 
   useEffect(() => {
     fetchPayment();
@@ -74,11 +76,11 @@ export const PaymentDetailPage: React.FC = () => {
         success(t('payments.notifications.updated', 'Payment Updated'), t('payments.notifications.updatedMessage', 'Payment has been updated successfully'));
         close();
       } else {
-        error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
+        showCrudError(result.error);
       }
       setSubmitting(false);
     },
-    [id, success, error, close, t]
+    [close, id, showCrudError, success, t]
   );
 
   const handleDelete = useCallback(async () => {
@@ -90,9 +92,9 @@ export const PaymentDetailPage: React.FC = () => {
       success(t('payments.notifications.deleted', 'Payment Deleted'), t('payments.notifications.deletedMessage', 'Payment has been deleted successfully'));
       navigate('/payments');
     } else {
-      error(t('payments.notifications.deleteFailed', 'Delete Failed'), result.error.message);
+      showCrudError(result.error);
     }
-  }, [id, success, error, navigate, t]);
+  }, [id, navigate, showCrudError, success, t]);
 
   const handleMarkAsPaid = useCallback(async () => {
     if (!id) return;
@@ -103,9 +105,9 @@ export const PaymentDetailPage: React.FC = () => {
       await fetchPayment();
       success(t('payments.notifications.markedAsPaid', 'Payment Marked as Paid'), t('payments.notifications.markedAsPaidMessage', 'Payment status has been updated to paid'));
     } else {
-      error(t('payments.notifications.updateFailed', 'Update Failed'), result.error.message);
+      showCrudError(result.error);
     }
-  }, [id, fetchPayment, success, error, t]);
+  }, [fetchPayment, id, showCrudError, success, t]);
 
   const handleRegenerateVietQR = useCallback(async () => {
     if (!payment || payment.method !== PaymentMethod.VIETQR) {
@@ -126,14 +128,11 @@ export const PaymentDetailPage: React.FC = () => {
         )
       );
     } else {
-      error(
-        t('payments.notifications.regenerateVietQRFailed', 'Failed to Regenerate VietQR'),
-        result.error.message
-      );
+      showCrudError(result.error);
     }
 
     setRegeneratingVietQR(false);
-  }, [payment, fetchPayment, success, error, t]);
+  }, [payment, fetchPayment, showCrudError, success, t]);
 
   const handleBack = useCallback(() => {
     navigate('/payments');

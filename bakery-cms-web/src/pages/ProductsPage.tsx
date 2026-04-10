@@ -121,7 +121,7 @@ export const ProductsPage = (): React.JSX.Element => {
       if (result.success) {
         await refetch();
       } else {
-        throw new Error(result.error.message);
+        throw result.error;
       }
     },
     [refetch]
@@ -159,7 +159,7 @@ export const ProductsPage = (): React.JSX.Element => {
       if (result.success) {
         await refetch();
       } else {
-        throw new Error(result.error.message);
+        throw result.error;
       }
     },
     [refetch]
@@ -172,7 +172,7 @@ export const ProductsPage = (): React.JSX.Element => {
       if (result.success) {
         await refetch();
       } else {
-        throw new Error(result.error.message);
+        throw result.error;
       }
     },
     [refetch]

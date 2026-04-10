@@ -15,6 +15,7 @@ import { DashboardLayout, ErrorBoundary, LoadingSpinner } from './components/sha
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { setDayjsLocale } from './i18n/utils/locale.utils';
 import type { SupportedLanguage } from './i18n/types';
+import { useNotificationStore } from './stores/notificationStore';
 
 // Import i18n configuration (initializes i18next)
 import './i18n';
@@ -104,6 +105,17 @@ const SettingsPage = lazy(() =>
 import './styles/global.css';
 import './styles/antd-overrides.less';
 
+const NotificationBridge = (): React.JSX.Element | null => {
+  const { notification } = AntApp.useApp();
+  const setNotificationApi = useNotificationStore((state) => state.setApi);
+
+  useEffect(() => {
+    setNotificationApi(notification);
+  }, [notification, setNotificationApi]);
+
+  return null;
+};
+
 export const App = (): React.JSX.Element => {
   const { mode } = useThemeStore();
   const language = useLanguage();
@@ -126,6 +138,7 @@ export const App = (): React.JSX.Element => {
     <ErrorBoundary>
       <ConfigProvider theme={theme} locale={antdLocale}>
         <AntApp>
+          <NotificationBridge />
           <Router>
             <Suspense fallback={<LoadingSpinner fullScreen />}>
               <Routes>
