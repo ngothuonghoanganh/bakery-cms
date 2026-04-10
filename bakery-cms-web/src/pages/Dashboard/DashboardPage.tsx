@@ -11,6 +11,7 @@ import {
   Tooltip,
   Alert,
   Button,
+  DatePicker,
 } from 'antd';
 import {
   ShoppingCartOutlined,
@@ -21,7 +22,7 @@ import {
   FileTextOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { OrderStatus, PaymentMethod, PaymentStatus, PaymentType } from '@bakery-cms/common';
 import { PageHeader } from '../../components/shared';
@@ -29,20 +30,23 @@ import { StatCard } from '../../components/features/dashboard/StatCard/StatCard'
 import { RecentActivity } from '../../components/features/dashboard/RecentActivity/RecentActivity';
 import { QuickActions } from '../../components/features/dashboard/QuickActions/QuickActions';
 import { LowStockDashboard } from '../../components/features/stock/LowStockDashboard/LowStockDashboard';
-import { orderService, paymentService, productService } from '../../services';
+import { orderService, paymentService, productService, stockService } from '../../services';
 import { formatCurrency, formatNumber } from '../../utils/format.utils';
 import type { QuickAction } from '../../components/features/dashboard/QuickActions/QuickActions.types';
 import type { ActivityItem } from '../../components/features/dashboard/RecentActivity/RecentActivity.types';
 import type { Order } from '../../types/models/order.model';
 import type { Payment } from '../../types/models/payment.model';
 import type { Product } from '../../types/models/product.model';
+import { buildProfitComparisonData } from './dashboard-profit.utils';
 import './DashboardPage.css';
 
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const PAGE_LIMIT = 100;
 const MAX_FETCH_PAGES = 20;
 const CHART_DAYS = 7;
+const DEFAULT_PROFIT_RANGE_DAYS = 7;
 const ACTIVE_CUSTOMER_DAYS = 30;
 
 const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
@@ -230,12 +234,65 @@ const fetchAllProducts = async (): Promise<PagedCollection<Product>> => {
   return { items, total };
 };
 
+const getDefaultProfitRange = (): [Dayjs, Dayjs] => {
+  const rangeEnd = dayjs().endOf('day');
+  const rangeStart = rangeEnd
+    .subtract(DEFAULT_PROFIT_RANGE_DAYS - 1, 'day')
+    .startOf('day');
+  return [rangeStart, rangeEnd];
+};
+
+const fetchAllProductCosts = async (
+  products: readonly Product[]
+): Promise<Record<string, number>> => {
+  const entries = await Promise.all(
+    products.map(async (product) => {
+      const result = await stockService.getProductCost(product.id);
+      if (!result.success) {
+        return [product.id, 0] as const;
+      }
+
+      return [product.id, result.data.totalCost] as const;
+    })
+  );
+
+  return Object.fromEntries(entries);
+};
+
+const getComparisonBarStyle = (
+  value: number,
+  maxAbsValue: number
+): React.CSSProperties => {
+  if (maxAbsValue <= 0 || value === 0) {
+    return { height: '0%' };
+  }
+
+  const heightPercent = Math.max((Math.abs(value) / maxAbsValue) * 50, 3);
+  const boundedHeight = Math.min(heightPercent, 50);
+
+  if (value > 0) {
+    return {
+      height: `${boundedHeight}%`,
+      bottom: '50%',
+    };
+  }
+
+  return {
+    height: `${boundedHeight}%`,
+    top: '50%',
+  };
+};
+
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productCostById, setProductCostById] = useState<Record<string, number>>({});
+  const [selectedProfitRange, setSelectedProfitRange] = useState<[Dayjs, Dayjs]>(
+    () => getDefaultProfitRange()
+  );
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -247,6 +304,7 @@ export const DashboardPage: React.FC = () => {
         fetchAllPayments(),
         fetchAllProducts(),
       ]);
+      const productCosts = await fetchAllProductCosts(productsData.items);
 
       setSnapshot({
         orders: ordersData.items,
@@ -258,6 +316,7 @@ export const DashboardPage: React.FC = () => {
           products: productsData.total,
         },
       });
+      setProductCostById(productCosts);
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : t('errors.generic');
       setError(message);
@@ -571,6 +630,15 @@ export const DashboardPage: React.FC = () => {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 8);
 
+    const profitComparison = buildProfitComparisonData({
+      orders: snapshot.orders,
+      payments: snapshot.payments,
+      products: snapshot.products,
+      productCostById,
+      rangeStart: selectedProfitRange[0],
+      rangeEnd: selectedProfitRange[1],
+    });
+
     return {
       totalRevenue,
       activeCustomers,
@@ -590,8 +658,9 @@ export const DashboardPage: React.FC = () => {
       paymentMethodDistribution,
       topProducts,
       recentActivities,
+      profitComparison,
     };
-  }, [snapshot, t]);
+  }, [productCostById, selectedProfitRange, snapshot, t]);
 
   const isInitialLoading = loading && !snapshot;
 
@@ -693,7 +762,28 @@ export const DashboardPage: React.FC = () => {
     navigate('/products');
   };
 
+  const handleProfitRangeChange = (range: [Dayjs | null, Dayjs | null] | null) => {
+    if (!range || !range[0] || !range[1]) {
+      setSelectedProfitRange(getDefaultProfitRange());
+      return;
+    }
+
+    const nextStart = range[0].startOf('day');
+    const nextEnd = range[1].endOf('day');
+
+    if (nextEnd.isBefore(nextStart)) {
+      setSelectedProfitRange([nextEnd.startOf('day'), nextStart.endOf('day')]);
+      return;
+    }
+
+    setSelectedProfitRange([nextStart, nextEnd]);
+  };
+
   const maxRevenueValue = Math.max(...(dashboardData?.revenueSeries.map((point) => point.value) ?? [0]), 0);
+  const maxProfitComparisonAbsValue = (dashboardData?.profitComparison.points ?? []).reduce(
+    (max, point) => Math.max(max, Math.abs(point.revenue), Math.abs(point.estimatedProfit)),
+    0
+  );
 
   return (
     <div className="dashboard-page">
@@ -831,6 +921,125 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="dashboard-section dashboard-chart-row">
+        <Col xs={24} className="dashboard-stretch-col">
+          <Card
+            bordered={false}
+            className="dashboard-chart-card dashboard-surface-card"
+            title={t(
+              'dashboard.charts.revenueVsEstimatedProfit',
+              'Revenue vs estimated profit'
+            )}
+            extra={
+              <div className="dashboard-profit-chart-extra">
+                <RangePicker
+                  allowClear
+                  value={selectedProfitRange}
+                  onChange={handleProfitRangeChange}
+                  format="DD/MM/YYYY"
+                  className="dashboard-profit-range-picker"
+                  placeholder={[
+                    t('dashboard.charts.startDate', 'Start date'),
+                    t('dashboard.charts.endDate', 'End date'),
+                  ]}
+                />
+                <div className="dashboard-inline-metrics dashboard-profit-inline-metrics">
+                  <Text type="secondary">
+                    {t('dashboard.charts.totalRevenueInRange', 'Revenue: {{value}}', {
+                      value: formatCurrency(
+                        dashboardData?.profitComparison.totals.revenue ?? 0
+                      ),
+                    })}
+                  </Text>
+                  <Text type="secondary">
+                    {t(
+                      'dashboard.charts.totalEstimatedProfitInRange',
+                      'Estimated profit: {{value}}',
+                      {
+                        value: formatCurrency(
+                          dashboardData?.profitComparison.totals.estimatedProfit ?? 0
+                        ),
+                      }
+                    )}
+                  </Text>
+                </div>
+              </div>
+            }
+          >
+            {isInitialLoading ? (
+              <div className="dashboard-chart-loading">
+                <Spin />
+              </div>
+            ) : (dashboardData?.profitComparison.points.length ?? 0) === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t('dashboard.charts.noData', 'No data')}
+              />
+            ) : (
+              <>
+                <div className="dashboard-profit-legend">
+                  <div className="dashboard-profit-legend-item">
+                    <span className="dashboard-profit-legend-dot dashboard-profit-legend-dot--revenue" />
+                    <Text>{t('dashboard.charts.seriesRevenue', 'Revenue')}</Text>
+                  </div>
+                  <div className="dashboard-profit-legend-item">
+                    <span className="dashboard-profit-legend-dot dashboard-profit-legend-dot--profit" />
+                    <Text>{t('dashboard.charts.seriesEstimatedProfit', 'Estimated profit')}</Text>
+                  </div>
+                </div>
+                <div className="dashboard-profit-chart">
+                  {dashboardData?.profitComparison.points.map((point) => (
+                    <div key={point.key} className="dashboard-profit-bar-item">
+                      <div className="dashboard-profit-bar-track">
+                        <div className="dashboard-profit-baseline" />
+                        <div className="dashboard-profit-bar-column">
+                          <Tooltip
+                            title={`${t('dashboard.charts.seriesRevenue', 'Revenue')}: ${formatCurrency(
+                              point.revenue
+                            )}`}
+                          >
+                            <div
+                              className={`dashboard-profit-bar dashboard-profit-bar--revenue ${
+                                point.revenue < 0 ? 'is-negative' : ''
+                              }`}
+                              style={getComparisonBarStyle(
+                                point.revenue,
+                                maxProfitComparisonAbsValue
+                              )}
+                            />
+                          </Tooltip>
+                        </div>
+                        <div className="dashboard-profit-bar-column">
+                          <Tooltip
+                            title={`${t(
+                              'dashboard.charts.seriesEstimatedProfit',
+                              'Estimated profit'
+                            )}: ${formatCurrency(point.estimatedProfit)}`}
+                          >
+                            <div
+                              className={`dashboard-profit-bar dashboard-profit-bar--profit ${
+                                point.estimatedProfit < 0 ? 'is-negative' : ''
+                              }`}
+                              style={getComparisonBarStyle(
+                                point.estimatedProfit,
+                                maxProfitComparisonAbsValue
+                              )}
+                            />
+                          </Tooltip>
+                        </div>
+                      </div>
+                      <Text type="secondary" className="dashboard-revenue-bar-label">
+                        {point.label}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </Card>
         </Col>

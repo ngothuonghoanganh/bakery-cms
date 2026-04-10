@@ -17,3 +17,6 @@ export type { FileService } from './file.service';
 
 export { settingsService } from './settings.service';
 export type { SettingsService } from './settings.service';
+
+export { stockService } from './stock.service';
+export type { StockService } from './stock.service';

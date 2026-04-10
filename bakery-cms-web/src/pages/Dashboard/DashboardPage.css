@@ -202,6 +202,118 @@
   font-size: 12px;
 }
 
+.dashboard-profit-chart-extra {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-profit-range-picker {
+  min-width: 250px;
+}
+
+.dashboard-profit-inline-metrics {
+  gap: 10px;
+}
+
+.dashboard-profit-inline-metrics .ant-typography {
+  font-size: 12px;
+}
+
+.dashboard-profit-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.dashboard-profit-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-profit-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dashboard-profit-legend-dot--revenue {
+  background: linear-gradient(180deg, #9fd2ff 0%, #1677ff 100%);
+}
+
+.dashboard-profit-legend-dot--profit {
+  background: linear-gradient(180deg, #8be58e 0%, #38a24f 100%);
+}
+
+.dashboard-profit-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-height: 256px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.dashboard-profit-bar-item {
+  min-width: 62px;
+}
+
+.dashboard-profit-bar-track {
+  position: relative;
+  height: 204px;
+  border-radius: 12px;
+  border: 1px solid #e8eef8;
+  background: linear-gradient(180deg, #f9fbff 0%, #eef4ff 100%);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+}
+
+.dashboard-profit-baseline {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  border-top: 1px dashed #c7d7ec;
+}
+
+.dashboard-profit-bar-column {
+  position: relative;
+  width: 16px;
+}
+
+.dashboard-profit-bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  min-height: 0;
+  transition:
+    height 0.25s ease,
+    top 0.25s ease,
+    bottom 0.25s ease;
+}
+
+.dashboard-profit-bar.is-negative {
+  border-radius: 0 0 8px 8px;
+}
+
+.dashboard-profit-bar--revenue {
+  background: linear-gradient(180deg, #9fd2ff 0%, #1677ff 100%);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.25);
+}
+
+.dashboard-profit-bar--profit {
+  background: linear-gradient(180deg, #8be58e 0%, #38a24f 100%);
+  box-shadow: 0 4px 12px rgba(56, 162, 79, 0.22);
+}
+
 .dashboard-distribution-list {
   display: grid;
   gap: 12px;
@@ -266,6 +378,14 @@
     gap: 4px;
   }
 
+  .dashboard-profit-chart-extra {
+    justify-content: flex-start;
+  }
+
+  .dashboard-profit-range-picker {
+    min-width: 220px;
+  }
+
   .dashboard-quick-action-content {
     text-align: center;
     align-items: center;
@@ -278,5 +398,17 @@
 
   .dashboard-revenue-bar-track {
     height: 144px;
+  }
+
+  .dashboard-profit-chart {
+    min-height: 220px;
+  }
+
+  .dashboard-profit-bar-item {
+    min-width: 56px;
+  }
+
+  .dashboard-profit-bar-track {
+    height: 170px;
   }
 }
