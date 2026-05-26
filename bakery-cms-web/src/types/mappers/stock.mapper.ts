@@ -15,6 +15,10 @@ import type {
   ProductRecipeAPIResponse,
   ProductCostAPIResponse,
   BulkImportAPIResponse,
+  RecipeAPIResponse,
+  RecipeVersionAPIResponse,
+  RecipeVersionItemAPIResponse,
+  RecipeVersionDetailAPIResponse,
 } from '@/types/api/stock.api';
 
 import type {
@@ -29,6 +33,10 @@ import type {
   ProductRecipe,
   ProductCost,
   BulkImportResult,
+  Recipe,
+  RecipeVersion,
+  RecipeVersionItem,
+  RecipeVersionDetail,
 } from '@/types/models/stock.model';
 
 import {
@@ -71,6 +79,7 @@ export const mapStockItemFromAPI = (apiStockItem: StockItemAPIResponse): StockIt
   description: apiStockItem.description,
   unitType: apiStockItem.unitType ?? StockUnitType.PIECE,
   unitOfMeasure: apiStockItem.unitOfMeasure,
+  baseUnit: apiStockItem.baseUnit ?? StockPurchaseUnit.PIECE,
   currentQuantity: apiStockItem.currentQuantity,
   reorderThreshold: apiStockItem.reorderThreshold,
   status: apiStockItem.status as StockItemStatus,
@@ -141,6 +150,9 @@ export const mapStockMovementFromAPI = (
   reason: apiMovement.reason,
   referenceType: apiMovement.referenceType,
   referenceId: apiMovement.referenceId,
+  unitCostSnapshot: apiMovement.unitCostSnapshot ?? null,
+  totalCostSnapshot: apiMovement.totalCostSnapshot ?? null,
+  costingMethod: apiMovement.costingMethod ?? null,
   userId: apiMovement.userId,
   userName: apiMovement.userName,
   createdAt: new Date(apiMovement.createdAt),
@@ -197,6 +209,8 @@ export const mapProductRecipeFromAPI = (
 export const mapProductCostFromAPI = (apiCost: ProductCostAPIResponse): ProductCost => ({
   productId: apiCost.productId,
   productName: apiCost.productName,
+  recipeId: apiCost.recipeId ?? null,
+  recipeVersionId: apiCost.recipeVersionId ?? null,
   totalCost: apiCost.totalCost,
   costBreakdown: apiCost.costBreakdown.map((item) => ({
     stockItemId: item.stockItemId,
@@ -208,6 +222,64 @@ export const mapProductCostFromAPI = (apiCost: ProductCostAPIResponse): ProductC
     unitPrice: item.unitPrice,
     totalCost: item.totalCost,
   })),
+});
+
+export const mapRecipeFromAPI = (apiRecipe: RecipeAPIResponse): Recipe => ({
+  id: apiRecipe.id,
+  productId: apiRecipe.productId,
+  name: apiRecipe.name,
+  isDefault: apiRecipe.isDefault,
+  status: apiRecipe.status,
+  note: apiRecipe.note,
+  versions: (apiRecipe.versions || []).map(mapRecipeVersionFromAPI),
+  createdAt: new Date(apiRecipe.createdAt),
+  updatedAt: new Date(apiRecipe.updatedAt),
+});
+
+export const mapRecipeVersionFromAPI = (
+  apiVersion: RecipeVersionAPIResponse
+): RecipeVersion => ({
+  id: apiVersion.id,
+  recipeId: apiVersion.recipeId,
+  versionNumber: apiVersion.versionNumber,
+  status: apiVersion.status,
+  yieldQuantity: apiVersion.yieldQuantity,
+  yieldUnit: apiVersion.yieldUnit,
+  yieldBaseQuantity: apiVersion.yieldBaseQuantity,
+  yieldBaseUnit: apiVersion.yieldBaseUnit,
+  estimatedCost: apiVersion.estimatedCost,
+  costingMethod: apiVersion.costingMethod,
+  effectiveFrom: apiVersion.effectiveFrom ? new Date(apiVersion.effectiveFrom) : null,
+  createdAt: new Date(apiVersion.createdAt),
+  updatedAt: new Date(apiVersion.updatedAt),
+});
+
+export const mapRecipeVersionItemFromAPI = (
+  apiItem: RecipeVersionItemAPIResponse
+): RecipeVersionItem => ({
+  id: apiItem.id,
+  recipeVersionId: apiItem.recipeVersionId,
+  stockItemId: apiItem.stockItemId,
+  stockItemName: apiItem.stockItemName,
+  quantity: apiItem.quantity,
+  unit: apiItem.unit,
+  baseQuantity: apiItem.baseQuantity,
+  baseUnit: apiItem.baseUnit,
+  wastePercent: apiItem.wastePercent,
+  preferredBrandId: apiItem.preferredBrandId,
+  preferredBrandName: apiItem.preferredBrandName,
+  unitCostSnapshot: apiItem.unitCostSnapshot,
+  totalCostSnapshot: apiItem.totalCostSnapshot,
+  note: apiItem.note,
+  createdAt: new Date(apiItem.createdAt),
+  updatedAt: new Date(apiItem.updatedAt),
+});
+
+export const mapRecipeVersionDetailFromAPI = (
+  apiDetail: RecipeVersionDetailAPIResponse
+): RecipeVersionDetail => ({
+  ...mapRecipeVersionFromAPI(apiDetail),
+  items: (apiDetail.items || []).map(mapRecipeVersionItemFromAPI),
 });
 
 // Bulk Import Mappers

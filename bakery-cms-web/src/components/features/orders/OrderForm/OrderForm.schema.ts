@@ -9,6 +9,7 @@ import {
   OrderStatus,
   SaleUnitType,
 } from '../../../../types/models/order.model';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 
 // Order item validation schema
 export const orderItemSchema = z.object({
@@ -16,9 +17,19 @@ export const orderItemSchema = z.object({
   saleUnitType: z
     .enum([SaleUnitType.PIECE, SaleUnitType.WEIGHT])
     .optional(),
+  saleUnit: z
+    .enum([
+      StockPurchaseUnit.PIECE,
+      StockPurchaseUnit.GRAM,
+      StockPurchaseUnit.KILOGRAM,
+      StockPurchaseUnit.MILLILITER,
+      StockPurchaseUnit.LITER,
+    ])
+    .optional(),
+  recipeVersionId: z.string().optional(),
   quantity: z
     .number()
-    .min(1, 'Quantity must be at least 1')
+    .positive('Quantity must be positive')
     .max(9999, 'Quantity cannot exceed 9999'),
   unitPrice: z.number().min(0, 'Price must be non-negative').max(999999999, 'Price is too large'),
   notes: z.string().max(500, 'Item notes cannot exceed 500 characters').optional().or(z.literal('')),

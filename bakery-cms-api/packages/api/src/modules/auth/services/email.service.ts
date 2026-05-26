@@ -560,7 +560,11 @@ Need help? Contact us at ${this.config.templates.supportEmail}
    * Close email service connections
    */
   async close(): Promise<void> {
-    this.transporter.close();
+    try {
+      await Promise.resolve(this.transporter.close());
+    } catch {
+      // Ignore transporter close errors during shutdown.
+    }
   }
 }
 

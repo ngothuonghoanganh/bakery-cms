@@ -29,6 +29,18 @@ describe('brand-pricing.utils', () => {
         )
       ).toBe(true);
     });
+
+    it('accepts milliliter and liter purchase units for volume stock unit', () => {
+      expect(
+        isCompatiblePurchaseUnit(
+          StockUnitType.VOLUME,
+          StockPurchaseUnit.MILLILITER
+        )
+      ).toBe(true);
+      expect(
+        isCompatiblePurchaseUnit(StockUnitType.VOLUME, StockPurchaseUnit.LITER)
+      ).toBe(true);
+    });
   });
 
   describe('toStockBaseQuantity', () => {
@@ -60,6 +72,16 @@ describe('brand-pricing.utils', () => {
           StockPurchaseUnit.KILOGRAM
         )
       ).toBe(25000);
+    });
+
+    it('converts liter quantity to milliliter for volume stock', () => {
+      expect(
+        toStockBaseQuantity(
+          StockUnitType.VOLUME,
+          2.5,
+          StockPurchaseUnit.LITER
+        )
+      ).toBe(2500);
     });
   });
 });

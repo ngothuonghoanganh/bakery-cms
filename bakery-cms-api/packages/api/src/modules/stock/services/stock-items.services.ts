@@ -51,6 +51,16 @@ const inferUnitTypeFromLegacyValue = (
     return StockUnitType.WEIGHT;
   }
 
+  if (
+    normalized === 'volume' ||
+    normalized === 'milliliter' ||
+    normalized === 'ml' ||
+    normalized === 'liter' ||
+    normalized === 'l'
+  ) {
+    return StockUnitType.VOLUME;
+  }
+
   return StockUnitType.PIECE;
 };
 

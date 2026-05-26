@@ -6,8 +6,11 @@
 import { Result, ok, err } from 'neverthrow';
 import {
   AppError,
+  CostingMethod,
   MovementType,
   ProductType,
+  RecipeStatus,
+  RecipeVersionStatus,
   SaleUnitType,
 } from '@bakery-cms/common';
 import {
@@ -17,6 +20,9 @@ import {
   ProductComboItemModel,
   ProductModel,
   ProductStockItemModel,
+  RecipeModel,
+  RecipeVersionItemModel,
+  RecipeVersionModel,
   StockItemBrandModel,
   StockItemModel,
   StockMovementModel,
@@ -31,7 +37,6 @@ import {
 import { getLogger } from '../../../utils/logger';
 
 const logger = getLogger();
-
 const ORDER_REFERENCE_TYPE = 'order';
 
 type OrderItemWithRelations = OrderItemModel & {
@@ -46,7 +51,12 @@ type ComboItemWithProduct = ProductComboItemModel & {
   itemProduct?: ProductModel;
 };
 
-type RecipeItemWithRelations = ProductStockItemModel & {
+type LegacyRecipeItemWithRelations = ProductStockItemModel & {
+  stockItem?: StockItemModel;
+  preferredBrand?: BrandModel;
+};
+
+type RecipeVersionItemWithRelations = RecipeVersionItemModel & {
   stockItem?: StockItemModel;
   preferredBrand?: BrandModel;
 };
@@ -54,21 +64,32 @@ type RecipeItemWithRelations = ProductStockItemModel & {
 type ProductDemand = {
   productId: string;
   saleUnitType: SaleUnitType;
-  orderedQuantity: number;
+  saleQuantityBase: number;
+  recipeVersionId: string | null;
+  sourceProductIds: string[];
 };
 
 type StockUsageDemand = {
   stockItemId: string;
-  brandId: string;
+  brandId: string | null;
   stockItemName: string;
   brandName: string | null;
-  requiredQuantity: number;
+  requiredQuantityBase: number;
+  unitCostSnapshot: number;
+  totalCostSnapshot: number;
+  costingMethod: CostingMethod;
   sourceProductIds: string[];
 };
 
 type PaidOrderStockServiceResult = {
   executed: boolean;
   movementCount: number;
+};
+
+type UnitCostResolution = {
+  brandId: string | null;
+  brandName: string | null;
+  unitCostSnapshot: number;
 };
 
 export interface PaidOrderStockService {
@@ -84,12 +105,16 @@ export interface PaidOrderStockServiceDependencies {
   productModel: typeof ProductModel;
   productComboItemModel: typeof ProductComboItemModel;
   productStockItemModel: typeof ProductStockItemModel;
+  recipeModel: typeof RecipeModel;
+  recipeVersionModel: typeof RecipeVersionModel;
+  recipeVersionItemModel: typeof RecipeVersionItemModel;
   stockItemModel: typeof StockItemModel;
   stockItemBrandModel: typeof StockItemBrandModel;
   stockMovementModel: typeof StockMovementModel;
 }
 
 const toQuantity = (value: number): number => Math.round(value * 1000) / 1000;
+const toMoney = (value: number): number => Math.round(value * 10000) / 10000;
 
 const normalizePositiveQuantity = (
   value: number,
@@ -118,42 +143,35 @@ const isAppError = (value: unknown): value is AppError => {
   );
 };
 
-const getRecipeMultiplier = (
-  orderedQuantity: number,
-  saleUnitType: SaleUnitType
-): number => {
-  if (saleUnitType === SaleUnitType.WEIGHT) {
-    // Weight order quantity is stored in gram, and recipe base unit is 1g.
-    return orderedQuantity;
-  }
-
-  return orderedQuantity;
-};
-
 const pushProductDemand = (
   target: Map<string, ProductDemand>,
   productId: string,
   saleUnitType: SaleUnitType,
-  orderedQuantity: number
+  saleQuantityBase: number,
+  recipeVersionId: string | null
 ): void => {
-  const normalizedQuantity = toQuantity(orderedQuantity);
+  const normalizedQuantity = toQuantity(saleQuantityBase);
   if (normalizedQuantity <= 0) {
     return;
   }
 
-  const key = `${productId}:${saleUnitType}`;
+  const key = `${productId}:${saleUnitType}:${recipeVersionId ?? 'default'}`;
   const existing = target.get(key);
 
   if (!existing) {
     target.set(key, {
       productId,
       saleUnitType,
-      orderedQuantity: normalizedQuantity,
+      saleQuantityBase: normalizedQuantity,
+      recipeVersionId,
+      sourceProductIds: [productId],
     });
     return;
   }
 
-  existing.orderedQuantity = toQuantity(existing.orderedQuantity + normalizedQuantity);
+  existing.saleQuantityBase = toQuantity(
+    existing.saleQuantityBase + normalizedQuantity
+  );
 };
 
 const expandOrderItemsToProductDemand = (
@@ -169,14 +187,14 @@ const expandOrderItemsToProductDemand = (
       );
     }
 
-    const orderedQuantityResult = normalizePositiveQuantity(
-      Number(orderItem.quantity),
-      `Order item quantity for product ${product.id}`
+    const orderedBaseQuantityResult = normalizePositiveQuantity(
+      Number((orderItem as any).saleQuantityBase ?? orderItem.quantity),
+      `Order item saleQuantityBase for product ${product.id}`
     );
-    if (orderedQuantityResult.isErr()) {
-      return err(orderedQuantityResult.error);
+    if (orderedBaseQuantityResult.isErr()) {
+      return err(orderedBaseQuantityResult.error);
     }
-    const orderedQuantity = orderedQuantityResult.value;
+    const orderedBaseQuantity = orderedBaseQuantityResult.value;
 
     const productType =
       (product.productType as ProductType | undefined) ?? ProductType.SINGLE;
@@ -214,8 +232,10 @@ const expandOrderItemsToProductDemand = (
           return err(comboQuantityResult.error);
         }
         const comboQuantity = comboQuantityResult.value;
-        const childDemand = toQuantity(orderedQuantity * comboQuantity);
 
+        const childDemandBaseQuantity = toQuantity(
+          orderedBaseQuantity * comboQuantity
+        );
         const childSaleUnitType =
           (childProduct.saleUnitType as SaleUnitType | undefined) ??
           SaleUnitType.PIECE;
@@ -224,7 +244,8 @@ const expandOrderItemsToProductDemand = (
           demandByProduct,
           childProduct.id,
           childSaleUnitType,
-          childDemand
+          childDemandBaseQuantity,
+          null
         );
       }
 
@@ -239,7 +260,8 @@ const expandOrderItemsToProductDemand = (
       demandByProduct,
       product.id,
       saleUnitType,
-      orderedQuantity
+      orderedBaseQuantity,
+      ((orderItem as any).recipeVersionId as string | null) ?? null
     );
   }
 
@@ -290,9 +312,126 @@ const ensurePreferredBrandLinks = async (
   return ok(existingPairSet);
 };
 
+const resolveUnitCost = async (
+  stockItemBrandModel: typeof StockItemBrandModel,
+  stockItemId: string,
+  preferredBrandId: string | null,
+  transaction?: Transaction,
+  preferredBrandName: string | null = null
+): Promise<Result<UnitCostResolution, AppError>> => {
+  if (preferredBrandId) {
+    const preferredBrand = await stockItemBrandModel.findOne({
+      where: {
+        stockItemId,
+        brandId: preferredBrandId,
+      },
+      include: [
+        {
+          model: BrandModel,
+          as: 'brand',
+          attributes: ['id', 'name'],
+        },
+      ],
+      transaction,
+    });
+
+    if (!preferredBrand) {
+      return err(
+        createInvalidInputError(
+          `Preferred brand is invalid for stock item: ${stockItemId}`
+        )
+      );
+    }
+
+    return ok({
+      brandId: preferredBrandId,
+      brandName: (preferredBrand as any).brand?.name ?? preferredBrandName ?? null,
+      unitCostSnapshot: Number(preferredBrand.unitPriceAfterTax),
+    });
+  }
+
+  const lowestBrand = await stockItemBrandModel.findOne({
+    where: {
+      stockItemId,
+    },
+    include: [
+      {
+        model: BrandModel,
+        as: 'brand',
+        attributes: ['id', 'name'],
+      },
+    ],
+    order: [['unitPriceAfterTax', 'ASC']],
+    transaction,
+  });
+
+  if (!lowestBrand) {
+    return ok({
+      brandId: null,
+      brandName: null,
+      unitCostSnapshot: 0,
+    });
+  }
+
+  return ok({
+    brandId: lowestBrand.brandId,
+    brandName: (lowestBrand as any).brand?.name ?? null,
+    unitCostSnapshot: Number(lowestBrand.unitPriceAfterTax),
+  });
+};
+
+const resolveRecipeVersionForDemand = async (
+  demand: ProductDemand,
+  recipeModel: typeof RecipeModel,
+  recipeVersionModel: typeof RecipeVersionModel,
+  transaction?: Transaction
+): Promise<(RecipeVersionModel & { recipe?: RecipeModel }) | null> => {
+  if (demand.recipeVersionId) {
+    return (await recipeVersionModel.findOne({
+      where: {
+        id: demand.recipeVersionId,
+      },
+      include: [
+        {
+          model: recipeModel,
+          as: 'recipe',
+          required: true,
+          where: {
+            productId: demand.productId,
+          },
+        },
+      ],
+      transaction,
+    })) as RecipeVersionModel & { recipe?: RecipeModel } | null;
+  }
+
+  return (await recipeVersionModel.findOne({
+    where: {
+      status: RecipeVersionStatus.ACTIVE,
+    },
+    include: [
+      {
+        model: recipeModel,
+        as: 'recipe',
+        required: true,
+        where: {
+          productId: demand.productId,
+          isDefault: true,
+          status: RecipeStatus.ACTIVE,
+        },
+      },
+    ],
+    order: [['versionNumber', 'DESC']],
+    transaction,
+  })) as RecipeVersionModel & { recipe?: RecipeModel } | null;
+};
+
 const buildStockUsageDemand = async (
   productDemand: ProductDemand[],
   productStockItemModel: typeof ProductStockItemModel,
+  recipeModel: typeof RecipeModel,
+  recipeVersionModel: typeof RecipeVersionModel,
+  recipeVersionItemModel: typeof RecipeVersionItemModel,
   stockItemBrandModel: typeof StockItemBrandModel,
   transaction?: Transaction
 ): Promise<Result<StockUsageDemand[], AppError>> => {
@@ -300,58 +439,183 @@ const buildStockUsageDemand = async (
     return ok([]);
   }
 
-  const productIds = Array.from(
-    new Set(productDemand.map((item) => item.productId))
-  );
-
-  const recipeRows = (await productStockItemModel.findAll({
-    where: {
-      productId: productIds,
-    },
-    include: [
-      {
-        model: StockItemModel,
-        as: 'stockItem',
-        attributes: ['id', 'name'],
-      },
-      {
-        model: BrandModel,
-        as: 'preferredBrand',
-        attributes: ['id', 'name'],
-      },
-    ],
-    transaction,
-  })) as RecipeItemWithRelations[];
-
-  const recipeByProductId = new Map<string, RecipeItemWithRelations[]>();
-  for (const recipeRow of recipeRows) {
-    const bucket = recipeByProductId.get(recipeRow.productId);
-    if (!bucket) {
-      recipeByProductId.set(recipeRow.productId, [recipeRow]);
-      continue;
-    }
-
-    bucket.push(recipeRow);
-  }
-
+  const usageByStockBrand = new Map<string, StockUsageDemand>();
   const requiredBrandPairs: Array<{ stockItemId: string; brandId: string }> = [];
 
   for (const demand of productDemand) {
-    const recipes = recipeByProductId.get(demand.productId) ?? [];
+    const resolvedVersion = await resolveRecipeVersionForDemand(
+      demand,
+      recipeModel,
+      recipeVersionModel,
+      transaction
+    );
 
-    for (const recipe of recipes) {
-      if (!recipe.preferredBrandId) {
+    let recipeItems: Array<{
+      stockItemId: string;
+      stockItemName: string;
+      baseQuantity: number;
+      preferredBrandId: string | null;
+      preferredBrandName: string | null;
+      wastePercent: number;
+      yieldBaseQuantity: number;
+      source: 'recipe_version' | 'legacy_product_stock';
+    }> = [];
+
+    if (resolvedVersion) {
+      const versionItems = (await recipeVersionItemModel.findAll({
+        where: {
+          recipeVersionId: resolvedVersion.id,
+        },
+        include: [
+          {
+            model: StockItemModel,
+            as: 'stockItem',
+            attributes: ['id', 'name'],
+          },
+          {
+            model: BrandModel,
+            as: 'preferredBrand',
+            attributes: ['id', 'name'],
+          },
+        ],
+        transaction,
+      })) as RecipeVersionItemWithRelations[];
+
+      recipeItems = versionItems.map((item) => ({
+        stockItemId: item.stockItemId,
+        stockItemName: item.stockItem?.name ?? item.stockItemId,
+        baseQuantity: Number(item.baseQuantity),
+        preferredBrandId: item.preferredBrandId,
+        preferredBrandName: item.preferredBrand?.name ?? null,
+        wastePercent: Number(item.wastePercent ?? 0),
+        yieldBaseQuantity: Number(resolvedVersion.yieldBaseQuantity),
+        source: 'recipe_version',
+      }));
+    } else {
+      const legacyRows = (await productStockItemModel.findAll({
+        where: {
+          productId: demand.productId,
+        },
+        include: [
+          {
+            model: StockItemModel,
+            as: 'stockItem',
+            attributes: ['id', 'name'],
+          },
+          {
+            model: BrandModel,
+            as: 'preferredBrand',
+            attributes: ['id', 'name'],
+          },
+        ],
+        transaction,
+      })) as LegacyRecipeItemWithRelations[];
+
+      if (legacyRows.length === 0) {
+        logger.warn(
+          'Skip stock deduction for product because no recipe version and no legacy recipe',
+          {
+            productId: demand.productId,
+            recipeVersionId: demand.recipeVersionId,
+          }
+        );
+        continue;
+      }
+
+      recipeItems = legacyRows.map((item) => ({
+        stockItemId: item.stockItemId,
+        stockItemName: item.stockItem?.name ?? item.stockItemId,
+        baseQuantity: Number(item.quantity),
+        preferredBrandId: item.preferredBrandId,
+        preferredBrandName: item.preferredBrand?.name ?? null,
+        wastePercent: 0,
+        yieldBaseQuantity: 1,
+        source: 'legacy_product_stock',
+      }));
+    }
+
+    for (const recipeItem of recipeItems) {
+      const recipeQuantityResult = normalizePositiveQuantity(
+        Number(recipeItem.baseQuantity),
+        `Recipe base quantity for product ${demand.productId} and stock item ${recipeItem.stockItemId}`
+      );
+      if (recipeQuantityResult.isErr()) {
+        return err(recipeQuantityResult.error);
+      }
+
+      const yieldBaseQuantityResult = normalizePositiveQuantity(
+        Number(recipeItem.yieldBaseQuantity),
+        `Recipe yieldBaseQuantity for product ${demand.productId}`
+      );
+      if (yieldBaseQuantityResult.isErr()) {
+        return err(yieldBaseQuantityResult.error);
+      }
+
+      const requiredQuantityBase = toQuantity(
+        recipeQuantityResult.value *
+          (demand.saleQuantityBase / yieldBaseQuantityResult.value) *
+          (1 + Number(recipeItem.wastePercent) / 100)
+      );
+
+      if (!Number.isFinite(requiredQuantityBase) || requiredQuantityBase <= 0) {
         return err(
-          createBusinessRuleError(
-            `Missing preferred brand for product recipe: ${demand.productId}/${recipe.stockItemId}`
+          createInvalidInputError(
+            `Calculated stock usage is invalid for product ${demand.productId} and stock item ${recipeItem.stockItemId}`
           )
         );
       }
 
-      requiredBrandPairs.push({
-        stockItemId: recipe.stockItemId,
-        brandId: recipe.preferredBrandId,
-      });
+      if (recipeItem.preferredBrandId) {
+        requiredBrandPairs.push({
+          stockItemId: recipeItem.stockItemId,
+          brandId: recipeItem.preferredBrandId,
+        });
+      }
+
+      const unitCostResult = await resolveUnitCost(
+        stockItemBrandModel,
+        recipeItem.stockItemId,
+        recipeItem.preferredBrandId,
+        transaction,
+        recipeItem.preferredBrandName
+      );
+      if (unitCostResult.isErr()) {
+        return err(unitCostResult.error);
+      }
+
+      const unitCostSnapshot = toMoney(unitCostResult.value.unitCostSnapshot);
+      const totalCostSnapshot = toMoney(requiredQuantityBase * unitCostSnapshot);
+      const key = `${recipeItem.stockItemId}:${unitCostResult.value.brandId ?? 'none'}`;
+      const existing = usageByStockBrand.get(key);
+
+      if (!existing) {
+        usageByStockBrand.set(key, {
+          stockItemId: recipeItem.stockItemId,
+          brandId: unitCostResult.value.brandId,
+          stockItemName: recipeItem.stockItemName,
+          brandName: unitCostResult.value.brandName,
+          requiredQuantityBase,
+          unitCostSnapshot,
+          totalCostSnapshot,
+          costingMethod: CostingMethod.PREFERRED_BRAND_PRICE,
+          sourceProductIds: [demand.productId],
+        });
+        continue;
+      }
+
+      existing.requiredQuantityBase = toQuantity(
+        existing.requiredQuantityBase + requiredQuantityBase
+      );
+      existing.totalCostSnapshot = toMoney(
+        existing.totalCostSnapshot + totalCostSnapshot
+      );
+      existing.unitCostSnapshot =
+        existing.requiredQuantityBase > 0
+          ? toMoney(existing.totalCostSnapshot / existing.requiredQuantityBase)
+          : 0;
+      if (!existing.sourceProductIds.includes(demand.productId)) {
+        existing.sourceProductIds.push(demand.productId);
+      }
     }
   }
 
@@ -360,69 +624,8 @@ const buildStockUsageDemand = async (
     requiredBrandPairs,
     transaction
   );
-
   if (brandValidationResult.isErr()) {
     return err(brandValidationResult.error);
-  }
-
-  const usageByStockBrand = new Map<string, StockUsageDemand>();
-
-  for (const demand of productDemand) {
-    const recipes = recipeByProductId.get(demand.productId) ?? [];
-
-    for (const recipe of recipes) {
-      if (!recipe.preferredBrandId) {
-        return err(
-          createBusinessRuleError(
-            `Missing preferred brand for product recipe: ${demand.productId}/${recipe.stockItemId}`
-          )
-        );
-      }
-
-      const recipeQuantityResult = normalizePositiveQuantity(
-        Number(recipe.quantity),
-        `Recipe quantity for product ${demand.productId} and stock item ${recipe.stockItemId}`
-      );
-      if (recipeQuantityResult.isErr()) {
-        return err(recipeQuantityResult.error);
-      }
-      const recipeQuantity = recipeQuantityResult.value;
-
-      const requiredQuantity = toQuantity(
-        recipeQuantity *
-          getRecipeMultiplier(demand.orderedQuantity, demand.saleUnitType)
-      );
-
-      if (!Number.isFinite(requiredQuantity) || requiredQuantity <= 0) {
-        return err(
-          createInvalidInputError(
-            `Calculated stock usage is invalid for product ${demand.productId} and stock item ${recipe.stockItemId}`
-          )
-        );
-      }
-
-      const key = `${recipe.stockItemId}:${recipe.preferredBrandId}`;
-      const existing = usageByStockBrand.get(key);
-
-      if (!existing) {
-        usageByStockBrand.set(key, {
-          stockItemId: recipe.stockItemId,
-          brandId: recipe.preferredBrandId,
-          stockItemName: recipe.stockItem?.name ?? recipe.stockItemId,
-          brandName: recipe.preferredBrand?.name ?? null,
-          requiredQuantity,
-          sourceProductIds: [demand.productId],
-        });
-        continue;
-      }
-
-      existing.requiredQuantity = toQuantity(
-        existing.requiredQuantity + requiredQuantity
-      );
-      if (!existing.sourceProductIds.includes(demand.productId)) {
-        existing.sourceProductIds.push(demand.productId);
-      }
-    }
   }
 
   return ok(Array.from(usageByStockBrand.values()));
@@ -440,6 +643,9 @@ export const createPaidOrderStockService = (
     productModel,
     productComboItemModel,
     productStockItemModel,
+    recipeModel,
+    recipeVersionModel,
+    recipeVersionItemModel,
     stockItemModel,
     stockItemBrandModel,
     stockMovementModel,
@@ -484,7 +690,15 @@ export const createPaidOrderStockService = (
             {
               model: orderItemModel,
               as: 'items',
-              attributes: ['id', 'orderId', 'productId', 'saleUnitType', 'quantity'],
+              attributes: [
+                'id',
+                'orderId',
+                'productId',
+                'saleUnitType',
+                'quantity',
+                'saleQuantityBase',
+                'recipeVersionId',
+              ],
               include: [
                 {
                   model: productModel,
@@ -535,6 +749,9 @@ export const createPaidOrderStockService = (
         const usageDemandResult = await buildStockUsageDemand(
           productDemandResult.value,
           productStockItemModel,
+          recipeModel,
+          recipeVersionModel,
+          recipeVersionItemModel,
           stockItemBrandModel,
           transaction
         );
@@ -576,7 +793,7 @@ export const createPaidOrderStockService = (
           }
 
           const requiredQuantityResult = normalizePositiveQuantity(
-            demand.requiredQuantity,
+            demand.requiredQuantityBase,
             `Required stock quantity for item ${demand.stockItemId}`
           );
           if (requiredQuantityResult.isErr()) {
@@ -620,6 +837,9 @@ export const createPaidOrderStockService = (
               referenceType: ORDER_REFERENCE_TYPE,
               referenceId: orderId,
               userId: actorUserId,
+              unitCostSnapshot: demand.unitCostSnapshot,
+              totalCostSnapshot: demand.totalCostSnapshot,
+              costingMethod: demand.costingMethod,
             },
             {
               transaction,
@@ -638,7 +858,9 @@ export const createPaidOrderStockService = (
             stockItemName: item.stockItemName,
             brandId: item.brandId,
             brandName: item.brandName,
-            requiredQuantity: item.requiredQuantity,
+            requiredQuantityBase: item.requiredQuantityBase,
+            unitCostSnapshot: item.unitCostSnapshot,
+            totalCostSnapshot: item.totalCostSnapshot,
             sourceProductIds: item.sourceProductIds,
           })),
         });
@@ -672,6 +894,5 @@ export const createPaidOrderStockService = (
 export const __internalPaidOrderStockUtils = {
   expandOrderItemsToProductDemand,
   buildStockUsageDemand,
-  getRecipeMultiplier,
   toQuantity,
 };

@@ -19,6 +19,7 @@ export interface StockItemResponseDto {
   description: string | null;
   unitType: StockUnitType;
   unitOfMeasure: string;
+  baseUnit: StockPurchaseUnit;
   currentQuantity: number;
   reorderThreshold: number | null;
   status: StockItemStatus;

@@ -1,4 +1,5 @@
 import { StockPurchaseUnit, StockUnitType } from '@bakery-cms/common';
+import { unitConversionService } from '../services/unit-conversion.services';
 
 export const isCompatiblePurchaseUnit = (
   stockUnitType: StockUnitType,
@@ -6,6 +7,13 @@ export const isCompatiblePurchaseUnit = (
 ): boolean => {
   if (stockUnitType === StockUnitType.PIECE) {
     return purchaseUnit === StockPurchaseUnit.PIECE;
+  }
+
+  if (stockUnitType === StockUnitType.VOLUME) {
+    return (
+      purchaseUnit === StockPurchaseUnit.MILLILITER ||
+      purchaseUnit === StockPurchaseUnit.LITER
+    );
   }
 
   return (
@@ -24,13 +32,14 @@ export const toStockBaseQuantity = (
   purchaseQuantity: number,
   purchaseUnit: StockPurchaseUnit
 ): number => {
-  if (stockUnitType === StockUnitType.PIECE) {
-    return purchaseQuantity;
+  const converted = unitConversionService.toStockBaseQuantity(
+    stockUnitType,
+    purchaseQuantity,
+    purchaseUnit
+  );
+  if (converted.isErr()) {
+    return NaN;
   }
 
-  if (purchaseUnit === StockPurchaseUnit.KILOGRAM) {
-    return purchaseQuantity * 1000;
-  }
-
-  return purchaseQuantity;
+  return converted.value;
 };

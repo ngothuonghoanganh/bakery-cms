@@ -3,7 +3,7 @@
  */
 
 import type { PaymentAPIResponse, VietQRDataAPIResponse } from './payment.api';
-import type { SaleUnitType } from '@bakery-cms/common';
+import type { SaleUnitType, StockPurchaseUnit } from '@bakery-cms/common';
 
 export type OrderItemAPIResponse = {
   readonly id: string;
@@ -13,6 +13,14 @@ export type OrderItemAPIResponse = {
   readonly productName: string | null;
   readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
+  readonly saleUnit: StockPurchaseUnit;
+  readonly saleQuantityBase: number;
+  readonly saleBaseUnit: StockPurchaseUnit;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
+  readonly recipeNameSnapshot: string | null;
+  readonly recipeVersionSnapshot: number | null;
+  readonly recipeEstimatedCostSnapshot: number | null;
   readonly unitPrice: number;
   readonly subtotal: number;
   readonly notes: string | null;
@@ -59,6 +67,8 @@ export type PaginatedOrdersAPIResponse = {
 export type CreateOrderItemRequest = {
   readonly productId: string;
   readonly quantity: number;
+  readonly saleUnit?: StockPurchaseUnit;
+  readonly recipeVersionId?: string;
   readonly unitPrice: number;
   readonly subtotal: number;
   readonly saleUnitType?: SaleUnitType;
@@ -142,6 +152,14 @@ export type OrderBillSnapshotItemAPIResponse = {
   readonly productName: string | null;
   readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
+  readonly saleUnit: StockPurchaseUnit;
+  readonly saleQuantityBase: number;
+  readonly saleBaseUnit: StockPurchaseUnit;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
+  readonly recipeNameSnapshot: string | null;
+  readonly recipeVersionSnapshot: number | null;
+  readonly recipeEstimatedCostSnapshot: number | null;
   readonly unitPrice: number;
   readonly subtotal: number;
   readonly notes: string | null;

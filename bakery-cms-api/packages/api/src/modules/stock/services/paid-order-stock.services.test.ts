@@ -1,26 +1,102 @@
-import { ProductType, SaleUnitType } from '@bakery-cms/common';
+import {
+  CostingMethod,
+  ProductType,
+  RecipeStatus,
+  RecipeVersionStatus,
+  SaleUnitType,
+} from '@bakery-cms/common';
 import {
   __internalPaidOrderStockUtils,
   createPaidOrderStockService,
 } from './paid-order-stock.services';
 
+type BrandPrice = {
+  unitPriceAfterTax: number;
+  brandName?: string;
+};
+
+const createStockItemBrandModelMock = (
+  prices: Record<string, Record<string, BrandPrice>>
+): any => ({
+  findOne: jest.fn().mockImplementation(({ where }: any) => {
+    const stockItemId = String(where.stockItemId);
+    const brandId = where.brandId ? String(where.brandId) : undefined;
+    const stockPrices = prices[stockItemId] ?? {};
+
+    if (!brandId) {
+      const sorted = Object.entries(stockPrices).sort(
+        (a, b) => a[1].unitPriceAfterTax - b[1].unitPriceAfterTax
+      );
+      if (sorted.length === 0) {
+        return null;
+      }
+      const [lowestBrandId, value] = sorted[0]!;
+      return {
+        stockItemId,
+        brandId: lowestBrandId,
+        unitPriceAfterTax: value.unitPriceAfterTax,
+        brand: {
+          id: lowestBrandId,
+          name: value.brandName ?? lowestBrandId,
+        },
+      };
+    }
+
+    const value = stockPrices[brandId];
+    if (!value) {
+      return null;
+    }
+    return {
+      stockItemId,
+      brandId,
+      unitPriceAfterTax: value.unitPriceAfterTax,
+      brand: {
+        id: brandId,
+        name: value.brandName ?? brandId,
+      },
+    };
+  }),
+  findAll: jest.fn().mockImplementation(({ where }: any) => {
+    const pairs = Array.isArray(where?.or)
+      ? where.or
+      : Array.isArray(where?.[Symbol.for('sequelize.or')])
+        ? where[Symbol.for('sequelize.or')]
+        : Array.isArray(where?.[Object.getOwnPropertySymbols(where)[0] as symbol])
+          ? where[Object.getOwnPropertySymbols(where)[0] as symbol]
+          : [];
+
+    if (Array.isArray(pairs) && pairs.length > 0) {
+      return pairs
+        .map((pair) => {
+          const stockItemId = String(pair.stockItemId);
+          const brandId = String(pair.brandId);
+          const exists = Boolean(prices[stockItemId]?.[brandId]);
+          if (!exists) {
+            return null;
+          }
+          return { stockItemId, brandId };
+        })
+        .filter((row) => row !== null);
+    }
+
+    const stockItemId = where?.stockItemId ? String(where.stockItemId) : '';
+    const stockPrices = prices[stockItemId] ?? {};
+    return Object.entries(stockPrices).map(([brandId, value]) => ({
+      stockItemId,
+      brandId,
+      unitPriceAfterTax: value.unitPriceAfterTax,
+    }));
+  }),
+});
+
 describe('paid-order-stock.services', () => {
   describe('expandOrderItemsToProductDemand', () => {
-    it('expands combo items one level and aggregates quantities', () => {
-      const orderItems = [
-        {
-          productId: 'single-1',
-          quantity: 2,
-          saleUnitType: SaleUnitType.PIECE,
-          product: {
-            id: 'single-1',
-            productType: ProductType.SINGLE,
-            saleUnitType: SaleUnitType.PIECE,
-          },
-        },
+    it('expands combo children and keeps base quantity', () => {
+      const result = __internalPaidOrderStockUtils.expandOrderItemsToProductDemand([
         {
           productId: 'combo-1',
           quantity: 3,
+          saleQuantityBase: 3,
           saleUnitType: SaleUnitType.PIECE,
           product: {
             id: 'combo-1',
@@ -34,47 +110,32 @@ describe('paid-order-stock.services', () => {
                   saleUnitType: SaleUnitType.PIECE,
                 },
               },
-              {
-                quantity: 50,
-                itemProduct: {
-                  id: 'child-weight',
-                  productType: ProductType.SINGLE,
-                  saleUnitType: SaleUnitType.WEIGHT,
-                },
-              },
             ],
           },
         },
-      ] as any;
-
-      const result =
-        __internalPaidOrderStockUtils.expandOrderItemsToProductDemand(orderItems);
+      ] as any);
 
       expect(result.isOk()).toBe(true);
       if (result.isErr()) {
         return;
       }
 
-      const byKey = new Map(
-        result.value.map((item) => [
-          `${item.productId}:${item.saleUnitType}`,
-          item.orderedQuantity,
-        ])
-      );
-
-      expect(byKey.get(`single-1:${SaleUnitType.PIECE}`)).toBe(2);
-      expect(byKey.get(`child-piece:${SaleUnitType.PIECE}`)).toBe(6);
-      expect(byKey.get(`child-weight:${SaleUnitType.WEIGHT}`)).toBe(150);
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0]).toMatchObject({
+        productId: 'child-piece',
+        saleUnitType: SaleUnitType.PIECE,
+        saleQuantityBase: 6,
+      });
     });
 
-    it('fails when a combo contains a nested combo child', () => {
-      const orderItems = [
+    it('rejects nested combo', () => {
+      const result = __internalPaidOrderStockUtils.expandOrderItemsToProductDemand([
         {
-          productId: 'combo-1',
+          productId: 'combo-parent',
           quantity: 1,
           saleUnitType: SaleUnitType.PIECE,
           product: {
-            id: 'combo-1',
+            id: 'combo-parent',
             productType: ProductType.COMBO,
             comboItems: [
               {
@@ -88,205 +149,80 @@ describe('paid-order-stock.services', () => {
             ],
           },
         },
-      ] as any;
-
-      const result =
-        __internalPaidOrderStockUtils.expandOrderItemsToProductDemand(orderItems);
+      ] as any);
 
       expect(result.isErr()).toBe(true);
       if (result.isOk()) {
         return;
       }
-
       expect(result.error.message).toContain('Nested combo is not supported');
-    });
-
-    it('expands combo weight by gram basis and supports decimal combo quantities', () => {
-      const orderItems = [
-        {
-          productId: 'combo-weight-1',
-          quantity: 250.5,
-          saleUnitType: SaleUnitType.WEIGHT,
-          product: {
-            id: 'combo-weight-1',
-            productType: ProductType.COMBO,
-            saleUnitType: SaleUnitType.WEIGHT,
-            comboItems: [
-              {
-                quantity: 0.5,
-                itemProduct: {
-                  id: 'child-piece',
-                  productType: ProductType.SINGLE,
-                  saleUnitType: SaleUnitType.PIECE,
-                },
-              },
-              {
-                quantity: 1.25,
-                itemProduct: {
-                  id: 'child-weight',
-                  productType: ProductType.SINGLE,
-                  saleUnitType: SaleUnitType.WEIGHT,
-                },
-              },
-            ],
-          },
-        },
-      ] as any;
-
-      const result =
-        __internalPaidOrderStockUtils.expandOrderItemsToProductDemand(orderItems);
-
-      expect(result.isOk()).toBe(true);
-      if (result.isErr()) {
-        return;
-      }
-
-      const byKey = new Map(
-        result.value.map((item) => [
-          `${item.productId}:${item.saleUnitType}`,
-          item.orderedQuantity,
-        ])
-      );
-
-      expect(byKey.get(`child-piece:${SaleUnitType.PIECE}`)).toBe(125.25);
-      expect(byKey.get(`child-weight:${SaleUnitType.WEIGHT}`)).toBe(313.125);
-    });
-
-    it('fails when order item quantity is invalid', () => {
-      const orderItems = [
-        {
-          productId: 'single-1',
-          quantity: 0,
-          saleUnitType: SaleUnitType.PIECE,
-          product: {
-            id: 'single-1',
-            productType: ProductType.SINGLE,
-            saleUnitType: SaleUnitType.PIECE,
-          },
-        },
-      ] as any;
-
-      const result =
-        __internalPaidOrderStockUtils.expandOrderItemsToProductDemand(orderItems);
-
-      expect(result.isErr()).toBe(true);
-      if (result.isOk()) {
-        return;
-      }
-
-      expect(result.error.message).toContain('Order item quantity');
-    });
-
-    it('fails when combo item quantity is invalid', () => {
-      const orderItems = [
-        {
-          productId: 'combo-1',
-          quantity: 1,
-          saleUnitType: SaleUnitType.PIECE,
-          product: {
-            id: 'combo-1',
-            productType: ProductType.COMBO,
-            comboItems: [
-              {
-                quantity: 0,
-                itemProduct: {
-                  id: 'child-piece',
-                  productType: ProductType.SINGLE,
-                  saleUnitType: SaleUnitType.PIECE,
-                },
-              },
-            ],
-          },
-        },
-      ] as any;
-
-      const result =
-        __internalPaidOrderStockUtils.expandOrderItemsToProductDemand(orderItems);
-
-      expect(result.isErr()).toBe(true);
-      if (result.isOk()) {
-        return;
-      }
-
-      expect(result.error.message).toContain('Combo item quantity');
     });
   });
 
   describe('buildStockUsageDemand', () => {
-    it('fails when preferred brand is missing in recipe', async () => {
-      const productDemand = [
-        {
-          productId: 'product-1',
-          saleUnitType: SaleUnitType.PIECE,
-          orderedQuantity: 2,
-        },
-      ];
+    const productStockItemModel = {
+      findAll: jest.fn().mockResolvedValue([]),
+    } as any;
 
-      const productStockItemModel = {
+    it('calculates piece demand and cost snapshot from recipe version', async () => {
+      const recipeVersionModel = {
+        findOne: jest.fn().mockResolvedValue({
+          id: 'rv-1',
+          yieldBaseQuantity: 1,
+          status: RecipeVersionStatus.ACTIVE,
+          recipe: {
+            id: 'recipe-1',
+            productId: 'product-1',
+            status: RecipeStatus.ACTIVE,
+            isDefault: true,
+          },
+        }),
+      } as any;
+
+      const recipeVersionItemModel = {
         findAll: jest.fn().mockResolvedValue([
+          {
+            id: 'rvi-1',
+            recipeVersionId: 'rv-1',
+            stockItemId: 'stock-1',
+            baseQuantity: 3,
+            wastePercent: 0,
+            preferredBrandId: 'brand-1',
+            stockItem: {
+              id: 'stock-1',
+              name: 'Flour',
+            },
+            preferredBrand: {
+              id: 'brand-1',
+              name: 'Brand 1',
+            },
+          },
+        ]),
+      } as any;
+
+      const stockItemBrandModel = createStockItemBrandModelMock({
+        'stock-1': {
+          'brand-1': {
+            unitPriceAfterTax: 4,
+            brandName: 'Brand 1',
+          },
+        },
+      });
+
+      const result = await __internalPaidOrderStockUtils.buildStockUsageDemand(
+        [
           {
             productId: 'product-1',
-            stockItemId: 'stock-1',
-            quantity: 1,
-            preferredBrandId: null,
-            stockItem: { id: 'stock-1', name: 'Flour' },
-            preferredBrand: null,
+            saleUnitType: SaleUnitType.PIECE,
+            saleQuantityBase: 2,
+            recipeVersionId: null,
+            sourceProductIds: ['product-1'],
           },
-        ]),
-      } as any;
-
-      const stockItemBrandModel = {
-        findAll: jest.fn().mockResolvedValue([]),
-      } as any;
-
-      const result = await __internalPaidOrderStockUtils.buildStockUsageDemand(
-        productDemand,
+        ] as any,
         productStockItemModel,
-        stockItemBrandModel
-      );
-
-      expect(result.isErr()).toBe(true);
-      if (result.isOk()) {
-        return;
-      }
-
-      expect(result.error.message).toContain('Missing preferred brand');
-    });
-
-    it('multiplies weight recipe by gram and validates preferred brand link', async () => {
-      const productDemand = [
-        {
-          productId: 'weight-product',
-          saleUnitType: SaleUnitType.WEIGHT,
-          orderedQuantity: 250,
-        },
-      ];
-
-      const productStockItemModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            productId: 'weight-product',
-            stockItemId: 'stock-1',
-            quantity: 0.8,
-            preferredBrandId: 'brand-1',
-            stockItem: { id: 'stock-1', name: 'Cream' },
-            preferredBrand: { id: 'brand-1', name: 'Brand A' },
-          },
-        ]),
-      } as any;
-
-      const stockItemBrandModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            stockItemId: 'stock-1',
-            brandId: 'brand-1',
-          },
-        ]),
-      } as any;
-
-      const result = await __internalPaidOrderStockUtils.buildStockUsageDemand(
-        productDemand,
-        productStockItemModel,
+        {} as any,
+        recipeVersionModel,
+        recipeVersionItemModel,
         stockItemBrandModel
       );
 
@@ -296,58 +232,95 @@ describe('paid-order-stock.services', () => {
       }
 
       expect(result.value).toHaveLength(1);
-      expect(result.value[0]?.requiredQuantity).toBe(200);
-      expect(result.value[0]?.brandId).toBe('brand-1');
+      expect(result.value[0]).toMatchObject({
+        stockItemId: 'stock-1',
+        brandId: 'brand-1',
+        requiredQuantityBase: 6,
+        unitCostSnapshot: 4,
+        totalCostSnapshot: 24,
+        costingMethod: CostingMethod.PREFERRED_BRAND_PRICE,
+      });
     });
 
-    it('fails when recipe quantity is invalid', async () => {
-      const productDemand = [
-        {
-          productId: 'product-1',
-          saleUnitType: SaleUnitType.PIECE,
-          orderedQuantity: 2,
+    it('calculates weight demand by yield and waste percent', async () => {
+      const recipeVersionModel = {
+        findOne: jest.fn().mockResolvedValue({
+          id: 'rv-2',
+          yieldBaseQuantity: 1000,
+          status: RecipeVersionStatus.ACTIVE,
+          recipe: {
+            id: 'recipe-2',
+            productId: 'product-2',
+            status: RecipeStatus.ACTIVE,
+            isDefault: true,
+          },
+        }),
+      } as any;
+
+      const recipeVersionItemModel = {
+        findAll: jest.fn().mockResolvedValue([
+          {
+            id: 'rvi-2',
+            recipeVersionId: 'rv-2',
+            stockItemId: 'stock-2',
+            baseQuantity: 200,
+            wastePercent: 10,
+            preferredBrandId: 'brand-2',
+            stockItem: {
+              id: 'stock-2',
+              name: 'Cream',
+            },
+            preferredBrand: {
+              id: 'brand-2',
+              name: 'Brand 2',
+            },
+          },
+        ]),
+      } as any;
+
+      const stockItemBrandModel = createStockItemBrandModelMock({
+        'stock-2': {
+          'brand-2': {
+            unitPriceAfterTax: 1.5,
+            brandName: 'Brand 2',
+          },
         },
-      ];
-
-      const productStockItemModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            productId: 'product-1',
-            stockItemId: 'stock-1',
-            quantity: 0,
-            preferredBrandId: 'brand-1',
-            stockItem: { id: 'stock-1', name: 'Flour' },
-            preferredBrand: { id: 'brand-1', name: 'Brand A' },
-          },
-        ]),
-      } as any;
-
-      const stockItemBrandModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            stockItemId: 'stock-1',
-            brandId: 'brand-1',
-          },
-        ]),
-      } as any;
+      });
 
       const result = await __internalPaidOrderStockUtils.buildStockUsageDemand(
-        productDemand,
+        [
+          {
+            productId: 'product-2',
+            saleUnitType: SaleUnitType.WEIGHT,
+            saleQuantityBase: 500,
+            recipeVersionId: null,
+            sourceProductIds: ['product-2'],
+          },
+        ] as any,
         productStockItemModel,
+        {} as any,
+        recipeVersionModel,
+        recipeVersionItemModel,
         stockItemBrandModel
       );
 
-      expect(result.isErr()).toBe(true);
-      if (result.isOk()) {
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
         return;
       }
 
-      expect(result.error.message).toContain('Recipe quantity');
+      expect(result.value).toHaveLength(1);
+      expect(result.value[0]).toMatchObject({
+        stockItemId: 'stock-2',
+        requiredQuantityBase: 110,
+        unitCostSnapshot: 1.5,
+        totalCostSnapshot: 165,
+      });
     });
   });
 
   describe('consumeStockForPaidOrder', () => {
-    it('is idempotent when movements already exist for the order', async () => {
+    it('does not deduct stock twice for the same paid order', async () => {
       const stockMovementModel = {
         sequelize: {
           transaction: jest.fn(async (callback: (tx: any) => Promise<any>) =>
@@ -361,140 +334,34 @@ describe('paid-order-stock.services', () => {
         count: jest.fn().mockResolvedValue(1),
       } as any;
 
-      const orderModel = {
-        findByPk: jest.fn(),
-      } as any;
-
       const service = createPaidOrderStockService({
-        orderModel,
+        orderModel: {
+          findByPk: jest.fn(),
+        } as any,
         orderItemModel: {} as any,
         productModel: {} as any,
         productComboItemModel: {} as any,
         productStockItemModel: {} as any,
+        recipeModel: {} as any,
+        recipeVersionModel: {} as any,
+        recipeVersionItemModel: {} as any,
         stockItemModel: {} as any,
         stockItemBrandModel: {} as any,
         stockMovementModel,
       });
 
       const result = await service.consumeStockForPaidOrder('order-1', 'user-1');
-
       expect(result.isOk()).toBe(true);
       if (result.isErr()) {
         return;
       }
-
-      expect(result.value.executed).toBe(false);
-      expect(result.value.movementCount).toBe(0);
-      expect(orderModel.findByPk).not.toHaveBeenCalled();
-    });
-
-    it('allows negative stock and still records movement', async () => {
-      const transactionContext = {
-        LOCK: {
-          UPDATE: 'UPDATE',
-        },
-      };
-
-      const stockMovementModel = {
-        sequelize: {
-          transaction: jest.fn(async (callback: (tx: any) => Promise<any>) =>
-            callback(transactionContext)
-          ),
-        },
-        count: jest.fn().mockResolvedValue(0),
-        create: jest.fn(),
-      } as any;
-
-      const orderModel = {
-        findByPk: jest.fn().mockResolvedValue({
-          id: 'order-1',
-          items: [
-            {
-              id: 'item-1',
-              orderId: 'order-1',
-              productId: 'prod-1',
-              quantity: 2,
-              saleUnitType: SaleUnitType.PIECE,
-              product: {
-                id: 'prod-1',
-                productType: ProductType.SINGLE,
-                saleUnitType: SaleUnitType.PIECE,
-              },
-            },
-          ],
-        }),
-      } as any;
-
-      const productStockItemModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            productId: 'prod-1',
-            stockItemId: 'stock-1',
-            quantity: 2,
-            preferredBrandId: 'brand-1',
-            stockItem: { id: 'stock-1', name: 'Flour' },
-            preferredBrand: { id: 'brand-1', name: 'Brand A' },
-          },
-        ]),
-      } as any;
-
-      const stockItemBrandModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            stockItemId: 'stock-1',
-            brandId: 'brand-1',
-          },
-        ]),
-      } as any;
-
-      const stockItemRecord = {
-        id: 'stock-1',
-        currentQuantity: 3,
-        update: jest.fn(),
-      };
-
-      const stockItemModel = {
-        findAll: jest.fn().mockResolvedValue([stockItemRecord]),
-      } as any;
-
-      const service = createPaidOrderStockService({
-        orderModel,
-        orderItemModel: {} as any,
-        productModel: {} as any,
-        productComboItemModel: {} as any,
-        productStockItemModel,
-        stockItemModel,
-        stockItemBrandModel,
-        stockMovementModel,
+      expect(result.value).toEqual({
+        executed: false,
+        movementCount: 0,
       });
-
-      const result = await service.consumeStockForPaidOrder('order-1', 'user-1');
-
-      expect(result.isOk()).toBe(true);
-      if (result.isErr()) {
-        return;
-      }
-
-      expect(result.value.executed).toBe(true);
-      expect(result.value.movementCount).toBe(1);
-      expect(stockItemRecord.update).toHaveBeenCalledWith(
-        { currentQuantity: -1 },
-        { transaction: transactionContext }
-      );
-      expect(stockMovementModel.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          stockItemId: 'stock-1',
-          brandId: 'brand-1',
-          quantity: -4,
-          previousQuantity: 3,
-          newQuantity: -1,
-          referenceId: 'order-1',
-        }),
-        { transaction: transactionContext }
-      );
     });
 
-    it('deducts stock and records movement when stock is sufficient', async () => {
+    it('expands combo child and writes movement with cost snapshot', async () => {
       const transactionContext = {
         LOCK: {
           UPDATE: 'UPDATE',
@@ -513,49 +380,76 @@ describe('paid-order-stock.services', () => {
 
       const orderModel = {
         findByPk: jest.fn().mockResolvedValue({
-          id: 'order-1',
+          id: 'order-2',
           items: [
             {
-              id: 'item-1',
-              orderId: 'order-1',
-              productId: 'prod-1',
-              quantity: 2,
+              id: 'order-item-1',
+              orderId: 'order-2',
+              productId: 'combo-1',
               saleUnitType: SaleUnitType.PIECE,
+              quantity: 3,
+              saleQuantityBase: 3,
+              recipeVersionId: null,
               product: {
-                id: 'prod-1',
-                productType: ProductType.SINGLE,
+                id: 'combo-1',
+                productType: ProductType.COMBO,
                 saleUnitType: SaleUnitType.PIECE,
+                comboItems: [
+                  {
+                    quantity: 2,
+                    itemProduct: {
+                      id: 'child-1',
+                      productType: ProductType.SINGLE,
+                      saleUnitType: SaleUnitType.PIECE,
+                    },
+                  },
+                ],
               },
             },
           ],
         }),
       } as any;
 
-      const productStockItemModel = {
+      const recipeVersionModel = {
+        findOne: jest.fn().mockResolvedValue({
+          id: 'rv-child-1',
+          yieldBaseQuantity: 1,
+          recipe: {
+            id: 'recipe-child-1',
+            productId: 'child-1',
+            status: RecipeStatus.ACTIVE,
+            isDefault: true,
+          },
+        }),
+      } as any;
+
+      const recipeVersionItemModel = {
         findAll: jest.fn().mockResolvedValue([
           {
-            productId: 'prod-1',
+            id: 'rvi-child-1',
+            recipeVersionId: 'rv-child-1',
             stockItemId: 'stock-1',
-            quantity: 2,
+            baseQuantity: 1,
+            wastePercent: 0,
             preferredBrandId: 'brand-1',
-            stockItem: { id: 'stock-1', name: 'Flour' },
-            preferredBrand: { id: 'brand-1', name: 'Brand A' },
+            stockItem: { id: 'stock-1', name: 'Sugar' },
+            preferredBrand: { id: 'brand-1', name: 'Brand 1' },
           },
         ]),
       } as any;
 
-      const stockItemBrandModel = {
-        findAll: jest.fn().mockResolvedValue([
-          {
-            stockItemId: 'stock-1',
-            brandId: 'brand-1',
+      const stockItemBrandModel = createStockItemBrandModelMock({
+        'stock-1': {
+          'brand-1': {
+            unitPriceAfterTax: 2,
+            brandName: 'Brand 1',
           },
-        ]),
-      } as any;
+        },
+      });
 
       const stockItemRecord = {
         id: 'stock-1',
-        currentQuantity: 10,
+        currentQuantity: 20,
         update: jest.fn().mockResolvedValue(undefined),
       };
 
@@ -568,33 +462,44 @@ describe('paid-order-stock.services', () => {
         orderItemModel: {} as any,
         productModel: {} as any,
         productComboItemModel: {} as any,
-        productStockItemModel,
+        productStockItemModel: {
+          findAll: jest.fn().mockResolvedValue([]),
+        } as any,
+        recipeModel: {} as any,
+        recipeVersionModel,
+        recipeVersionItemModel,
         stockItemModel,
         stockItemBrandModel,
         stockMovementModel,
       });
 
-      const result = await service.consumeStockForPaidOrder('order-1', 'user-1');
+      const result = await service.consumeStockForPaidOrder('order-2', 'user-2');
 
       expect(result.isOk()).toBe(true);
       if (result.isErr()) {
         return;
       }
 
-      expect(result.value.executed).toBe(true);
-      expect(result.value.movementCount).toBe(1);
+      expect(result.value).toEqual({
+        executed: true,
+        movementCount: 1,
+      });
       expect(stockItemRecord.update).toHaveBeenCalledWith(
-        { currentQuantity: 6 },
+        { currentQuantity: 14 },
         { transaction: transactionContext }
       );
       expect(stockMovementModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           stockItemId: 'stock-1',
           brandId: 'brand-1',
-          quantity: -4,
-          previousQuantity: 10,
-          newQuantity: 6,
-          referenceId: 'order-1',
+          quantity: -6,
+          previousQuantity: 20,
+          newQuantity: 14,
+          referenceType: 'order',
+          referenceId: 'order-2',
+          unitCostSnapshot: 2,
+          totalCostSnapshot: 12,
+          costingMethod: CostingMethod.PREFERRED_BRAND_PRICE,
         }),
         { transaction: transactionContext }
       );

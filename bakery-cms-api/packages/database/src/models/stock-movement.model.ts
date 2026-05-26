@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize } from 'sequelize';
-import { MovementType } from '@bakery-cms/common';
+import { CostingMethod, MovementType } from '@bakery-cms/common';
 
 /**
  * StockMovement model class
@@ -22,6 +22,9 @@ export class StockMovementModel extends Model {
   declare reason: string | null;
   declare referenceType: string | null;
   declare referenceId: string | null;
+  declare unitCostSnapshot: number | null;
+  declare totalCostSnapshot: number | null;
+  declare costingMethod: string | null;
   declare userId: string;
   declare readonly createdAt: Date;
 }
@@ -130,6 +133,21 @@ export const initStockMovementModel = (
         allowNull: true,
         field: 'reference_id',
       },
+      unitCostSnapshot: {
+        type: DataTypes.DECIMAL(14, 4),
+        allowNull: true,
+        field: 'unit_cost_snapshot',
+      },
+      totalCostSnapshot: {
+        type: DataTypes.DECIMAL(14, 4),
+        allowNull: true,
+        field: 'total_cost_snapshot',
+      },
+      costingMethod: {
+        type: DataTypes.ENUM(...Object.values(CostingMethod)),
+        allowNull: true,
+        field: 'costing_method',
+      },
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -169,6 +187,10 @@ export const initStockMovementModel = (
         {
           fields: ['brand_id'],
           name: 'idx_sm_brand_id',
+        },
+        {
+          fields: ['costing_method'],
+          name: 'idx_sm_costing_method',
         },
         {
           fields: ['reference_type', 'reference_id'],

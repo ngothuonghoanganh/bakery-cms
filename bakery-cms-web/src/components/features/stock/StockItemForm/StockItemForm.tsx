@@ -101,6 +101,9 @@ export const StockItemForm: React.FC<StockItemFormProps> = ({
                 <Select.Option value={StockUnitType.WEIGHT}>
                   {t('stock.unitType.weight', 'Khối lượng (gram)')}
                 </Select.Option>
+                <Select.Option value={StockUnitType.VOLUME}>
+                  {t('stock.unitType.volume', 'Thể tích (milliliter)')}
+                </Select.Option>
               </Select>
             </Form.Item>
           </Col>

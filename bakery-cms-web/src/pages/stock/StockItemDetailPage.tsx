@@ -140,7 +140,16 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       return 0;
     }
 
-    if (stockItem?.unitType === StockUnitType.WEIGHT && purchaseUnitValue === StockPurchaseUnit.KILOGRAM) {
+    if (
+      stockItem?.unitType === StockUnitType.WEIGHT &&
+      purchaseUnitValue === StockPurchaseUnit.KILOGRAM
+    ) {
+      return purchaseQuantity * 1000;
+    }
+    if (
+      stockItem?.unitType === StockUnitType.VOLUME &&
+      purchaseUnitValue === StockPurchaseUnit.LITER
+    ) {
       return purchaseQuantity * 1000;
     }
 
@@ -280,6 +289,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       purchaseUnit:
         stockItem?.unitType === StockUnitType.WEIGHT
           ? StockPurchaseUnit.GRAM
+          : stockItem?.unitType === StockUnitType.VOLUME
+            ? StockPurchaseUnit.MILLILITER
           : StockPurchaseUnit.PIECE,
       priceBeforeTax: 0,
       priceAfterTax: 0,
@@ -448,6 +459,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   const purchaseUnitOptions =
     stockItem?.unitType === StockUnitType.WEIGHT
       ? [StockPurchaseUnit.GRAM, StockPurchaseUnit.KILOGRAM]
+      : stockItem?.unitType === StockUnitType.VOLUME
+        ? [StockPurchaseUnit.MILLILITER, StockPurchaseUnit.LITER]
       : [StockPurchaseUnit.PIECE];
 
   // Brand table columns
@@ -602,6 +615,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                   value={
                     stockItem.unitType === StockUnitType.WEIGHT
                       ? t('stock.unitType.weight', 'Khối lượng')
+                      : stockItem.unitType === StockUnitType.VOLUME
+                        ? t('stock.unitType.volume', 'Thể tích')
                       : t('stock.unitType.piece', 'Cái')
                   }
                 />
@@ -627,6 +642,8 @@ export const StockItemDetailPage = (): React.JSX.Element => {
             <Descriptions.Item label={t('stock.detail.unitType', 'Loại đơn vị')}>
               {stockItem.unitType === StockUnitType.WEIGHT
                 ? t('stock.unitType.weight', 'Khối lượng')
+                : stockItem.unitType === StockUnitType.VOLUME
+                  ? t('stock.unitType.volume', 'Thể tích')
                 : t('stock.unitType.piece', 'Cái')}
             </Descriptions.Item>
             <Descriptions.Item label={t('stock.detail.description', 'Description')} span={2}>

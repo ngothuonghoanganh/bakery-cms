@@ -9,6 +9,7 @@ import {
   OrderType,
   BusinessModel,
   SaleUnitType,
+  StockPurchaseUnit,
 } from '@bakery-cms/common';
 import {
   OrderResponseDto,
@@ -129,6 +130,32 @@ export const toOrderItemResponseDto = (
       (model.saleUnitType as SaleUnitType) ??
       ((associatedProduct?.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE),
     quantity: model.quantity,
+    saleUnit:
+      ((model as any).saleUnit as StockPurchaseUnit) ??
+      (((model.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+      SaleUnitType.WEIGHT
+        ? StockPurchaseUnit.GRAM
+        : StockPurchaseUnit.PIECE),
+    saleQuantityBase: Number((model as any).saleQuantityBase ?? model.quantity),
+    saleBaseUnit:
+      ((model as any).saleBaseUnit as StockPurchaseUnit) ??
+      (((model.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+      SaleUnitType.WEIGHT
+        ? StockPurchaseUnit.GRAM
+        : StockPurchaseUnit.PIECE),
+    recipeId: (model as any).recipeId ?? null,
+    recipeVersionId: (model as any).recipeVersionId ?? null,
+    recipeNameSnapshot: (model as any).recipeNameSnapshot ?? null,
+    recipeVersionSnapshot:
+      (model as any).recipeVersionSnapshot !== undefined &&
+      (model as any).recipeVersionSnapshot !== null
+        ? Number((model as any).recipeVersionSnapshot)
+        : null,
+    recipeEstimatedCostSnapshot:
+      (model as any).recipeEstimatedCostSnapshot !== undefined &&
+      (model as any).recipeEstimatedCostSnapshot !== null
+        ? Number((model as any).recipeEstimatedCostSnapshot)
+        : null,
     unitPrice: Number(model.unitPrice),
     subtotal: Number(model.subtotal),
     notes: model.notes,
@@ -257,6 +284,22 @@ export const toOrderItemCreationAttributes = (
     productId: dto.productId,
     saleUnitType: dto.saleUnitType ?? SaleUnitType.PIECE,
     quantity: dto.quantity,
+    saleUnit:
+      dto.saleUnit ??
+      ((dto.saleUnitType ?? SaleUnitType.PIECE) === SaleUnitType.WEIGHT
+        ? StockPurchaseUnit.GRAM
+        : StockPurchaseUnit.PIECE),
+    saleQuantityBase: dto.saleQuantityBase ?? dto.quantity,
+    saleBaseUnit:
+      dto.saleBaseUnit ??
+      ((dto.saleUnitType ?? SaleUnitType.PIECE) === SaleUnitType.WEIGHT
+        ? StockPurchaseUnit.GRAM
+        : StockPurchaseUnit.PIECE),
+    recipeId: dto.recipeId ?? null,
+    recipeVersionId: dto.recipeVersionId ?? null,
+    recipeNameSnapshot: dto.recipeNameSnapshot ?? null,
+    recipeVersionSnapshot: dto.recipeVersionSnapshot ?? null,
+    recipeEstimatedCostSnapshot: dto.recipeEstimatedCostSnapshot ?? null,
     unitPrice: dto.unitPrice,
     subtotal: dto.subtotal,
     notes: dto.notes ?? null,
@@ -358,6 +401,32 @@ export const toOrderBillSnapshotDto = (
         (item.saleUnitType as SaleUnitType) ??
         SaleUnitType.PIECE,
       quantity: item.quantity,
+      saleUnit:
+        ((item as any).saleUnit as StockPurchaseUnit) ??
+        (((item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+        SaleUnitType.WEIGHT
+          ? StockPurchaseUnit.GRAM
+          : StockPurchaseUnit.PIECE),
+      saleQuantityBase: Number((item as any).saleQuantityBase ?? item.quantity),
+      saleBaseUnit:
+        ((item as any).saleBaseUnit as StockPurchaseUnit) ??
+        (((item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+        SaleUnitType.WEIGHT
+          ? StockPurchaseUnit.GRAM
+          : StockPurchaseUnit.PIECE),
+      recipeId: (item as any).recipeId ?? null,
+      recipeVersionId: (item as any).recipeVersionId ?? null,
+      recipeNameSnapshot: (item as any).recipeNameSnapshot ?? null,
+      recipeVersionSnapshot:
+        (item as any).recipeVersionSnapshot !== undefined &&
+        (item as any).recipeVersionSnapshot !== null
+          ? Number((item as any).recipeVersionSnapshot)
+          : null,
+      recipeEstimatedCostSnapshot:
+        (item as any).recipeEstimatedCostSnapshot !== undefined &&
+        (item as any).recipeEstimatedCostSnapshot !== null
+          ? Number((item as any).recipeEstimatedCostSnapshot)
+          : null,
       unitPrice: Number(item.unitPrice),
       subtotal: Number(item.subtotal),
       notes: item.notes,

@@ -9,7 +9,7 @@ import {
   UserModel,
   BrandModel,
 } from '@bakery-cms/database';
-import { MovementType } from '@bakery-cms/common';
+import { CostingMethod, MovementType } from '@bakery-cms/common';
 import { StockMovementResponseDto } from '../dto/stock-movements.dto';
 
 /**
@@ -37,6 +37,17 @@ export const toStockMovementResponseDto = (
     reason: model.reason,
     referenceType: model.referenceType,
     referenceId: model.referenceId,
+    unitCostSnapshot:
+      (model as any).unitCostSnapshot !== undefined &&
+      (model as any).unitCostSnapshot !== null
+        ? Number((model as any).unitCostSnapshot)
+        : null,
+    totalCostSnapshot:
+      (model as any).totalCostSnapshot !== undefined &&
+      (model as any).totalCostSnapshot !== null
+        ? Number((model as any).totalCostSnapshot)
+        : null,
+    costingMethod: ((model as any).costingMethod as CostingMethod) ?? null,
     userId: model.userId,
     userName: model.user ? `${model.user.firstName} ${model.user.lastName}` : 'Unknown',
     createdAt: model.createdAt.toISOString(),

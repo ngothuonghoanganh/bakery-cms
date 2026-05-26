@@ -5,7 +5,18 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError } from '@bakery-cms/common';
+import {
+  AppError,
+  RecipeStatus,
+  RecipeVersionStatus,
+} from '@bakery-cms/common';
+import {
+  BrandModel,
+  RecipeModel,
+  RecipeVersionItemModel,
+  RecipeVersionModel,
+  StockItemModel,
+} from '@bakery-cms/database';
 import { ProductStockItemRepository } from '../repositories/product-stock-items.repositories';
 import { StockItemRepository } from '../repositories/stock-items.repositories';
 import { StockItemBrandRepository } from '../repositories/stock-item-brands.repositories';
@@ -309,55 +320,151 @@ export const createProductStockService = (
     try {
       logger.debug('Calculating product cost', { productId });
 
-      const stockItems = await productStockItemRepository.findByProductId(productId);
-
       const costBreakdown: ProductCostBreakdownItem[] = [];
       let totalCost = 0;
+      let resolvedRecipeId: string | null = null;
+      let resolvedRecipeVersionId: string | null = null;
 
-      for (const item of stockItems) {
-        let unitPrice = 0;
-        let brand = null;
+      const defaultActiveVersion = (await RecipeVersionModel.findOne({
+        where: {
+          status: RecipeVersionStatus.ACTIVE,
+        },
+        include: [
+          {
+            model: RecipeModel,
+            as: 'recipe',
+            required: true,
+            where: {
+              productId,
+              isDefault: true,
+              status: RecipeStatus.ACTIVE,
+            },
+          },
+        ],
+        order: [['versionNumber', 'DESC']],
+      })) as (RecipeVersionModel & { recipe?: RecipeModel }) | null;
 
-        const preferredBrand = (item as any).preferredBrand;
-        if (item.preferredBrandId && preferredBrand) {
-          // Use preferred brand price
-          const brandPrice = await stockItemBrandRepository.findByStockItemAndBrand(
-            item.stockItemId,
-            item.preferredBrandId
+      if (defaultActiveVersion) {
+        resolvedRecipeVersionId = defaultActiveVersion.id;
+        resolvedRecipeId = defaultActiveVersion.recipeId;
+
+        const versionItems = (await RecipeVersionItemModel.findAll({
+          where: {
+            recipeVersionId: defaultActiveVersion.id,
+          },
+          include: [
+            {
+              model: StockItemModel,
+              as: 'stockItem',
+              attributes: ['id', 'name', 'unitOfMeasure'],
+            },
+            {
+              model: BrandModel,
+              as: 'preferredBrand',
+              attributes: ['id', 'name'],
+            },
+          ],
+        })) as Array<
+          RecipeVersionItemModel & {
+            stockItem?: StockItemModel;
+            preferredBrand?: BrandModel;
+          }
+        >;
+
+        for (const item of versionItems) {
+          let unitPrice = 0;
+          let brand = (item.preferredBrand as BrandModel | undefined) ?? null;
+
+          if (item.preferredBrandId) {
+            const brandPrice = await stockItemBrandRepository.findByStockItemAndBrand(
+              item.stockItemId,
+              item.preferredBrandId
+            );
+            if (brandPrice) {
+              unitPrice = Number(brandPrice.unitPriceAfterTax);
+              brand = ((brandPrice as any).brand as BrandModel | undefined) ?? brand;
+            }
+          } else {
+            const brands = await stockItemBrandRepository.findByStockItemId(item.stockItemId);
+            if (brands.length > 0) {
+              const lowestPriceBrand = brands.reduce((lowest, current) => {
+                return Number(current.unitPriceAfterTax) < Number(lowest.unitPriceAfterTax)
+                  ? current
+                  : lowest;
+              });
+              unitPrice = Number(lowestPriceBrand.unitPriceAfterTax);
+              brand = (lowestPriceBrand as any).brand ?? null;
+            }
+          }
+
+          const effectiveQuantity =
+            Number(item.baseQuantity) * (1 + Number(item.wastePercent ?? 0) / 100);
+          const stockItem = item.stockItem;
+          if (!stockItem) {
+            continue;
+          }
+
+          const breakdownItem = toProductCostBreakdownItem(
+            stockItem,
+            effectiveQuantity,
+            brand,
+            unitPrice
           );
-          if (brandPrice) {
-            unitPrice = Number(brandPrice.unitPriceAfterTax);
-            brand = preferredBrand;
-          }
-        } else {
-          // Use lowest price brand if no preferred brand
-          const brands = await stockItemBrandRepository.findByStockItemId(item.stockItemId);
-          if (brands.length > 0) {
-            const lowestPriceBrand = brands.reduce((lowest, current) => {
-              return Number(current.unitPriceAfterTax) < Number(lowest.unitPriceAfterTax)
-                ? current
-                : lowest;
-            });
-            unitPrice = Number(lowestPriceBrand.unitPriceAfterTax);
-            brand = (lowestPriceBrand as any).brand ?? null;
-          }
+
+          costBreakdown.push(breakdownItem);
+          totalCost += breakdownItem.totalCost;
         }
+      } else {
+        const stockItems = await productStockItemRepository.findByProductId(productId);
 
-        const stockItem = (item as any).stockItem;
-        const breakdownItem = toProductCostBreakdownItem(
-          stockItem,
-          Number(item.quantity),
-          brand,
-          unitPrice
-        );
+        for (const item of stockItems) {
+          let unitPrice = 0;
+          let brand = null;
 
-        costBreakdown.push(breakdownItem);
-        totalCost += breakdownItem.totalCost;
+          const preferredBrand = (item as any).preferredBrand;
+          if (item.preferredBrandId && preferredBrand) {
+            const brandPrice = await stockItemBrandRepository.findByStockItemAndBrand(
+              item.stockItemId,
+              item.preferredBrandId
+            );
+            if (brandPrice) {
+              unitPrice = Number(brandPrice.unitPriceAfterTax);
+              brand = preferredBrand;
+            }
+          } else {
+            const brands = await stockItemBrandRepository.findByStockItemId(item.stockItemId);
+            if (brands.length > 0) {
+              const lowestPriceBrand = brands.reduce((lowest, current) => {
+                return Number(current.unitPriceAfterTax) < Number(lowest.unitPriceAfterTax)
+                  ? current
+                  : lowest;
+              });
+              unitPrice = Number(lowestPriceBrand.unitPriceAfterTax);
+              brand = (lowestPriceBrand as any).brand ?? null;
+            }
+          }
+
+          const stockItem = (item as any).stockItem;
+          if (!stockItem) {
+            continue;
+          }
+          const breakdownItem = toProductCostBreakdownItem(
+            stockItem,
+            Number(item.quantity),
+            brand,
+            unitPrice
+          );
+
+          costBreakdown.push(breakdownItem);
+          totalCost += breakdownItem.totalCost;
+        }
       }
 
       const response: ProductCostResponseDto = {
         productId,
         productName: '', // TODO: Fetch from Product model when needed
+        recipeId: resolvedRecipeId,
+        recipeVersionId: resolvedRecipeVersionId,
         totalCost,
         costBreakdown,
       };

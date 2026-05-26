@@ -21,6 +21,9 @@ import { createProductStockHandlers } from './handlers/product-stock.handlers';
 import { createStockMovementRepository } from './repositories/stock-movements.repositories';
 import { createStockMovementService } from './services/stock-movements.services';
 import { createStockMovementHandlers } from './handlers/stock-movements.handlers';
+import { createRecipeRepository } from './repositories/recipes.repositories';
+import { createRecipeService } from './services/recipes.services';
+import { createRecipeHandlers } from './handlers/recipes.handlers';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validation';
 import { authenticateJWT } from '../../middleware';
 import { requireManager } from '../../middleware/rbac.middleware';
@@ -50,6 +53,18 @@ import {
   stockMovementIdParamSchema,
   stockMovementListQuerySchema,
 } from './validators/stock-movements.validators';
+import {
+  createRecipeSchema,
+  createRecipeVersionItemSchema,
+  createRecipeVersionSchema,
+  productIdOnlyParamsSchema,
+  productRecipeParamsSchema,
+  productRecipeVersionItemParamsSchema,
+  productRecipeVersionParamsSchema,
+  updateRecipeSchema,
+  updateRecipeVersionItemSchema,
+  updateRecipeVersionSchema,
+} from './validators/recipes.validators';
 
 /**
  * Create stock router
@@ -97,6 +112,19 @@ export const createStockRouter = (): Router => {
     stockItemBrandRepository
   );
   const productStockHandlers = createProductStockHandlers(productStockService);
+
+  // Create recipes repositories, service, and handlers
+  const recipeRepository = createRecipeRepository(
+    models.Recipe,
+    models.RecipeVersion,
+    models.RecipeVersionItem
+  );
+  const recipeService = createRecipeService({
+    recipeRepository,
+    stockItemModel: models.StockItem,
+    stockItemBrandModel: models.StockItemBrand,
+  });
+  const recipeHandlers = createRecipeHandlers(recipeService);
 
   // Create stock movements service and handlers (reusing repository from above)
   const stockMovementService = createStockMovementService(stockMovementRepository);
@@ -474,6 +502,95 @@ export const createStockRouter = (): Router => {
     requireManager as any,
     validateParams(stockItemIdParamSchema),
     productStockHandlers.handleCheckStockItemDeletionProtection as any
+  );
+
+  /**
+   * Recipes Routes
+   */
+  router.get(
+    '/products/:productId/recipes',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productIdOnlyParamsSchema),
+    recipeHandlers.handleGetProductRecipes as any
+  );
+
+  router.post(
+    '/products/:productId/recipes',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productIdOnlyParamsSchema),
+    validateBody(createRecipeSchema),
+    recipeHandlers.handleCreateRecipe as any
+  );
+
+  router.patch(
+    '/products/:productId/recipes/:recipeId',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeParamsSchema),
+    validateBody(updateRecipeSchema),
+    recipeHandlers.handleUpdateRecipe as any
+  );
+
+  router.post(
+    '/products/:productId/recipes/:recipeId/set-default',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeParamsSchema),
+    recipeHandlers.handleSetDefaultRecipe as any
+  );
+
+  router.post(
+    '/products/:productId/recipes/:recipeId/versions',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeParamsSchema),
+    validateBody(createRecipeVersionSchema),
+    recipeHandlers.handleCreateRecipeVersion as any
+  );
+
+  router.get(
+    '/products/:productId/recipes/:recipeId/versions/:versionId',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeVersionParamsSchema),
+    recipeHandlers.handleGetRecipeVersionDetail as any
+  );
+
+  router.patch(
+    '/products/:productId/recipes/:recipeId/versions/:versionId',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeVersionParamsSchema),
+    validateBody(updateRecipeVersionSchema),
+    recipeHandlers.handleUpdateRecipeVersion as any
+  );
+
+  router.post(
+    '/products/:productId/recipes/:recipeId/versions/:versionId/items',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeVersionParamsSchema),
+    validateBody(createRecipeVersionItemSchema),
+    recipeHandlers.handleAddRecipeVersionItem as any
+  );
+
+  router.patch(
+    '/products/:productId/recipes/:recipeId/versions/:versionId/items/:itemId',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeVersionItemParamsSchema),
+    validateBody(updateRecipeVersionItemSchema),
+    recipeHandlers.handleUpdateRecipeVersionItem as any
+  );
+
+  router.delete(
+    '/products/:productId/recipes/:recipeId/versions/:versionId/items/:itemId',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(productRecipeVersionItemParamsSchema),
+    recipeHandlers.handleDeleteRecipeVersionItem as any
   );
 
   /**

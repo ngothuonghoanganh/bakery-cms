@@ -8,10 +8,13 @@ import type {
   BusinessModelType as BusinessModel,
   SaleUnitTypeType as SaleUnitType,
 } from '../../../../types/models/order.model';
+import type { StockPurchaseUnit } from '@bakery-cms/common';
 
 export type OrderItemFormValue = {
   productId: string;
   saleUnitType?: SaleUnitType;
+  saleUnit?: StockPurchaseUnit;
+  recipeVersionId?: string;
   quantity: number;
   unitPrice: number;
   notes?: string;

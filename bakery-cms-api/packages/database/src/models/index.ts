@@ -20,6 +20,12 @@ import { FileModel, initFileModel } from './file.model';
 import { ProductImageModel, initProductImageModel } from './product-image.model';
 import { ProductComboItemModel, initProductComboItemModel } from './product-combo-item.model';
 import { SystemSettingModel, initSystemSettingModel } from './system-setting.model';
+import { RecipeModel, initRecipeModel } from './recipe.model';
+import { RecipeVersionModel, initRecipeVersionModel } from './recipe-version.model';
+import {
+  RecipeVersionItemModel,
+  initRecipeVersionItemModel,
+} from './recipe-version-item.model';
 
 // Re-export TokenType for convenience
 export { TokenType } from './auth-session.model';
@@ -45,6 +51,9 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly ProductImage: typeof ProductImageModel;
   readonly ProductComboItem: typeof ProductComboItemModel;
   readonly SystemSetting: typeof SystemSettingModel;
+  readonly Recipe: typeof RecipeModel;
+  readonly RecipeVersion: typeof RecipeVersionModel;
+  readonly RecipeVersionItem: typeof RecipeVersionItemModel;
 } => {
   // Initialize all models
   const Product = initProductModel(sequelize);
@@ -63,6 +72,9 @@ export const initializeModels = (sequelize: Sequelize): {
   const ProductImage = initProductImageModel(sequelize);
   const ProductComboItem = initProductComboItemModel(sequelize);
   const SystemSetting = initSystemSettingModel(sequelize);
+  const Recipe = initRecipeModel(sequelize);
+  const RecipeVersion = initRecipeVersionModel(sequelize);
+  const RecipeVersionItem = initRecipeVersionItemModel(sequelize);
 
   // Define associations
   
@@ -108,6 +120,20 @@ export const initializeModels = (sequelize: Sequelize): {
     foreignKey: 'orderId',
     as: 'order',
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  OrderItem.belongsTo(Recipe, {
+    foreignKey: 'recipeId',
+    as: 'recipe',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  OrderItem.belongsTo(RecipeVersion, {
+    foreignKey: 'recipeVersionId',
+    as: 'recipeVersion',
+    onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
   });
 
@@ -212,6 +238,13 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  Product.hasMany(Recipe, {
+    foreignKey: 'productId',
+    as: 'recipes',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
   // ProductStockItem associations
   ProductStockItem.belongsTo(Product, {
     foreignKey: 'productId',
@@ -230,6 +263,84 @@ export const initializeModels = (sequelize: Sequelize): {
   ProductStockItem.belongsTo(Brand, {
     foreignKey: 'preferredBrandId',
     as: 'preferredBrand',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  // Recipe associations
+  Recipe.belongsTo(Product, {
+    foreignKey: 'productId',
+    as: 'product',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  Recipe.hasMany(RecipeVersion, {
+    foreignKey: 'recipeId',
+    as: 'versions',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  Recipe.hasMany(OrderItem, {
+    foreignKey: 'recipeId',
+    as: 'orderItems',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersion.belongsTo(Recipe, {
+    foreignKey: 'recipeId',
+    as: 'recipe',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersion.hasMany(OrderItem, {
+    foreignKey: 'recipeVersionId',
+    as: 'orderItems',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersion.hasMany(RecipeVersionItem, {
+    foreignKey: 'recipeVersionId',
+    as: 'items',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersionItem.belongsTo(RecipeVersion, {
+    foreignKey: 'recipeVersionId',
+    as: 'recipeVersion',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersionItem.belongsTo(StockItem, {
+    foreignKey: 'stockItemId',
+    as: 'stockItem',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockItem.hasMany(RecipeVersionItem, {
+    foreignKey: 'stockItemId',
+    as: 'recipeVersionItems',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  RecipeVersionItem.belongsTo(Brand, {
+    foreignKey: 'preferredBrandId',
+    as: 'preferredBrand',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  });
+
+  Brand.hasMany(RecipeVersionItem, {
+    foreignKey: 'preferredBrandId',
+    as: 'preferredRecipeVersionItems',
     onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
   });
@@ -384,6 +495,9 @@ export const initializeModels = (sequelize: Sequelize): {
     ProductImage,
     ProductComboItem,
     SystemSetting,
+    Recipe,
+    RecipeVersion,
+    RecipeVersionItem,
   };
 };
 
@@ -405,4 +519,7 @@ export {
   ProductImageModel,
   ProductComboItemModel,
   SystemSettingModel,
+  RecipeModel,
+  RecipeVersionModel,
+  RecipeVersionItemModel,
 };

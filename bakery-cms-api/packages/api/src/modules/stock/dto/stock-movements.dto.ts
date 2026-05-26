@@ -3,7 +3,7 @@
  * Type definitions for API request/response payloads
  */
 
-import { MovementType } from '@bakery-cms/common';
+import { CostingMethod, MovementType } from '@bakery-cms/common';
 
 /**
  * Stock movement response DTO
@@ -22,6 +22,9 @@ export interface StockMovementResponseDto {
   reason: string | null;
   referenceType: string | null;
   referenceId: string | null;
+  unitCostSnapshot: number | null;
+  totalCostSnapshot: number | null;
+  costingMethod: CostingMethod | null;
   userId: string;
   userName: string;
   createdAt: string;

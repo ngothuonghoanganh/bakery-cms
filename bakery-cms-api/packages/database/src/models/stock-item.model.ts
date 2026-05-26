@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize } from 'sequelize';
-import { StockItemStatus, StockUnitType } from '@bakery-cms/common';
+import { StockItemStatus, StockPurchaseUnit, StockUnitType } from '@bakery-cms/common';
 
 /**
  * StockItem model class
@@ -16,6 +16,7 @@ export class StockItemModel extends Model {
   declare description: string | null;
   declare unitType: string;
   declare unitOfMeasure: string;
+  declare baseUnit: string;
   declare currentQuantity: number;
   declare reorderThreshold: number | null;
   declare status: string;
@@ -85,6 +86,16 @@ export const initStockItemModel = (
           len: [1, 50],
         },
       },
+      baseUnit: {
+        type: DataTypes.ENUM(
+          StockPurchaseUnit.PIECE,
+          StockPurchaseUnit.GRAM,
+          StockPurchaseUnit.MILLILITER
+        ),
+        allowNull: false,
+        defaultValue: StockPurchaseUnit.PIECE,
+        field: 'base_unit',
+      },
       currentQuantity: {
         type: DataTypes.DECIMAL(10, 3),
         allowNull: false,
@@ -127,14 +138,27 @@ export const initStockItemModel = (
           name: 'idx_stock_items_unit_type',
         },
         {
+          fields: ['base_unit'],
+          name: 'idx_stock_items_base_unit',
+        },
+        {
           fields: ['deleted_at'],
           name: 'idx_stock_items_deleted_at',
         },
       ],
       hooks: {
         beforeSave: (instance: StockItemModel) => {
-          instance.unitOfMeasure =
-            instance.unitType === StockUnitType.WEIGHT ? 'gram' : 'piece';
+          if (instance.unitType === StockUnitType.WEIGHT) {
+            instance.unitOfMeasure = StockPurchaseUnit.GRAM;
+            instance.baseUnit = StockPurchaseUnit.GRAM;
+          } else if (instance.unitType === StockUnitType.VOLUME) {
+            instance.unitOfMeasure = StockPurchaseUnit.MILLILITER;
+            instance.baseUnit = StockPurchaseUnit.MILLILITER;
+          } else {
+            instance.unitOfMeasure = StockPurchaseUnit.PIECE;
+            instance.baseUnit = StockPurchaseUnit.PIECE;
+          }
+
           instance.status = instance.computeStatus();
         },
       },

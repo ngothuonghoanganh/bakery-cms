@@ -5,7 +5,13 @@
 
 
 // Import enums as both types and values from common package
-import { OrderStatus, BusinessModel, OrderType, SaleUnitType } from '@bakery-cms/common';
+import {
+  OrderStatus,
+  BusinessModel,
+  OrderType,
+  SaleUnitType,
+  StockPurchaseUnit,
+} from '@bakery-cms/common';
 
 // Re-export for component usage
 export { OrderStatus, BusinessModel, OrderType, SaleUnitType };
@@ -27,6 +33,14 @@ export type OrderItem = {
   readonly productName: string | null;
   readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
+  readonly saleUnit: StockPurchaseUnit;
+  readonly saleQuantityBase: number;
+  readonly saleBaseUnit: StockPurchaseUnit;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
+  readonly recipeNameSnapshot: string | null;
+  readonly recipeVersionSnapshot: number | null;
+  readonly recipeEstimatedCostSnapshot: number | null;
   readonly unitPrice: number;
   readonly subtotal: number;
   readonly notes: string | null;
@@ -85,6 +99,14 @@ export type OrderBillSnapshotItem = {
   readonly productName: string | null;
   readonly saleUnitType: SaleUnitType;
   readonly quantity: number;
+  readonly saleUnit: StockPurchaseUnit;
+  readonly saleQuantityBase: number;
+  readonly saleBaseUnit: StockPurchaseUnit;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
+  readonly recipeNameSnapshot: string | null;
+  readonly recipeVersionSnapshot: number | null;
+  readonly recipeEstimatedCostSnapshot: number | null;
   readonly unitPrice: number;
   readonly subtotal: number;
   readonly notes: string | null;

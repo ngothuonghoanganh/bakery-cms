@@ -10,6 +10,7 @@ import {
   BusinessModel,
   PaymentMethod,
   SaleUnitType,
+  StockPurchaseUnit,
 } from '@bakery-cms/common';
 
 /**
@@ -41,14 +42,22 @@ const orderItemSchema = Joi.object({
     .messages({
       'any.only': `Sale unit type must be one of: ${Object.values(SaleUnitType).join(', ')}`,
     }),
+  saleUnit: Joi.string()
+    .valid(...Object.values(StockPurchaseUnit))
+    .optional()
+    .messages({
+      'any.only': `Sale unit must be one of: ${Object.values(StockPurchaseUnit).join(', ')}`,
+    }),
+  recipeVersionId: uuidSchema.allow(null).optional().messages({
+    'string.guid': 'Recipe version ID must be a valid UUID',
+  }),
   quantity: Joi.number()
-    .integer()
-    .min(1)
+    .positive()
+    .precision(3)
     .required()
     .messages({
       'number.base': 'Quantity must be a number',
-      'number.integer': 'Quantity must be an integer',
-      'number.min': 'Quantity must be at least 1',
+      'number.positive': 'Quantity must be a positive number',
       'any.required': 'Quantity is required',
     }),
   unitPrice: Joi.number()

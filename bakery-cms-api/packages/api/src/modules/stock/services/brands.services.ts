@@ -336,6 +336,13 @@ export const createBrandService = (
       }
 
       const baseQuantity = baseQuantityResult.value;
+      if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) {
+        return err(
+          createInvalidInputError(
+            `Cannot convert purchase quantity for stock item ${stockItemId}`
+          )
+        );
+      }
       attributes.unitPriceBeforeTax = toMoney(dto.priceBeforeTax / baseQuantity);
       attributes.unitPriceAfterTax = toMoney(dto.priceAfterTax / baseQuantity);
       const stockItemBrand = await stockItemBrandRepository.create(attributes);

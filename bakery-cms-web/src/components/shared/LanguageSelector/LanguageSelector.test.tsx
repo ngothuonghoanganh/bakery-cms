@@ -86,7 +86,7 @@ describe('LanguageSelector', () => {
   it('can be disabled', () => {
     render(<LanguageSelector disabled />);
 
-    const selector = screen.getByRole('combobox');
+    const selector = screen.getByTestId('language-selector');
     expect(selector).toHaveClass('ant-select-disabled');
   });
 

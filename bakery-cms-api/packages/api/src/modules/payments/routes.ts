@@ -40,7 +40,9 @@ export const createPaymentsRouter = (): Router => {
     models.Order,
     models.OrderItem,
     models.OrderBill,
-    models.Product
+    models.Product,
+    models.Recipe,
+    models.RecipeVersion
   );
   const paidOrderStockService = createPaidOrderStockService({
     orderModel: models.Order,
@@ -48,6 +50,9 @@ export const createPaymentsRouter = (): Router => {
     productModel: models.Product,
     productComboItemModel: models.ProductComboItem,
     productStockItemModel: models.ProductStockItem,
+    recipeModel: models.Recipe,
+    recipeVersionModel: models.RecipeVersion,
+    recipeVersionItemModel: models.RecipeVersionItem,
     stockItemModel: models.StockItem,
     stockItemBrandModel: models.StockItemBrand,
     stockMovementModel: models.StockMovement,

@@ -13,6 +13,7 @@ export type StockItemAPIResponse = {
   readonly description: string | null;
   readonly unitType: StockUnitType;
   readonly unitOfMeasure: string;
+  readonly baseUnit: StockPurchaseUnit;
   readonly currentQuantity: number;
   readonly reorderThreshold: number | null;
   readonly status: string; // 'available' | 'low_stock' | 'out_of_stock'
@@ -156,6 +157,9 @@ export type StockMovementAPIResponse = {
   readonly reason: string | null;
   readonly referenceType: string | null;
   readonly referenceId: string | null;
+  readonly unitCostSnapshot: number | null;
+  readonly totalCostSnapshot: number | null;
+  readonly costingMethod: string | null;
   readonly userId: string;
   readonly userName: string;
   readonly createdAt: string;
@@ -205,6 +209,8 @@ export type ProductRecipeAPIResponse = {
 export type ProductCostAPIResponse = {
   readonly productId: string;
   readonly productName: string;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
   readonly totalCost: number;
   readonly costBreakdown: readonly ProductCostBreakdownItem[];
 };
@@ -231,6 +237,102 @@ export type UpdateProductStockItemRequest = {
   readonly quantity?: number;
   readonly preferredBrandId?: string;
   readonly notes?: string;
+};
+
+export type RecipeAPIResponse = {
+  readonly id: string;
+  readonly productId: string;
+  readonly name: string;
+  readonly isDefault: boolean;
+  readonly status: 'draft' | 'active' | 'archived';
+  readonly note: string | null;
+  readonly versions?: readonly RecipeVersionAPIResponse[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type RecipeVersionAPIResponse = {
+  readonly id: string;
+  readonly recipeId: string;
+  readonly versionNumber: number;
+  readonly status: 'draft' | 'active' | 'archived';
+  readonly yieldQuantity: number;
+  readonly yieldUnit: StockPurchaseUnit;
+  readonly yieldBaseQuantity: number;
+  readonly yieldBaseUnit: StockPurchaseUnit;
+  readonly estimatedCost: number;
+  readonly costingMethod: string;
+  readonly effectiveFrom: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type RecipeVersionItemAPIResponse = {
+  readonly id: string;
+  readonly recipeVersionId: string;
+  readonly stockItemId: string;
+  readonly stockItemName: string;
+  readonly quantity: number;
+  readonly unit: StockPurchaseUnit;
+  readonly baseQuantity: number;
+  readonly baseUnit: StockPurchaseUnit;
+  readonly wastePercent: number;
+  readonly preferredBrandId: string | null;
+  readonly preferredBrandName: string | null;
+  readonly unitCostSnapshot: number;
+  readonly totalCostSnapshot: number;
+  readonly note: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type RecipeVersionDetailAPIResponse = RecipeVersionAPIResponse & {
+  readonly items: readonly RecipeVersionItemAPIResponse[];
+};
+
+export type CreateRecipeRequest = {
+  readonly name: string;
+  readonly isDefault?: boolean;
+  readonly status?: 'draft' | 'active' | 'archived';
+  readonly note?: string;
+};
+
+export type UpdateRecipeRequest = {
+  readonly name?: string;
+  readonly isDefault?: boolean;
+  readonly status?: 'draft' | 'active' | 'archived';
+  readonly note?: string | null;
+};
+
+export type CreateRecipeVersionRequest = {
+  readonly status?: 'draft' | 'active' | 'archived';
+  readonly yieldQuantity: number;
+  readonly yieldUnit: StockPurchaseUnit;
+  readonly effectiveFrom?: string | null;
+};
+
+export type UpdateRecipeVersionRequest = {
+  readonly status?: 'draft' | 'active' | 'archived';
+  readonly yieldQuantity?: number;
+  readonly yieldUnit?: StockPurchaseUnit;
+  readonly effectiveFrom?: string | null;
+};
+
+export type CreateRecipeVersionItemRequest = {
+  readonly stockItemId: string;
+  readonly quantity: number;
+  readonly unit: StockPurchaseUnit;
+  readonly wastePercent?: number;
+  readonly preferredBrandId?: string | null;
+  readonly note?: string | null;
+};
+
+export type UpdateRecipeVersionItemRequest = {
+  readonly quantity?: number;
+  readonly unit?: StockPurchaseUnit;
+  readonly wastePercent?: number;
+  readonly preferredBrandId?: string | null;
+  readonly note?: string | null;
 };
 
 // Bulk Import

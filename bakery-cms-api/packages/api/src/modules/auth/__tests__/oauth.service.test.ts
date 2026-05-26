@@ -18,7 +18,7 @@ jest.mock('passport-google-oauth20');
 jest.mock('passport-facebook');
 
 // Mock repositories and services
-jest.mock('../../users/repositories/user.repository');
+jest.mock('../repositories/user.repository');
 jest.mock('../repositories/auth-session.repository');
 jest.mock('../services/email.service');
 

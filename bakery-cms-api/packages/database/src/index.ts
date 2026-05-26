@@ -29,5 +29,8 @@ export {
   ProductImageModel,
   ProductComboItemModel,
   SystemSettingModel,
+  RecipeModel,
+  RecipeVersionModel,
+  RecipeVersionItemModel,
   TokenType,
 } from './models';

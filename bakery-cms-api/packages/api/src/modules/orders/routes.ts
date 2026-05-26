@@ -42,7 +42,9 @@ export const createOrdersRouter = (): Router => {
     models.Order,
     models.OrderItem,
     models.OrderBill,
-    models.Product
+    models.Product,
+    models.Recipe,
+    models.RecipeVersion
   );
   const paymentRepository = createPaymentRepository(models.Payment);
   const settingsRepository = createSettingsRepository(models.SystemSetting);
@@ -52,6 +54,9 @@ export const createOrdersRouter = (): Router => {
     productModel: models.Product,
     productComboItemModel: models.ProductComboItem,
     productStockItemModel: models.ProductStockItem,
+    recipeModel: models.Recipe,
+    recipeVersionModel: models.RecipeVersion,
+    recipeVersionItemModel: models.RecipeVersionItem,
     stockItemModel: models.StockItem,
     stockItemBrandModel: models.StockItemBrand,
     stockMovementModel: models.StockMovement,

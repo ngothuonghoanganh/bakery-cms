@@ -4,19 +4,20 @@
  */
 
 import { StockItemModel } from '@bakery-cms/database';
-import { StockItemStatus, StockUnitType } from '@bakery-cms/common';
+import { StockItemStatus, StockPurchaseUnit, StockUnitType } from '@bakery-cms/common';
 import {
   StockItemResponseDto,
   CreateStockItemDto,
   UpdateStockItemDto,
 } from '../dto/stock-items.dto';
 
-const canonicalUnitOfMeasureByType: Record<StockUnitType, string> = {
-  [StockUnitType.PIECE]: 'piece',
-  [StockUnitType.WEIGHT]: 'gram',
+const canonicalUnitOfMeasureByType: Record<StockUnitType, StockPurchaseUnit> = {
+  [StockUnitType.PIECE]: StockPurchaseUnit.PIECE,
+  [StockUnitType.WEIGHT]: StockPurchaseUnit.GRAM,
+  [StockUnitType.VOLUME]: StockPurchaseUnit.MILLILITER,
 };
 
-const toCanonicalUnitOfMeasure = (unitType: StockUnitType): string =>
+const toCanonicalUnitOfMeasure = (unitType: StockUnitType): StockPurchaseUnit =>
   canonicalUnitOfMeasureByType[unitType];
 
 /**
@@ -32,6 +33,7 @@ export const toStockItemResponseDto = (model: StockItemModel): StockItemResponse
     description: model.description,
     unitType,
     unitOfMeasure: toCanonicalUnitOfMeasure(unitType),
+    baseUnit: toCanonicalUnitOfMeasure(unitType),
     currentQuantity: Number(model.currentQuantity),
     reorderThreshold: model.reorderThreshold !== null ? Number(model.reorderThreshold) : null,
     status: model.status as StockItemStatus,

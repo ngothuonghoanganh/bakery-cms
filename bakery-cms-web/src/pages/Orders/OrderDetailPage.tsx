@@ -243,6 +243,18 @@ const buildBillSnapshotFromOrder = (order: Order): OrderBillSnapshot => ({
       productName: item.productName ?? null,
       saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
       quantity: item.quantity,
+      saleUnit:
+        item.saleUnit ||
+        (item.saleUnitType === SaleUnitType.WEIGHT ? 'gram' : 'piece'),
+      saleQuantityBase: item.saleQuantityBase ?? item.quantity,
+      saleBaseUnit:
+        item.saleBaseUnit ||
+        (item.saleUnitType === SaleUnitType.WEIGHT ? 'gram' : 'piece'),
+      recipeId: item.recipeId ?? null,
+      recipeVersionId: item.recipeVersionId ?? null,
+      recipeNameSnapshot: item.recipeNameSnapshot ?? null,
+      recipeVersionSnapshot: item.recipeVersionSnapshot ?? null,
+      recipeEstimatedCostSnapshot: item.recipeEstimatedCostSnapshot ?? null,
       unitPrice: item.unitPrice,
       subtotal: item.subtotal,
       notes: item.notes ?? null,

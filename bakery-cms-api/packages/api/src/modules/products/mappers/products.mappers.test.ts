@@ -31,7 +31,7 @@ describe('Products Mappers', () => {
 
       const dto = toProductResponseDto(model);
 
-      expect(dto).toEqual({
+      expect(dto).toMatchObject({
         id: '123e4567-e89b-12d3-a456-426614174000',
         name: 'Chocolate Chip Cookie',
         description: 'Delicious cookies',
@@ -43,6 +43,10 @@ describe('Products Mappers', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       });
+      expect(dto.saleUnitType).toBe('piece');
+      expect(dto.productType).toBe('single');
+      expect(dto.comboItems).toEqual([]);
+      expect(dto.images).toEqual([]);
     });
 
     it('should handle null optional fields', () => {
@@ -117,7 +121,7 @@ describe('Products Mappers', () => {
 
       const attributes = toProductCreationAttributes(dto);
 
-      expect(attributes).toEqual({
+      expect(attributes).toMatchObject({
         name: 'New Cookie',
         description: 'Fresh from oven',
         price: 30000,
@@ -126,6 +130,10 @@ describe('Products Mappers', () => {
         status: ProductStatus.AVAILABLE,
         imageUrl: 'https://example.com/new.jpg',
       });
+      expect(attributes.saleUnitType).toBe('piece');
+      expect(attributes.productType).toBe('single');
+      expect(attributes.isPublished).toBe(true);
+      expect(attributes.imageFileId).toBeNull();
     });
 
     it('should use default status when not provided', () => {
@@ -199,9 +207,9 @@ describe('Products Mappers', () => {
 
       const attributes = toProductUpdateAttributes(dto);
 
-      expect(attributes.description).toBeNull();
-      expect(attributes.category).toBeNull();
-      expect(attributes.imageUrl).toBeNull();
+      expect(attributes.description).toBe('');
+      expect(attributes.category).toBe('');
+      expect(attributes.imageUrl).toBe('');
     });
   });
 });

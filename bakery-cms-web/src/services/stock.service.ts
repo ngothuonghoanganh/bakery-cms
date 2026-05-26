@@ -32,6 +32,16 @@ import type {
   PaginatedStockMovementsAPIResponse,
   StockMovementFiltersRequest,
   BulkImportAPIResponse,
+  RecipeAPIResponse,
+  RecipeVersionAPIResponse,
+  RecipeVersionDetailAPIResponse,
+  RecipeVersionItemAPIResponse,
+  CreateRecipeRequest,
+  UpdateRecipeRequest,
+  CreateRecipeVersionRequest,
+  UpdateRecipeVersionRequest,
+  CreateRecipeVersionItemRequest,
+  UpdateRecipeVersionItemRequest,
 } from '@/types/api/stock.api';
 import type {
   StockItem,
@@ -45,6 +55,10 @@ import type {
   StockMovement,
   PaginatedStockMovements,
   BulkImportResult,
+  Recipe,
+  RecipeVersion,
+  RecipeVersionDetail,
+  RecipeVersionItem,
 } from '@/types/models/stock.model';
 import {
   mapStockItemFromAPI,
@@ -58,6 +72,10 @@ import {
   mapStockMovementFromAPI,
   mapPaginatedStockMovementsFromAPI,
   mapBulkImportResultFromAPI,
+  mapRecipeFromAPI,
+  mapRecipeVersionFromAPI,
+  mapRecipeVersionDetailFromAPI,
+  mapRecipeVersionItemFromAPI,
 } from '@/types/mappers/stock.mapper';
 import type { AxiosResponse } from 'axios';
 
@@ -136,6 +154,57 @@ export type StockService = {
   readonly checkStockItemDeletionProtection: (
     stockItemId: string
   ) => Promise<Result<{ canDelete: boolean; productCount: number }, AppError>>;
+
+  // Recipes
+  readonly getRecipesByProduct: (productId: string) => Promise<Result<Recipe[], AppError>>;
+  readonly createRecipe: (
+    productId: string,
+    data: CreateRecipeRequest
+  ) => Promise<Result<Recipe, AppError>>;
+  readonly updateRecipe: (
+    productId: string,
+    recipeId: string,
+    data: UpdateRecipeRequest
+  ) => Promise<Result<Recipe, AppError>>;
+  readonly setDefaultRecipe: (
+    productId: string,
+    recipeId: string
+  ) => Promise<Result<Recipe, AppError>>;
+  readonly createRecipeVersion: (
+    productId: string,
+    recipeId: string,
+    data: CreateRecipeVersionRequest
+  ) => Promise<Result<RecipeVersion, AppError>>;
+  readonly getRecipeVersionDetail: (
+    productId: string,
+    recipeId: string,
+    versionId: string
+  ) => Promise<Result<RecipeVersionDetail, AppError>>;
+  readonly updateRecipeVersion: (
+    productId: string,
+    recipeId: string,
+    versionId: string,
+    data: UpdateRecipeVersionRequest
+  ) => Promise<Result<RecipeVersion, AppError>>;
+  readonly createRecipeVersionItem: (
+    productId: string,
+    recipeId: string,
+    versionId: string,
+    data: CreateRecipeVersionItemRequest
+  ) => Promise<Result<RecipeVersionItem, AppError>>;
+  readonly updateRecipeVersionItem: (
+    productId: string,
+    recipeId: string,
+    versionId: string,
+    itemId: string,
+    data: UpdateRecipeVersionItemRequest
+  ) => Promise<Result<RecipeVersionItem, AppError>>;
+  readonly deleteRecipeVersionItem: (
+    productId: string,
+    recipeId: string,
+    versionId: string,
+    itemId: string
+  ) => Promise<Result<boolean, AppError>>;
 
   // Stock Movements (Audit Trail)
   readonly getStockMovements: (
@@ -570,6 +639,166 @@ const checkStockItemDeletionProtection = async (
   }
 };
 
+const getRecipesByProduct = async (
+  productId: string
+): Promise<Result<Recipe[], AppError>> => {
+  try {
+    const response = await apiClient.get<{ success: boolean; data: RecipeAPIResponse[] }>(
+      `/stock/products/${productId}/recipes`
+    );
+    return ok((response.data.data || []).map(mapRecipeFromAPI));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const createRecipe = async (
+  productId: string,
+  data: CreateRecipeRequest
+): Promise<Result<Recipe, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: RecipeAPIResponse }>(
+      `/stock/products/${productId}/recipes`,
+      data
+    );
+    return ok(mapRecipeFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const updateRecipe = async (
+  productId: string,
+  recipeId: string,
+  data: UpdateRecipeRequest
+): Promise<Result<Recipe, AppError>> => {
+  try {
+    const response = await apiClient.patch<{ success: boolean; data: RecipeAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}`,
+      data
+    );
+    return ok(mapRecipeFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const setDefaultRecipe = async (
+  productId: string,
+  recipeId: string
+): Promise<Result<Recipe, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: RecipeAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}/set-default`
+    );
+    return ok(mapRecipeFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const createRecipeVersion = async (
+  productId: string,
+  recipeId: string,
+  data: CreateRecipeVersionRequest
+): Promise<Result<RecipeVersion, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: RecipeVersionAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}/versions`,
+      data
+    );
+    return ok(mapRecipeVersionFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const getRecipeVersionDetail = async (
+  productId: string,
+  recipeId: string,
+  versionId: string
+): Promise<Result<RecipeVersionDetail, AppError>> => {
+  try {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: RecipeVersionDetailAPIResponse;
+    }>(
+      `/stock/products/${productId}/recipes/${recipeId}/versions/${versionId}`
+    );
+    return ok(mapRecipeVersionDetailFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const updateRecipeVersion = async (
+  productId: string,
+  recipeId: string,
+  versionId: string,
+  data: UpdateRecipeVersionRequest
+): Promise<Result<RecipeVersion, AppError>> => {
+  try {
+    const response = await apiClient.patch<{ success: boolean; data: RecipeVersionAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}/versions/${versionId}`,
+      data
+    );
+    return ok(mapRecipeVersionFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const createRecipeVersionItem = async (
+  productId: string,
+  recipeId: string,
+  versionId: string,
+  data: CreateRecipeVersionItemRequest
+): Promise<Result<RecipeVersionItem, AppError>> => {
+  try {
+    const response = await apiClient.post<{ success: boolean; data: RecipeVersionItemAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}/versions/${versionId}/items`,
+      data
+    );
+    return ok(mapRecipeVersionItemFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const updateRecipeVersionItem = async (
+  productId: string,
+  recipeId: string,
+  versionId: string,
+  itemId: string,
+  data: UpdateRecipeVersionItemRequest
+): Promise<Result<RecipeVersionItem, AppError>> => {
+  try {
+    const response = await apiClient.patch<{ success: boolean; data: RecipeVersionItemAPIResponse }>(
+      `/stock/products/${productId}/recipes/${recipeId}/versions/${versionId}/items/${itemId}`,
+      data
+    );
+    return ok(mapRecipeVersionItemFromAPI(response.data.data));
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+const deleteRecipeVersionItem = async (
+  productId: string,
+  recipeId: string,
+  versionId: string,
+  itemId: string
+): Promise<Result<boolean, AppError>> => {
+  try {
+    await apiClient.delete(
+      `/stock/products/${productId}/recipes/${recipeId}/versions/${versionId}/items/${itemId}`
+    );
+    return ok(true);
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
 /**
  * Get all stock movements with optional filters
  */
@@ -641,6 +870,16 @@ export const stockService: StockService = {
   removeStockItemFromProduct,
   getProductCost,
   checkStockItemDeletionProtection,
+  getRecipesByProduct,
+  createRecipe,
+  updateRecipe,
+  setDefaultRecipe,
+  createRecipeVersion,
+  getRecipeVersionDetail,
+  updateRecipeVersion,
+  createRecipeVersionItem,
+  updateRecipeVersionItem,
+  deleteRecipeVersionItem,
 
   // Stock Movements (Audit Trail)
   getStockMovements,
@@ -682,6 +921,16 @@ export {
   removeStockItemFromProduct,
   getProductCost,
   checkStockItemDeletionProtection,
+  getRecipesByProduct,
+  createRecipe,
+  updateRecipe,
+  setDefaultRecipe,
+  createRecipeVersion,
+  getRecipeVersionDetail,
+  updateRecipeVersion,
+  createRecipeVersionItem,
+  updateRecipeVersionItem,
+  deleteRecipeVersionItem,
 
   // Stock Movements (Audit Trail)
   getStockMovements,

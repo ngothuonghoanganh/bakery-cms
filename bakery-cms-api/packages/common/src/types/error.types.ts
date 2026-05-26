@@ -121,7 +121,7 @@ export const createBusinessRuleError = (
  * Create an internal server error
  */
 export const createInternalError = (
-  message: string = 'An internal error occurred'
+  message = 'An internal error occurred'
 ): AppError => ({
   code: ErrorCode.INTERNAL_ERROR,
   message,
@@ -133,7 +133,7 @@ export const createInternalError = (
  * Create a database error
  */
 export const createDatabaseError = (
-  message: string = 'A database error occurred'
+  message = 'A database error occurred'
 ): AppError => ({
   code: ErrorCode.DATABASE_ERROR,
   message,
@@ -145,7 +145,7 @@ export const createDatabaseError = (
  * Create an unauthorized error (401)
  */
 export const createUnauthorizedError = (
-  message: string = 'Authentication required'
+  message = 'Authentication required'
 ): AppError => ({
   code: ErrorCode.UNAUTHORIZED,
   message,
@@ -157,7 +157,7 @@ export const createUnauthorizedError = (
  * Create a forbidden error (403)
  */
 export const createForbiddenError = (
-  message: string = 'Access forbidden'
+  message = 'Access forbidden'
 ): AppError => ({
   code: ErrorCode.FORBIDDEN,
   message,

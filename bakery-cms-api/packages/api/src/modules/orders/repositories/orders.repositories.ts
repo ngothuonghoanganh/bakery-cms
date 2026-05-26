@@ -10,8 +10,14 @@ import {
   OrderBillModel,
   PaymentModel,
   ProductModel,
+  RecipeModel,
+  RecipeVersionModel,
 } from '@bakery-cms/database';
-import { OrderStatus, SaleUnitType } from '@bakery-cms/common';
+import {
+  OrderStatus,
+  SaleUnitType,
+  StockPurchaseUnit,
+} from '@bakery-cms/common';
 import { OrderListQueryDto, OrderItemDto, OrderBillSnapshotDto } from '../dto/orders.dto';
 
 /**
@@ -38,6 +44,13 @@ export interface OrderRepository {
 export interface OrderItemRepository {
   findByOrderId(orderId: string): Promise<OrderItemModel[]>;
   findProductSaleInfo(productIds: string[]): Promise<OrderItemProductSaleInfo[]>;
+  findActiveRecipeVersionById(
+    productId: string,
+    recipeVersionId: string
+  ): Promise<OrderItemRecipeResolution | null>;
+  findDefaultActiveRecipeVersion(
+    productId: string
+  ): Promise<OrderItemRecipeResolution | null>;
   createMany(orderId: string, items: OrderItemDto[]): Promise<OrderItemModel[]>;
   deleteByOrderId(orderId: string): Promise<number>;
 }
@@ -45,6 +58,14 @@ export interface OrderItemRepository {
 export interface OrderItemProductSaleInfo {
   id: string;
   saleUnitType: SaleUnitType;
+}
+
+export interface OrderItemRecipeResolution {
+  recipeId: string;
+  recipeName: string;
+  recipeVersionId: string;
+  recipeVersionNumber: number;
+  recipeEstimatedCost: number;
 }
 
 /**
@@ -74,7 +95,9 @@ export const createOrderRepository = (
   orderModel: typeof OrderModel,
   orderItemModel: typeof OrderItemModel,
   orderBillModel: typeof OrderBillModel,
-  productModel: typeof ProductModel
+  productModel: typeof ProductModel,
+  recipeModel: typeof RecipeModel,
+  recipeVersionModel: typeof RecipeVersionModel
 ): OrderRepository & { items: OrderItemRepository; bills: OrderBillRepository } => {
   /**
    * Find order by ID
@@ -412,6 +435,86 @@ export const createOrderRepository = (
       }));
     },
 
+    findActiveRecipeVersionById: async (
+      productId: string,
+      recipeVersionId: string
+    ): Promise<OrderItemRecipeResolution | null> => {
+      const version = await recipeVersionModel.findOne({
+        where: {
+          id: recipeVersionId,
+          status: 'active',
+        },
+        include: [
+          {
+            model: recipeModel,
+            as: 'recipe',
+            required: true,
+            where: {
+              productId,
+              status: 'active',
+            },
+          },
+        ],
+      });
+
+      if (!version) {
+        return null;
+      }
+
+      const recipe = (version as any).recipe as RecipeModel | undefined;
+      if (!recipe) {
+        return null;
+      }
+
+      return {
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        recipeVersionId: version.id,
+        recipeVersionNumber: version.versionNumber,
+        recipeEstimatedCost: Number(version.estimatedCost),
+      };
+    },
+
+    findDefaultActiveRecipeVersion: async (
+      productId: string
+    ): Promise<OrderItemRecipeResolution | null> => {
+      const version = await recipeVersionModel.findOne({
+        where: {
+          status: 'active',
+        },
+        include: [
+          {
+            model: recipeModel,
+            as: 'recipe',
+            required: true,
+            where: {
+              productId,
+              isDefault: true,
+              status: 'active',
+            },
+          },
+        ],
+        order: [['versionNumber', 'DESC']],
+      });
+
+      if (!version) {
+        return null;
+      }
+
+      const recipe = (version as any).recipe as RecipeModel | undefined;
+      if (!recipe) {
+        return null;
+      }
+
+      return {
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        recipeVersionId: version.id,
+        recipeVersionNumber: version.versionNumber,
+        recipeEstimatedCost: Number(version.estimatedCost),
+      };
+    },
+
     /**
      * Create multiple order items
      */
@@ -444,6 +547,24 @@ export const createOrderRepository = (
         saleUnitType:
           productSaleUnitTypeMap.get(item.productId) ?? SaleUnitType.PIECE,
         quantity: item.quantity,
+        saleUnit:
+          item.saleUnit ??
+          ((productSaleUnitTypeMap.get(item.productId) ?? SaleUnitType.PIECE) ===
+          SaleUnitType.WEIGHT
+            ? StockPurchaseUnit.GRAM
+            : StockPurchaseUnit.PIECE),
+        saleQuantityBase: item.saleQuantityBase ?? item.quantity,
+        saleBaseUnit:
+          item.saleBaseUnit ??
+          ((productSaleUnitTypeMap.get(item.productId) ?? SaleUnitType.PIECE) ===
+          SaleUnitType.WEIGHT
+            ? StockPurchaseUnit.GRAM
+            : StockPurchaseUnit.PIECE),
+        recipeId: item.recipeId ?? null,
+        recipeVersionId: item.recipeVersionId ?? null,
+        recipeNameSnapshot: item.recipeNameSnapshot ?? null,
+        recipeVersionSnapshot: item.recipeVersionSnapshot ?? null,
+        recipeEstimatedCostSnapshot: item.recipeEstimatedCostSnapshot ?? null,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
         notes: item.notes ?? null,

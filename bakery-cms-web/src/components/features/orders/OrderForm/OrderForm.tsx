@@ -3,7 +3,7 @@
  * Modal form for creating and editing orders with items management
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Form,
   Input,
@@ -34,6 +34,8 @@ import {
   getSaleUnitPriceSuffix,
   isValidQuantityBySaleUnit,
 } from '../../../../utils/sale-unit.utils';
+import { stockService } from '../../../../services/stock.service';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 import type {
   OrderExtraFeeFormValue,
   OrderFormProps,
@@ -44,6 +46,74 @@ import type { OrderExtraFeeTemplate } from '../../../../types/models/settings.mo
 const { Text, Title } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+type RecipeVersionOption = {
+  value: string;
+  label: string;
+  estimatedCost: number;
+};
+
+const getDefaultSaleUnit = (saleUnitType: SaleUnitType): StockPurchaseUnit =>
+  saleUnitType === SaleUnitType.WEIGHT
+    ? StockPurchaseUnit.GRAM
+    : StockPurchaseUnit.PIECE;
+
+const toWeightQuantityGram = (
+  quantity: number,
+  saleUnit: StockPurchaseUnit
+): number => {
+  if (saleUnit === StockPurchaseUnit.KILOGRAM) {
+    return quantity * 1000;
+  }
+  return quantity;
+};
+
+const isQuantityValidForForm = (
+  quantity: number,
+  saleUnitType: SaleUnitType,
+  saleUnit: StockPurchaseUnit
+): boolean => {
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return false;
+  }
+
+  if (saleUnitType === SaleUnitType.WEIGHT) {
+    const quantityInGram = toWeightQuantityGram(quantity, saleUnit);
+    return (
+      Number.isInteger(quantityInGram) &&
+      isValidQuantityBySaleUnit(quantityInGram, SaleUnitType.WEIGHT)
+    );
+  }
+
+  return isValidQuantityBySaleUnit(quantity, saleUnitType);
+};
+
+const getQuantityInputConfig = (
+  saleUnitType: SaleUnitType,
+  saleUnit: StockPurchaseUnit
+): { min: number; step: number; precision: number } => {
+  if (saleUnitType === SaleUnitType.WEIGHT) {
+    if (saleUnit === StockPurchaseUnit.KILOGRAM) {
+      return {
+        min: 0.1,
+        step: 0.1,
+        precision: 3,
+      };
+    }
+
+    return {
+      min: 100,
+      step: 100,
+      precision: 0,
+    };
+  }
+
+  return {
+    min: 1,
+    step: 1,
+    precision: 0,
+  };
+};
 
 export const OrderForm: React.FC<OrderFormProps> = ({
   open,
@@ -60,6 +130,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const { products, loading: productsLoading } = useProducts({ autoFetch: true });
   const [loadingDefaultExtras, setLoadingDefaultExtras] = useState(false);
   const [extraFeeTemplates, setExtraFeeTemplates] = useState<OrderExtraFeeTemplate[]>([]);
+  const [recipeOptionsByProductId, setRecipeOptionsByProductId] = useState<
+    Record<string, RecipeVersionOption[]>
+  >({});
+  const [loadingRecipesByProductId, setLoadingRecipesByProductId] = useState<
+    Record<string, boolean>
+  >({});
   const productById = useMemo(
     () => new Map((products || []).map((product) => [product.id, product])),
     [products]
@@ -73,10 +149,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const itemsTotalAmount = useMemo(() => {
     return items.reduce((sum: number, item: any) => {
       if (!item) return sum;
-      const quantity = item.quantity || 0;
+      const quantity = Number(item.quantity || 0);
       const unitPrice = item.unitPrice || 0;
       const saleUnitType = item.saleUnitType || SaleUnitType.PIECE;
-      return sum + calculateOrderItemSubtotal(quantity, unitPrice, saleUnitType);
+      const saleUnit = (item.saleUnit as StockPurchaseUnit | undefined) ?? getDefaultSaleUnit(saleUnitType);
+      const normalizedQuantity =
+        saleUnitType === SaleUnitType.WEIGHT
+          ? toWeightQuantityGram(quantity, saleUnit)
+          : quantity;
+      return sum + calculateOrderItemSubtotal(normalizedQuantity, unitPrice, saleUnitType);
     }, 0);
   }, [items]);
 
@@ -97,6 +178,63 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     () => new Map(extraFeeTemplates.map((template) => [template.id, template])),
     [extraFeeTemplates]
   );
+
+  const loadRecipeOptions = useCallback(async (
+    productId: string
+  ): Promise<RecipeVersionOption[]> => {
+    if (!productId) {
+      return [];
+    }
+
+    if (recipeOptionsByProductId[productId]) {
+      return recipeOptionsByProductId[productId] || [];
+    }
+
+    if (loadingRecipesByProductId[productId]) {
+      return [];
+    }
+
+    setLoadingRecipesByProductId((prev) => ({
+      ...prev,
+      [productId]: true,
+    }));
+
+    const result = await stockService.getRecipesByProduct(productId);
+    if (result.success) {
+      const recipeOptions: RecipeVersionOption[] = result.data
+        .filter((recipe) => recipe.status === 'active')
+        .flatMap((recipe) =>
+          (recipe.versions || [])
+            .filter((version) => version.status === 'active')
+            .sort((a, b) => b.versionNumber - a.versionNumber)
+            .map((version) => ({
+              value: version.id,
+              label: `${recipe.name} v${version.versionNumber}`,
+              estimatedCost: version.estimatedCost,
+            }))
+        );
+
+      setRecipeOptionsByProductId((prev) => ({
+        ...prev,
+        [productId]: recipeOptions,
+      }));
+      setLoadingRecipesByProductId((prev) => ({
+        ...prev,
+        [productId]: false,
+      }));
+      return recipeOptions;
+    } else {
+      setRecipeOptionsByProductId((prev) => ({
+        ...prev,
+        [productId]: [],
+      }));
+      setLoadingRecipesByProductId((prev) => ({
+        ...prev,
+        [productId]: false,
+      }));
+      return [];
+    }
+  }, [loadingRecipesByProductId, recipeOptionsByProductId]);
 
   // Reset form when modal opens/closes or initial values change
   useEffect(() => {
@@ -145,6 +283,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             items: (initialValues.items || []).map((item) => ({
               ...item,
               saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+              saleUnit:
+                (item.saleUnit as StockPurchaseUnit | undefined) ??
+                getDefaultSaleUnit(item.saleUnitType || SaleUnitType.PIECE),
             })),
             extraFees: mappedInitialFees,
           });
@@ -180,6 +321,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           items: (initialValues.items || []).map((item) => ({
             ...item,
             saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+            saleUnit:
+              (item.saleUnit as StockPurchaseUnit | undefined) ??
+              getDefaultSaleUnit(item.saleUnitType || SaleUnitType.PIECE),
           })),
           extraFees: initialValues.extraFees || [],
         });
@@ -197,6 +341,20 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       isMounted = false;
     };
   }, [open, initialValues, form]);
+
+  useEffect(() => {
+    const uniqueProductIds = Array.from(
+      new Set(
+        (items || [])
+          .map((item: any) => String(item?.productId || '').trim())
+          .filter((value) => value.length > 0)
+      )
+    );
+
+    uniqueProductIds.forEach((productId) => {
+      void loadRecipeOptions(productId);
+    });
+  }, [items, loadRecipeOptions]);
 
   const handleFormSubmit = async (values: OrderFormValues) => {
     try {
@@ -226,6 +384,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       const normalizedItems = (values.items || []).map((item) => ({
         ...item,
         saleUnitType: item.saleUnitType || SaleUnitType.PIECE,
+        saleUnit:
+          (item.saleUnit as StockPurchaseUnit | undefined) ??
+          getDefaultSaleUnit(item.saleUnitType || SaleUnitType.PIECE),
       }));
 
       await onSubmit({
@@ -244,16 +405,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     onClose();
   };
 
-  // Auto-fill unit price when product is selected
-  const handleProductSelect = (productId: string, index: number) => {
+  // Auto-fill unit price and recipe when product is selected
+  const handleProductSelect = async (productId: string, index: number) => {
     const product = products?.find((p) => p.id === productId);
     if (product) {
+      const recipeOptions = await loadRecipeOptions(productId);
       const currentItems = form.getFieldValue('items') || [];
       const currentItem = currentItems[index] || {};
       const saleUnitType = product.saleUnitType || SaleUnitType.PIECE;
+      const defaultSaleUnit = getDefaultSaleUnit(saleUnitType);
       const quantityRules = getQuantityRuleBySaleUnit(saleUnitType);
       const currentQuantity = Number(currentItem.quantity ?? 0);
-      const normalizedQuantity = isValidQuantityBySaleUnit(currentQuantity, saleUnitType)
+      const normalizedQuantity = isQuantityValidForForm(
+        currentQuantity,
+        saleUnitType,
+        defaultSaleUnit
+      )
         ? currentQuantity
         : quantityRules.min;
 
@@ -261,10 +428,34 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         ...currentItem,
         unitPrice: product.price,
         saleUnitType,
+        saleUnit: defaultSaleUnit,
         quantity: normalizedQuantity,
+        recipeVersionId:
+          currentItem.recipeVersionId || recipeOptions[0]?.value || undefined,
       };
       form.setFieldsValue({ items: currentItems });
     }
+  };
+
+  const handleSaleUnitChange = (
+    value: StockPurchaseUnit,
+    index: number,
+    saleUnitType: SaleUnitType
+  ): void => {
+    const currentItems = form.getFieldValue('items') || [];
+    const currentItem = currentItems[index] || {};
+    const quantity = Number(currentItem.quantity || 0);
+    const quantityInputConfig = getQuantityInputConfig(saleUnitType, value);
+
+    currentItems[index] = {
+      ...currentItem,
+      saleUnit: value,
+      quantity: isQuantityValidForForm(quantity, saleUnitType, value)
+        ? quantity
+        : quantityInputConfig.min,
+    };
+
+    form.setFieldsValue({ items: currentItems });
   };
 
   const handleExtraTemplateSelect = (templateId: string, index: number) => {
@@ -309,6 +500,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             {
               productId: '',
               saleUnitType: SaleUnitType.PIECE,
+              saleUnit: StockPurchaseUnit.PIECE,
               quantity: 1,
               unitPrice: 0,
               notes: '',
@@ -429,13 +621,30 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   items[index]?.saleUnitType ||
                   selectedProduct?.saleUnitType ||
                   SaleUnitType.PIECE;
-                const quantityRule = getQuantityRuleBySaleUnit(saleUnitType);
+                const saleUnit =
+                  (items[index]?.saleUnit as StockPurchaseUnit | undefined) ||
+                  getDefaultSaleUnit(saleUnitType);
+                const quantityInputConfig = getQuantityInputConfig(
+                  saleUnitType,
+                  saleUnit
+                );
+                const quantityValue = Number(items[index]?.quantity || 0);
+                const normalizedQuantityForSubtotal =
+                  saleUnitType === SaleUnitType.WEIGHT
+                    ? toWeightQuantityGram(quantityValue, saleUnit)
+                    : quantityValue;
                 const subtotal = calculateOrderItemSubtotal(
-                  Number(items[index]?.quantity || 0),
+                  normalizedQuantityForSubtotal,
                   Number(items[index]?.unitPrice || 0),
                   saleUnitType
                 );
                 const isWeight = saleUnitType === SaleUnitType.WEIGHT;
+                const recipeOptions = selectedProductId
+                  ? recipeOptionsByProductId[selectedProductId] || []
+                  : [];
+                const selectedRecipeOption = recipeOptions.find(
+                  (option) => option.value === items[index]?.recipeVersionId
+                );
 
                 return (
                   <div key={field.key} style={{ marginBottom: 12 }}>
@@ -476,6 +685,40 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                         <Input />
                       </Form.Item>
 
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'saleUnit']}
+                        rules={[{ required: true, message: t('orders.form.validation.saleUnitRequired', 'Unit is required') }]}
+                        style={{ marginBottom: 0, width: 130 }}
+                      >
+                        <Select
+                          placeholder={t('orders.form.unit', 'Unit')}
+                          disabled={!selectedProductId}
+                          onChange={(value) =>
+                            handleSaleUnitChange(
+                              value as StockPurchaseUnit,
+                              index,
+                              saleUnitType
+                            )
+                          }
+                        >
+                          {saleUnitType === SaleUnitType.WEIGHT ? (
+                            <>
+                              <Option value={StockPurchaseUnit.GRAM}>
+                                {t('orders.form.unitGram', 'Gram')}
+                              </Option>
+                              <Option value={StockPurchaseUnit.KILOGRAM}>
+                                {t('orders.form.unitKilogram', 'Kilogram')}
+                              </Option>
+                            </>
+                          ) : (
+                            <Option value={StockPurchaseUnit.PIECE}>
+                              {t('orders.form.unitPiece', 'Piece')}
+                            </Option>
+                          )}
+                        </Select>
+                      </Form.Item>
+
                       {/* Quantity */}
                       <Form.Item
                         {...field}
@@ -486,12 +729,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                           {
                             validator: async (_, value) => {
                               const quantity = Number(value);
-                              if (!isValidQuantityBySaleUnit(quantity, saleUnitType)) {
+                              if (!isQuantityValidForForm(quantity, saleUnitType, saleUnit)) {
                                 if (saleUnitType === SaleUnitType.WEIGHT) {
                                   throw new Error(
                                     t(
                                       'orders.form.validation.weightQuantityRule',
-                                      'Khối lượng phải là số gram nguyên, tối thiểu 100g và bội số của 100g.'
+                                      'Weight must be at least 100g and in 100g increments.'
                                     )
                                   );
                                 }
@@ -511,14 +754,35 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                         <InputNumber
                           placeholder={
                             isWeight
-                              ? t('orders.form.quantityWeightPlaceholder', 'Gram (100g step)')
+                              ? saleUnit === StockPurchaseUnit.KILOGRAM
+                                ? t('orders.form.quantityWeightKgPlaceholder', 'Kilogram (0.1kg step)')
+                                : t('orders.form.quantityWeightPlaceholder', 'Gram (100g step)')
                               : t('orders.form.quantityShort')
                           }
-                          min={quantityRule.min}
-                          step={quantityRule.step}
-                          precision={0}
+                          min={quantityInputConfig.min}
+                          step={quantityInputConfig.step}
+                          precision={quantityInputConfig.precision}
                           style={{ width: '100%' }}
                         />
+                      </Form.Item>
+
+                      <Form.Item
+                        {...field}
+                        name={[field.name, 'recipeVersionId']}
+                        style={{ marginBottom: 0, width: 220 }}
+                      >
+                        <Select
+                          placeholder={t('orders.form.recipeVersion', 'Recipe version')}
+                          allowClear
+                          disabled={!selectedProductId}
+                          loading={selectedProductId ? loadingRecipesByProductId[selectedProductId] : false}
+                        >
+                          {recipeOptions.map((option) => (
+                            <Option key={option.value} value={option.value}>
+                              {option.label}
+                            </Option>
+                          ))}
+                        </Select>
                       </Form.Item>
 
                       {/* Unit Price */}
@@ -570,6 +834,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                         )}
                       />
                     </Form.Item>
+
+                    {selectedRecipeOption ? (
+                      <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+                        {t('orders.form.recipeEstimatedCost', 'Estimated recipe cost')}: {formatCurrency(selectedRecipeOption.estimatedCost || 0)}
+                      </Text>
+                    ) : null}
                   </div>
                 );
               })}
@@ -582,6 +852,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     add({
                       productId: '',
                       saleUnitType: SaleUnitType.PIECE,
+                      saleUnit: StockPurchaseUnit.PIECE,
                       quantity: 1,
                       unitPrice: 0,
                       notes: '',

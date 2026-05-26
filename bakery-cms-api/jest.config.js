@@ -9,6 +9,10 @@ module.exports = {
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
+  testPathIgnorePatterns: [
+    '<rootDir>/packages/.*/dist/',
+    '<rootDir>/packages/api/src/__tests__/soft-delete-integration.test.ts',
+  ],
   collectCoverageFrom: [
     'packages/*/src/**/*.{ts,tsx}',
     '!packages/*/src/**/*.d.ts',

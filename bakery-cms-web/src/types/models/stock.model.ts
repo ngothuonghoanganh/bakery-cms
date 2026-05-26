@@ -27,6 +27,7 @@ export type StockItem = {
   readonly description: string | null;
   readonly unitType: StockUnitType;
   readonly unitOfMeasure: string;
+  readonly baseUnit: StockPurchaseUnit;
   readonly currentQuantity: number;
   readonly reorderThreshold: number | null;
   readonly status: StockItemStatus;
@@ -114,6 +115,9 @@ export type StockMovement = {
   readonly reason: string | null;
   readonly referenceType: string | null;
   readonly referenceId: string | null;
+  readonly unitCostSnapshot: number | null;
+  readonly totalCostSnapshot: number | null;
+  readonly costingMethod: string | null;
   readonly userId: string;
   readonly userName: string;
   readonly createdAt: Date;
@@ -159,6 +163,8 @@ export type ProductRecipe = {
 export type ProductCost = {
   readonly productId: string;
   readonly productName: string;
+  readonly recipeId: string | null;
+  readonly recipeVersionId: string | null;
   readonly totalCost: number;
   readonly costBreakdown: readonly ProductCostBreakdownItem[];
 };
@@ -172,6 +178,59 @@ export type ProductCostBreakdownItem = {
   readonly brandName: string | null;
   readonly unitPrice: number;
   readonly totalCost: number;
+};
+
+export type RecipeStatus = 'draft' | 'active' | 'archived';
+
+export type Recipe = {
+  readonly id: string;
+  readonly productId: string;
+  readonly name: string;
+  readonly isDefault: boolean;
+  readonly status: RecipeStatus;
+  readonly note: string | null;
+  readonly versions?: readonly RecipeVersion[];
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+};
+
+export type RecipeVersion = {
+  readonly id: string;
+  readonly recipeId: string;
+  readonly versionNumber: number;
+  readonly status: RecipeStatus;
+  readonly yieldQuantity: number;
+  readonly yieldUnit: StockPurchaseUnit;
+  readonly yieldBaseQuantity: number;
+  readonly yieldBaseUnit: StockPurchaseUnit;
+  readonly estimatedCost: number;
+  readonly costingMethod: string;
+  readonly effectiveFrom: Date | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+};
+
+export type RecipeVersionItem = {
+  readonly id: string;
+  readonly recipeVersionId: string;
+  readonly stockItemId: string;
+  readonly stockItemName: string;
+  readonly quantity: number;
+  readonly unit: StockPurchaseUnit;
+  readonly baseQuantity: number;
+  readonly baseUnit: StockPurchaseUnit;
+  readonly wastePercent: number;
+  readonly preferredBrandId: string | null;
+  readonly preferredBrandName: string | null;
+  readonly unitCostSnapshot: number;
+  readonly totalCostSnapshot: number;
+  readonly note: string | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+};
+
+export type RecipeVersionDetail = RecipeVersion & {
+  readonly items: readonly RecipeVersionItem[];
 };
 
 // Bulk Import

@@ -4,7 +4,7 @@
  */
 
 import { Model, DataTypes, Sequelize, Op } from 'sequelize';
-import { SaleUnitType } from '@bakery-cms/common';
+import { SaleUnitType, StockPurchaseUnit } from '@bakery-cms/common';
 
 /**
  * OrderItem model class
@@ -18,6 +18,14 @@ export class OrderItemModel extends Model {
   declare productName: string;
   declare saleUnitType: string;
   declare quantity: number;
+  declare saleUnit: string;
+  declare saleQuantityBase: number;
+  declare saleBaseUnit: string;
+  declare recipeId: string | null;
+  declare recipeVersionId: string | null;
+  declare recipeNameSnapshot: string | null;
+  declare recipeVersionSnapshot: number | null;
+  declare recipeEstimatedCostSnapshot: number | null;
   declare unitPrice: number;
   declare subtotal: number;
   declare notes: string | null;
@@ -86,12 +94,74 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         field: 'sale_unit_type',
       },
       quantity: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DECIMAL(12, 3),
         allowNull: false,
         validate: {
-          min: 1,
-          isInt: true,
+          min: 0.001,
+          isDecimal: true,
         },
+      },
+      saleUnit: {
+        type: DataTypes.ENUM(...Object.values(StockPurchaseUnit)),
+        allowNull: false,
+        defaultValue: StockPurchaseUnit.PIECE,
+        field: 'sale_unit',
+      },
+      saleQuantityBase: {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false,
+        field: 'sale_quantity_base',
+        validate: {
+          min: 0.001,
+          isDecimal: true,
+        },
+      },
+      saleBaseUnit: {
+        type: DataTypes.ENUM(
+          StockPurchaseUnit.PIECE,
+          StockPurchaseUnit.GRAM,
+          StockPurchaseUnit.MILLILITER
+        ),
+        allowNull: false,
+        defaultValue: StockPurchaseUnit.PIECE,
+        field: 'sale_base_unit',
+      },
+      recipeId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'recipe_id',
+        references: {
+          model: 'recipes',
+          key: 'id',
+        },
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      },
+      recipeVersionId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        field: 'recipe_version_id',
+        references: {
+          model: 'recipe_versions',
+          key: 'id',
+        },
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      },
+      recipeNameSnapshot: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'recipe_name_snapshot',
+      },
+      recipeVersionSnapshot: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'recipe_version_snapshot',
+      },
+      recipeEstimatedCostSnapshot: {
+        type: DataTypes.DECIMAL(14, 2),
+        allowNull: true,
+        field: 'recipe_estimated_cost_snapshot',
       },
       unitPrice: {
         type: DataTypes.DECIMAL(10, 2),
@@ -171,6 +241,14 @@ export const initOrderItemModel = (sequelize: Sequelize): typeof OrderItemModel 
         {
           fields: ['sale_unit_type'],
           name: 'idx_order_items_sale_unit_type',
+        },
+        {
+          fields: ['recipe_id'],
+          name: 'idx_order_items_recipe_id',
+        },
+        {
+          fields: ['recipe_version_id'],
+          name: 'idx_order_items_recipe_version_id',
         },
         {
           unique: true,

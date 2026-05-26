@@ -9,6 +9,7 @@ import {
   BusinessModel,
   PaymentMethod,
   SaleUnitType,
+  StockPurchaseUnit,
 } from '@bakery-cms/common';
 import { PaymentResponseDto, VietQRResponseDto } from '../../payments/dto/payments.dto';
 
@@ -20,6 +21,14 @@ export interface OrderItemDto {
   id?: string;
   productId: string;
   quantity: number;
+  saleUnit?: StockPurchaseUnit;
+  saleQuantityBase?: number;
+  saleBaseUnit?: StockPurchaseUnit;
+  recipeId?: string | null;
+  recipeVersionId?: string | null;
+  recipeNameSnapshot?: string | null;
+  recipeVersionSnapshot?: number | null;
+  recipeEstimatedCostSnapshot?: number | null;
   unitPrice: number;
   subtotal: number;
   saleUnitType?: SaleUnitType;
@@ -38,6 +47,14 @@ export interface OrderItemResponseDto {
   productName: string | null;
   saleUnitType: SaleUnitType;
   quantity: number;
+  saleUnit: StockPurchaseUnit;
+  saleQuantityBase: number;
+  saleBaseUnit: StockPurchaseUnit;
+  recipeId: string | null;
+  recipeVersionId: string | null;
+  recipeNameSnapshot: string | null;
+  recipeVersionSnapshot: number | null;
+  recipeEstimatedCostSnapshot: number | null;
   unitPrice: number;
   subtotal: number;
   notes: string | null;
@@ -198,6 +215,14 @@ export interface OrderBillSnapshotItemDto {
   productName: string | null;
   saleUnitType: SaleUnitType;
   quantity: number;
+  saleUnit: StockPurchaseUnit;
+  saleQuantityBase: number;
+  saleBaseUnit: StockPurchaseUnit;
+  recipeId: string | null;
+  recipeVersionId: string | null;
+  recipeNameSnapshot: string | null;
+  recipeVersionSnapshot: number | null;
+  recipeEstimatedCostSnapshot: number | null;
   unitPrice: number;
   subtotal: number;
   notes: string | null;

@@ -13,16 +13,19 @@ import {
   PaymentStatus,
   PaymentType,
   SaleUnitType,
+  StockPurchaseUnit,
 } from '@bakery-cms/common';
 import {
   OrderRepository,
   OrderItemRepository,
   OrderBillRepository,
   OrderItemProductSaleInfo,
+  OrderItemRecipeResolution,
 } from '../repositories/orders.repositories';
 import { PaymentRepository } from '../../payments/repositories/payments.repositories';
 import { SettingsRepository } from '../../settings/repositories/settings.repositories';
 import type { PaidOrderStockService } from '../../stock/services/paid-order-stock.services';
+import { unitConversionService } from '../../stock/services/unit-conversion.services';
 import {
   CreateOrderDto,
   UpdateOrderDto,
@@ -369,30 +372,12 @@ export const createOrderService = (
       }
 
       const quantity = Number(item.quantity);
-      if (!Number.isFinite(quantity) || !Number.isInteger(quantity)) {
+      if (!Number.isFinite(quantity) || quantity <= 0) {
         return err(
           createInvalidInputError(
-            `Quantity must be an integer for product ${item.productId}`
+            `Quantity must be a positive number for product ${item.productId}`
           )
         );
-      }
-
-      if (saleUnitType === SaleUnitType.PIECE) {
-        if (quantity < 1) {
-          return err(
-            createInvalidInputError(
-              `Quantity for piece product must be at least 1: ${item.productId}`
-            )
-          );
-        }
-      } else if (saleUnitType === SaleUnitType.WEIGHT) {
-        if (quantity < 100 || quantity % 100 !== 0) {
-          return err(
-            createInvalidInputError(
-              `Quantity for weight product must be integer gram in steps of 100 (min 100g): ${item.productId}`
-            )
-          );
-        }
       }
 
       const unitPrice = Number(item.unitPrice);
@@ -413,8 +398,48 @@ export const createOrderService = (
         );
       }
 
-      const expectedSubtotal = calculateOrderItemSubtotal(
+      const defaultSaleUnit =
+        saleUnitType === SaleUnitType.WEIGHT
+          ? StockPurchaseUnit.GRAM
+          : StockPurchaseUnit.PIECE;
+      const saleUnit = (item.saleUnit ?? defaultSaleUnit) as StockPurchaseUnit;
+      const saleBaseUnit =
+        saleUnitType === SaleUnitType.WEIGHT
+          ? StockPurchaseUnit.GRAM
+          : StockPurchaseUnit.PIECE;
+
+      if (saleUnitType === SaleUnitType.PIECE && saleUnit !== StockPurchaseUnit.PIECE) {
+        return err(
+          createInvalidInputError(
+            `Piece product only supports saleUnit=piece: ${item.productId}`
+          )
+        );
+      }
+
+      if (
+        saleUnitType === SaleUnitType.WEIGHT &&
+        saleUnit !== StockPurchaseUnit.GRAM &&
+        saleUnit !== StockPurchaseUnit.KILOGRAM
+      ) {
+        return err(
+          createInvalidInputError(
+            `Weight product only supports saleUnit=gram|kilogram: ${item.productId}`
+          )
+        );
+      }
+
+      const saleQuantityBaseResult = unitConversionService.convert(
         quantity,
+        saleUnit,
+        saleBaseUnit
+      );
+      if (saleQuantityBaseResult.isErr()) {
+        return err(saleQuantityBaseResult.error);
+      }
+      const saleQuantityBase = saleQuantityBaseResult.value;
+
+      const expectedSubtotal = calculateOrderItemSubtotal(
+        saleUnitType === SaleUnitType.WEIGHT ? saleQuantityBase : quantity,
         unitPrice,
         saleUnitType
       );
@@ -427,12 +452,56 @@ export const createOrderService = (
         );
       }
 
+      let recipeSnapshot: OrderItemRecipeResolution | null = null;
+      if (item.recipeVersionId) {
+        const resolved = await repository.items.findActiveRecipeVersionById(
+          item.productId,
+          item.recipeVersionId
+        );
+        if (!resolved) {
+          return err(
+            createInvalidInputError(
+              `recipeVersionId is invalid or inactive for product ${item.productId}`
+            )
+          );
+        }
+        recipeSnapshot = resolved;
+      } else {
+        const defaultRecipe = await repository.items.findDefaultActiveRecipeVersion(
+          item.productId
+        );
+        if (defaultRecipe) {
+          recipeSnapshot = defaultRecipe;
+        } else {
+          logger.warn(
+            'No default active recipe version found for order item, fallback to legacy deduction',
+            {
+              productId: item.productId,
+            }
+          );
+        }
+      }
+
+      const resolvedRecipe = recipeSnapshot ?? null;
+
       normalizedItems.push({
         ...item,
         quantity,
         unitPrice,
         subtotal: expectedSubtotal,
         saleUnitType,
+        saleUnit,
+        saleQuantityBase,
+        saleBaseUnit,
+        recipeId: resolvedRecipe?.recipeId ?? null,
+        recipeVersionId:
+          resolvedRecipe?.recipeVersionId ?? item.recipeVersionId ?? null,
+        recipeNameSnapshot: resolvedRecipe?.recipeName ?? null,
+        recipeVersionSnapshot: resolvedRecipe?.recipeVersionNumber ?? null,
+        recipeEstimatedCostSnapshot:
+          resolvedRecipe?.recipeEstimatedCost !== undefined
+            ? resolvedRecipe.recipeEstimatedCost
+            : null,
       });
     }
 
@@ -753,6 +822,32 @@ export const createOrderService = (
           productId: item.productId,
           saleUnitType: (item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE,
           quantity: Number(item.quantity),
+          saleUnit:
+            (item.saleUnit as StockPurchaseUnit) ??
+            (((item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+            SaleUnitType.WEIGHT
+              ? StockPurchaseUnit.GRAM
+              : StockPurchaseUnit.PIECE),
+          saleQuantityBase: Number(item.saleQuantityBase ?? item.quantity),
+          saleBaseUnit:
+            (item.saleBaseUnit as StockPurchaseUnit) ??
+            (((item.saleUnitType as SaleUnitType) ?? SaleUnitType.PIECE) ===
+            SaleUnitType.WEIGHT
+              ? StockPurchaseUnit.GRAM
+              : StockPurchaseUnit.PIECE),
+          recipeId: item.recipeId ?? null,
+          recipeVersionId: item.recipeVersionId ?? null,
+          recipeNameSnapshot: item.recipeNameSnapshot ?? null,
+          recipeVersionSnapshot:
+            item.recipeVersionSnapshot !== undefined &&
+            item.recipeVersionSnapshot !== null
+              ? Number(item.recipeVersionSnapshot)
+              : null,
+          recipeEstimatedCostSnapshot:
+            item.recipeEstimatedCostSnapshot !== undefined &&
+            item.recipeEstimatedCostSnapshot !== null
+              ? Number(item.recipeEstimatedCostSnapshot)
+              : null,
           unitPrice: Number(item.unitPrice),
           subtotal: Number(item.subtotal),
           notes: item.notes ?? undefined,

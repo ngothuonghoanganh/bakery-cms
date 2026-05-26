@@ -86,7 +86,7 @@ export class UserModel extends Model<UserAttributes, UserCreationAttributes> imp
     });
   }
 
-  async lockAccount(durationMinutes: number = 30): Promise<void> {
+  async lockAccount(durationMinutes = 30): Promise<void> {
     const lockUntil = new Date();
     lockUntil.setMinutes(lockUntil.getMinutes() + durationMinutes);
     
@@ -179,7 +179,7 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
       validate: {
         isIn: {
           args: [Object.values(UserRole)],
-          msg: 'Role must be one of: ' + Object.values(UserRole).join(', '),
+          msg: `Role must be one of: ${Object.values(UserRole).join(', ')}`,
         },
       },
     },
@@ -190,7 +190,7 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
       validate: {
         isIn: {
           args: [Object.values(UserStatus)],
-          msg: 'Status must be one of: ' + Object.values(UserStatus).join(', '),
+          msg: `Status must be one of: ${Object.values(UserStatus).join(', ')}`,
         },
       },
     },
@@ -201,7 +201,7 @@ export const initUserModel = (sequelize: Sequelize): typeof UserModel => {
       validate: {
         isIn: {
           args: [Object.values(AuthProvider)],
-          msg: 'Provider must be one of: ' + Object.values(AuthProvider).join(', '),
+          msg: `Provider must be one of: ${Object.values(AuthProvider).join(', ')}`,
         },
       },
     },

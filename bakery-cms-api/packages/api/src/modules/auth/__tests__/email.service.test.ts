@@ -61,6 +61,9 @@ describe('EmailService', () => {
         port: mockConfig.smtp.port,
         secure: mockConfig.smtp.secure,
         auth: mockConfig.smtp.auth,
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
       });
     });
   });
@@ -89,8 +92,8 @@ describe('EmailService', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Failed to verify email connection');
-        expect(result.error.statusCode).toBe(500);
+        expect(result.error.message).toContain('Email service connection failed');
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });
@@ -142,8 +145,8 @@ describe('EmailService', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Failed to send verification email');
-        expect(result.error.statusCode).toBe(500);
+        expect(result.error.message).toContain('Failed to send email');
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });
@@ -195,8 +198,8 @@ describe('EmailService', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Failed to send password reset email');
-        expect(result.error.statusCode).toBe(500);
+        expect(result.error.message).toContain('Failed to send email');
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });
@@ -246,8 +249,8 @@ describe('EmailService', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Failed to send welcome email');
-        expect(result.error.statusCode).toBe(500);
+        expect(result.error.message).toContain('Failed to send email');
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });
@@ -303,8 +306,8 @@ describe('EmailService', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Failed to send security alert email');
-        expect(result.error.statusCode).toBe(500);
+        expect(result.error.message).toContain('Failed to send email');
+        expect(result.error.statusCode).toBe(503);
       }
     });
   });
@@ -505,8 +508,8 @@ describe('EmailService', () => {
         throw new Error('Transporter creation failed');
       });
 
-      // Act & Assert - Should handle gracefully
-      expect(() => new EmailService(mockConfig)).not.toThrow();
+      // Act & Assert
+      expect(() => new EmailService(mockConfig)).toThrow('Transporter creation failed');
     });
 
     it('should handle malformed email addresses', async () => {

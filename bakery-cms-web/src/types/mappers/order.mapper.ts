@@ -28,6 +28,7 @@ import type {
   SaleUnitTypeType as SaleUnitType,
 } from '@/types/models/order.model';
 import { SaleUnitType as SaleUnitTypeValue } from '@/types/models/order.model';
+import { StockPurchaseUnit } from '@bakery-cms/common';
 
 /**
  * Map API response to OrderItem domain model
@@ -40,6 +41,22 @@ export const mapOrderItemFromAPI = (apiItem: OrderItemAPIResponse): OrderItem =>
   productName: apiItem.productName ?? null,
   saleUnitType: (apiItem.saleUnitType as SaleUnitType) ?? SaleUnitTypeValue.PIECE,
   quantity: apiItem.quantity,
+  saleUnit:
+    apiItem.saleUnit ??
+    ((apiItem.saleUnitType as SaleUnitType) === SaleUnitTypeValue.WEIGHT
+      ? StockPurchaseUnit.GRAM
+      : StockPurchaseUnit.PIECE),
+  saleQuantityBase: apiItem.saleQuantityBase ?? apiItem.quantity,
+  saleBaseUnit:
+    apiItem.saleBaseUnit ??
+    ((apiItem.saleUnitType as SaleUnitType) === SaleUnitTypeValue.WEIGHT
+      ? StockPurchaseUnit.GRAM
+      : StockPurchaseUnit.PIECE),
+  recipeId: apiItem.recipeId ?? null,
+  recipeVersionId: apiItem.recipeVersionId ?? null,
+  recipeNameSnapshot: apiItem.recipeNameSnapshot ?? null,
+  recipeVersionSnapshot: apiItem.recipeVersionSnapshot ?? null,
+  recipeEstimatedCostSnapshot: apiItem.recipeEstimatedCostSnapshot ?? null,
   unitPrice: apiItem.unitPrice,
   subtotal: apiItem.subtotal,
   notes: apiItem.notes,
@@ -100,6 +117,22 @@ export const mapOrderBillSnapshotItemFromAPI = (
   saleUnitType:
     (apiItem.saleUnitType as SaleUnitType) ?? SaleUnitTypeValue.PIECE,
   quantity: apiItem.quantity,
+  saleUnit:
+    apiItem.saleUnit ??
+    ((apiItem.saleUnitType as SaleUnitType) === SaleUnitTypeValue.WEIGHT
+      ? StockPurchaseUnit.GRAM
+      : StockPurchaseUnit.PIECE),
+  saleQuantityBase: apiItem.saleQuantityBase ?? apiItem.quantity,
+  saleBaseUnit:
+    apiItem.saleBaseUnit ??
+    ((apiItem.saleUnitType as SaleUnitType) === SaleUnitTypeValue.WEIGHT
+      ? StockPurchaseUnit.GRAM
+      : StockPurchaseUnit.PIECE),
+  recipeId: apiItem.recipeId ?? null,
+  recipeVersionId: apiItem.recipeVersionId ?? null,
+  recipeNameSnapshot: apiItem.recipeNameSnapshot ?? null,
+  recipeVersionSnapshot: apiItem.recipeVersionSnapshot ?? null,
+  recipeEstimatedCostSnapshot: apiItem.recipeEstimatedCostSnapshot ?? null,
   unitPrice: apiItem.unitPrice,
   subtotal: apiItem.subtotal,
   notes: apiItem.notes,

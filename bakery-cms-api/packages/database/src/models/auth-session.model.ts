@@ -3,7 +3,7 @@
  * Sequelize model for JWT refresh token session management
  */
 
-import { Model, DataTypes, Sequelize } from 'sequelize';
+import { Model, DataTypes, Sequelize, Op } from 'sequelize';
 import { UserModel } from './user.model';
 
 export enum TokenType {
@@ -85,7 +85,7 @@ export class AuthSessionModel extends Model<AuthSessionAttributes, AuthSessionCr
     const result = await AuthSessionModel.destroy({
       where: {
         expiresAt: {
-          [require('sequelize').Op.lt]: new Date(),
+          [Op.lt]: new Date(),
         },
       },
     });
@@ -144,7 +144,7 @@ export const initAuthSessionModel = (sequelize: Sequelize): typeof AuthSessionMo
       validate: {
         isIn: {
           args: [Object.values(TokenType)],
-          msg: 'Token type must be one of: ' + Object.values(TokenType).join(', '),
+          msg: `Token type must be one of: ${Object.values(TokenType).join(', ')}`,
         },
       },
     },

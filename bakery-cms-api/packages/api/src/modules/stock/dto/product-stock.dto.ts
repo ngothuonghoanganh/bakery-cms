@@ -59,6 +59,8 @@ export interface ProductRecipeResponseDto {
 export interface ProductCostResponseDto {
   productId: string;
   productName: string;
+  recipeId: string | null;
+  recipeVersionId: string | null;
   totalCost: number;
   costBreakdown: ProductCostBreakdownItem[];
 }

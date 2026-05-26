@@ -88,10 +88,14 @@ export const verifyRefreshToken = (_token: string): JWTPayload | null => {
  * Extract token from Authorization header
  */
 export const extractBearerToken = (authHeader?: string): string | null => {
-  if (!authHeader) return null;
+  if (!authHeader) {
+    return null;
+  }
   
   const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return null;
+  }
   
   return parts[1] || null;
 };
