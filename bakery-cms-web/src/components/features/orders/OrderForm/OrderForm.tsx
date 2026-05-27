@@ -3,7 +3,7 @@
  * Modal form for creating and editing orders with items management
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Form,
   Input,
@@ -36,6 +36,7 @@ import {
 } from '../../../../utils/sale-unit.utils';
 import { stockService } from '../../../../services/stock.service';
 import { StockPurchaseUnit } from '@bakery-cms/common';
+import { subscribeRecipeChangedEvent } from '../../../../utils/recipe-events';
 import type {
   OrderExtraFeeFormValue,
   OrderFormProps,
@@ -136,14 +137,21 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const [loadingRecipesByProductId, setLoadingRecipesByProductId] = useState<
     Record<string, boolean>
   >({});
+  const recipeOptionsCacheRef = useRef<Record<string, RecipeVersionOption[]>>({});
+  const loadingRecipeProductIdsRef = useRef<Set<string>>(new Set());
+  const inFlightRecipeRequestsRef = useRef<Map<string, Promise<RecipeVersionOption[]>>>(
+    new Map()
+  );
   const productById = useMemo(
     () => new Map((products || []).map((product) => [product.id, product])),
     [products]
   );
 
   // Watch items for total calculation
-  const items = Form.useWatch('items', form) || [];
-  const extraFees = Form.useWatch('extraFees', form) || [];
+  const watchedItems = Form.useWatch('items', form);
+  const watchedExtraFees = Form.useWatch('extraFees', form);
+  const items = useMemo(() => watchedItems || [], [watchedItems]);
+  const extraFees = useMemo(() => watchedExtraFees || [], [watchedExtraFees]);
 
   // Calculate item total amount
   const itemsTotalAmount = useMemo(() => {
@@ -179,28 +187,149 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     [extraFeeTemplates]
   );
 
+  const syncRecipeOptionsState = useCallback(
+    (productId: string, recipeOptions: RecipeVersionOption[]): void => {
+      setRecipeOptionsByProductId((prev) => {
+        const currentOptions = prev[productId] || [];
+        if (
+          currentOptions.length === recipeOptions.length &&
+          currentOptions.every(
+            (option, index) =>
+              option.value === recipeOptions[index]?.value &&
+              option.label === recipeOptions[index]?.label &&
+              option.estimatedCost === recipeOptions[index]?.estimatedCost
+          )
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [productId]: recipeOptions,
+        };
+      });
+    },
+    []
+  );
+
+  const syncRecipeLoadingState = useCallback(
+    (productId: string, isLoading: boolean): void => {
+      setLoadingRecipesByProductId((prev) => {
+        if ((prev[productId] || false) === isLoading) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [productId]: isLoading,
+        };
+      });
+    },
+    []
+  );
+
+  const syncRecipeSelectionForProduct = useCallback(
+    (productId: string, recipeOptions: RecipeVersionOption[]): void => {
+      const currentItems = form.getFieldValue('items') || [];
+      const nextRecipeVersionId = recipeOptions[0]?.value;
+      let hasChanges = false;
+
+      const nextItems = currentItems.map((item: Record<string, unknown>) => {
+        if (String(item?.productId || '').trim() !== productId) {
+          return item;
+        }
+
+        const currentRecipeVersionId = String(item?.recipeVersionId || '').trim();
+        const hasCurrentRecipeOption = recipeOptions.some(
+          (option) => option.value === currentRecipeVersionId
+        );
+        const normalizedRecipeVersionId = hasCurrentRecipeOption
+          ? currentRecipeVersionId
+          : nextRecipeVersionId || undefined;
+
+        if (
+          normalizedRecipeVersionId === item.recipeVersionId ||
+          (!normalizedRecipeVersionId && !item.recipeVersionId)
+        ) {
+          return item;
+        }
+
+        hasChanges = true;
+        return {
+          ...item,
+          recipeVersionId: normalizedRecipeVersionId,
+        };
+      });
+
+      if (hasChanges) {
+        form.setFieldsValue({ items: nextItems });
+      }
+    },
+    [form]
+  );
+
+  const invalidateRecipeOptionsForProduct = useCallback(
+    (productId: string): void => {
+      if (!productId) {
+        return;
+      }
+
+      delete recipeOptionsCacheRef.current[productId];
+      loadingRecipeProductIdsRef.current.delete(productId);
+      inFlightRecipeRequestsRef.current.delete(productId);
+
+      setRecipeOptionsByProductId((prev) => {
+        if (!(productId in prev)) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+
+      syncRecipeLoadingState(productId, false);
+    },
+    [syncRecipeLoadingState]
+  );
+
   const loadRecipeOptions = useCallback(async (
-    productId: string
+    productId: string,
+    options?: { force?: boolean }
   ): Promise<RecipeVersionOption[]> => {
     if (!productId) {
       return [];
     }
 
-    if (recipeOptionsByProductId[productId]) {
-      return recipeOptionsByProductId[productId] || [];
+    const force = Boolean(options?.force);
+
+    if (!force) {
+      const cachedRecipeOptions = recipeOptionsCacheRef.current[productId];
+      if (cachedRecipeOptions) {
+        syncRecipeOptionsState(productId, cachedRecipeOptions);
+        return cachedRecipeOptions;
+      }
     }
 
-    if (loadingRecipesByProductId[productId]) {
+    const existingInFlightRequest =
+      inFlightRecipeRequestsRef.current.get(productId) || null;
+    if (existingInFlightRequest) {
+      return existingInFlightRequest;
+    }
+
+    if (loadingRecipeProductIdsRef.current.has(productId)) {
       return [];
     }
 
-    setLoadingRecipesByProductId((prev) => ({
-      ...prev,
-      [productId]: true,
-    }));
+    loadingRecipeProductIdsRef.current.add(productId);
+    syncRecipeLoadingState(productId, true);
 
-    const result = await stockService.getRecipesByProduct(productId);
-    if (result.success) {
+    const request = (async (): Promise<RecipeVersionOption[]> => {
+      const result = await stockService.getRecipesByProduct(productId);
+      if (!result.success) {
+        recipeOptionsCacheRef.current[productId] = [];
+        syncRecipeOptionsState(productId, []);
+        return [];
+      }
+
       const recipeOptions: RecipeVersionOption[] = result.data
         .filter((recipe) => recipe.status === 'active')
         .flatMap((recipe) =>
@@ -214,27 +343,18 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             }))
         );
 
-      setRecipeOptionsByProductId((prev) => ({
-        ...prev,
-        [productId]: recipeOptions,
-      }));
-      setLoadingRecipesByProductId((prev) => ({
-        ...prev,
-        [productId]: false,
-      }));
+      recipeOptionsCacheRef.current[productId] = recipeOptions;
+      syncRecipeOptionsState(productId, recipeOptions);
       return recipeOptions;
-    } else {
-      setRecipeOptionsByProductId((prev) => ({
-        ...prev,
-        [productId]: [],
-      }));
-      setLoadingRecipesByProductId((prev) => ({
-        ...prev,
-        [productId]: false,
-      }));
-      return [];
-    }
-  }, [loadingRecipesByProductId, recipeOptionsByProductId]);
+    })().finally(() => {
+      loadingRecipeProductIdsRef.current.delete(productId);
+      inFlightRecipeRequestsRef.current.delete(productId);
+      syncRecipeLoadingState(productId, false);
+    });
+
+    inFlightRecipeRequestsRef.current.set(productId, request);
+    return request;
+  }, [syncRecipeLoadingState, syncRecipeOptionsState]);
 
   // Reset form when modal opens/closes or initial values change
   useEffect(() => {
@@ -342,19 +462,60 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     };
   }, [open, initialValues, form]);
 
-  useEffect(() => {
-    const uniqueProductIds = Array.from(
-      new Set(
-        (items || [])
-          .map((item: any) => String(item?.productId || '').trim())
-          .filter((value) => value.length > 0)
-      )
-    );
+  const productIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (items || [])
+            .map((item: any) => String(item?.productId || '').trim())
+            .filter((value) => value.length > 0)
+        )
+      ),
+    [items]
+  );
 
-    uniqueProductIds.forEach((productId) => {
+  const productIdsKey = useMemo(() => JSON.stringify(productIds), [productIds]);
+
+  useEffect(() => {
+    if (!open || !productIdsKey) {
+      return;
+    }
+
+    const selectedProductIds = JSON.parse(productIdsKey) as string[];
+    selectedProductIds.forEach((productId) => {
       void loadRecipeOptions(productId);
     });
-  }, [items, loadRecipeOptions]);
+  }, [loadRecipeOptions, open, productIdsKey]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeRecipeChangedEvent(({ productId }) => {
+      invalidateRecipeOptionsForProduct(productId);
+
+      if (!open || !productId) {
+        return;
+      }
+
+      const currentItems = form.getFieldValue('items') || [];
+      const hasProductInOrder = currentItems.some(
+        (item: { productId?: string }) => item.productId === productId
+      );
+      if (!hasProductInOrder) {
+        return;
+      }
+
+      void loadRecipeOptions(productId, { force: true }).then((recipeOptions) => {
+        syncRecipeSelectionForProduct(productId, recipeOptions);
+      });
+    });
+
+    return unsubscribe;
+  }, [
+    form,
+    invalidateRecipeOptionsForProduct,
+    loadRecipeOptions,
+    open,
+    syncRecipeSelectionForProduct,
+  ]);
 
   const handleFormSubmit = async (values: OrderFormValues) => {
     try {
@@ -412,6 +573,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       const recipeOptions = await loadRecipeOptions(productId);
       const currentItems = form.getFieldValue('items') || [];
       const currentItem = currentItems[index] || {};
+      const productChanged = currentItem.productId !== productId;
       const saleUnitType = product.saleUnitType || SaleUnitType.PIECE;
       const defaultSaleUnit = getDefaultSaleUnit(saleUnitType);
       const quantityRules = getQuantityRuleBySaleUnit(saleUnitType);
@@ -423,15 +585,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       )
         ? currentQuantity
         : quantityRules.min;
+      const currentRecipeVersionId = String(currentItem.recipeVersionId || '').trim();
+      const hasCurrentRecipeOption = recipeOptions.some(
+        (option) => option.value === currentRecipeVersionId
+      );
 
       currentItems[index] = {
         ...currentItem,
+        productId,
         unitPrice: product.price,
         saleUnitType,
         saleUnit: defaultSaleUnit,
         quantity: normalizedQuantity,
         recipeVersionId:
-          currentItem.recipeVersionId || recipeOptions[0]?.value || undefined,
+          !productChanged && hasCurrentRecipeOption
+            ? currentRecipeVersionId
+            : recipeOptions[0]?.value || undefined,
       };
       form.setFieldsValue({ items: currentItems });
     }

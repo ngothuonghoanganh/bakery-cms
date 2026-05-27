@@ -4,7 +4,7 @@
  * Full brand CRUD is managed within this page (inline brand creation/editing)
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -29,6 +29,7 @@ import {
   Table,
   Empty,
   Avatar,
+  Alert,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -101,6 +102,16 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   const navigate = useNavigate();
   const { success } = useNotification();
   const { showCrudError } = useCrudErrorNotification();
+  const showCrudErrorRef = useRef(showCrudError);
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    showCrudErrorRef.current = showCrudError;
+  }, [showCrudError]);
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const getStatusLabel = (status: StockItemStatus): string => {
     switch (status) {
@@ -134,7 +145,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
   const priceBeforeTaxValue = Form.useWatch('priceBeforeTax', brandPriceForm);
   const priceAfterTaxValue = Form.useWatch('priceAfterTax', brandPriceForm);
 
-  const unitPriceDivider = React.useMemo(() => {
+  const unitPriceDivider = useMemo(() => {
     const purchaseQuantity = Number(purchaseQuantityValue || 0);
     if (purchaseQuantity <= 0) {
       return 0;
@@ -156,7 +167,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     return purchaseQuantity;
   }, [stockItem?.unitType, purchaseQuantityValue, purchaseUnitValue]);
 
-  const unitPriceBeforeTaxPreview = React.useMemo(() => {
+  const unitPriceBeforeTaxPreview = useMemo(() => {
     const price = Number(priceBeforeTaxValue || 0);
     if (unitPriceDivider <= 0) {
       return 0;
@@ -164,13 +175,56 @@ export const StockItemDetailPage = (): React.JSX.Element => {
     return price / unitPriceDivider;
   }, [priceBeforeTaxValue, unitPriceDivider]);
 
-  const unitPriceAfterTaxPreview = React.useMemo(() => {
+  const unitPriceAfterTaxPreview = useMemo(() => {
     const price = Number(priceAfterTaxValue || 0);
     if (unitPriceDivider <= 0) {
       return 0;
     }
     return price / unitPriceDivider;
   }, [priceAfterTaxValue, unitPriceDivider]);
+
+  const baseUnitLabel = stockItem?.baseUnit || stockItem?.unitOfMeasure || '';
+  const purchaseSpecPreview = useMemo(() => {
+    const purchaseQuantity = Number(purchaseQuantityValue || 0);
+    const purchaseUnit = String(purchaseUnitValue || '').trim();
+    if (purchaseQuantity <= 0 || !purchaseUnit) {
+      return null;
+    }
+
+    return `${purchaseQuantity} ${purchaseUnit}`;
+  }, [purchaseQuantityValue, purchaseUnitValue]);
+
+  const unitPricePreviewLineBeforeTax = useMemo(() => {
+    if (!purchaseSpecPreview || unitPriceDivider <= 0) {
+      return null;
+    }
+
+    return `${purchaseSpecPreview} = ${formatCurrency(
+      Number(priceBeforeTaxValue || 0)
+    )} -> ${formatCurrency(unitPriceBeforeTaxPreview)}/${baseUnitLabel}`;
+  }, [
+    baseUnitLabel,
+    priceBeforeTaxValue,
+    purchaseSpecPreview,
+    unitPriceBeforeTaxPreview,
+    unitPriceDivider,
+  ]);
+
+  const unitPricePreviewLineAfterTax = useMemo(() => {
+    if (!purchaseSpecPreview || unitPriceDivider <= 0) {
+      return null;
+    }
+
+    return `${purchaseSpecPreview} = ${formatCurrency(
+      Number(priceAfterTaxValue || 0)
+    )} -> ${formatCurrency(unitPriceAfterTaxPreview)}/${baseUnitLabel}`;
+  }, [
+    baseUnitLabel,
+    priceAfterTaxValue,
+    purchaseSpecPreview,
+    unitPriceAfterTaxPreview,
+    unitPriceDivider,
+  ]);
 
   // Fetch all available brands for the dropdown
   const { brands: allBrands, refetch: refetchAllBrands } = useBrands({ autoFetch: true });
@@ -184,27 +238,27 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       if (result.success && result.data) {
         setStockItem(result.data);
       } else if (!result.success) {
-        showCrudError(result.error);
+        showCrudErrorRef.current(result.error);
       } else {
-        showCrudError({
+        showCrudErrorRef.current({
           code: ErrorCode.NOT_FOUND,
-          message: t('stock.notifications.operationFailed', 'Failed to load stock item'),
+          message: tRef.current('stock.notifications.operationFailed', 'Failed to load stock item'),
           statusCode: 404,
           timestamp: new Date(),
           details: [
             {
               field: 'stockItemId',
-              message: t('stock.notifications.operationFailed', 'Failed to load stock item'),
+              message: tRef.current('stock.notifications.operationFailed', 'Failed to load stock item'),
             },
           ],
         });
       }
     } catch (err) {
-      showCrudError(err);
+      showCrudErrorRef.current(err);
     } finally {
       setLoading(false);
     }
-  }, [id, showCrudError, t]);
+  }, [id]);
 
   const fetchStockItemBrands = useCallback(async () => {
     if (!id) return;
@@ -639,6 +693,9 @@ export const StockItemDetailPage = (): React.JSX.Element => {
           <Descriptions title={t('common.actions.details', 'Details')} bordered column={{ xs: 1, sm: 2, md: 2 }}>
             <Descriptions.Item label={t('stock.detail.name', 'Name')}>{stockItem.name}</Descriptions.Item>
             <Descriptions.Item label={t('stock.form.unit', 'Unit')}>{stockItem.unitOfMeasure}</Descriptions.Item>
+            <Descriptions.Item label={t('stock.detail.baseUnit', 'Base Unit')}>
+              {stockItem.baseUnit}
+            </Descriptions.Item>
             <Descriptions.Item label={t('stock.detail.unitType', 'Loại đơn vị')}>
               {stockItem.unitType === StockUnitType.WEIGHT
                 ? t('stock.unitType.weight', 'Khối lượng')
@@ -664,7 +721,7 @@ export const StockItemDetailPage = (): React.JSX.Element => {
       label: (
         <span>
           <TagsOutlined />
-          {t('stock.detail.brandsPricing', 'Brands & Pricing')} ({stockItemBrands.length})
+          {t('stock.detail.brandsCurrentPricing', 'Brands & Current Pricing')} ({stockItemBrands.length})
         </span>
       ),
       children: (
@@ -686,6 +743,53 @@ export const StockItemDetailPage = (): React.JSX.Element => {
             />
           )}
         </div>
+      ),
+    },
+    {
+      key: 'receiving-price-history',
+      label: (
+        <span>
+          <PlusOutlined />
+          {t('stock.detail.receivingAndPriceHistory', 'Receiving & Price History')}
+        </span>
+      ),
+      children: (
+        <Space direction="vertical" style={{ width: '100%' }} size={16}>
+          <Alert
+            type="info"
+            showIcon
+            message={t(
+              'stock.detail.currentPhasePriceHistoryNotice',
+              'Current phase only supports current brand pricing. Per-receiving price history will be supported in a later phase.'
+            )}
+            description={t(
+              'stock.detail.currentPhasePriceHistoryProposal',
+              'Proposal: add stock_receiving_lots or stock_item_brand_price_histories for full timeline tracking.'
+            )}
+          />
+          <Card
+            size="small"
+            title={t('stock.detail.receiveStock', 'Receive Stock')}
+            extra={
+              <Button type="primary" onClick={() => setReceiveModalVisible(true)}>
+                {t('stock.detail.receiveStock', 'Receive Stock')}
+              </Button>
+            }
+          >
+            <Text type="secondary">
+              {t(
+                'stock.detail.receivingQuickHint',
+                'You can continue receiving stock now. Historical lot-level pricing is planned for the next phase.'
+              )}
+            </Text>
+          </Card>
+          <Empty
+            description={t(
+              'stock.detail.noPriceHistoryYet',
+              'No receiving lot / price history data is available in this phase.'
+            )}
+          />
+        </Space>
       ),
     },
     {
@@ -935,6 +1039,19 @@ export const StockItemDetailPage = (): React.JSX.Element => {
                   'Vui lòng chọn đơn vị quy cách'
                 ),
               },
+              {
+                validator: async (_, value: StockPurchaseUnit) => {
+                  if (!value || purchaseUnitOptions.includes(value)) {
+                    return;
+                  }
+                  throw new Error(
+                    t(
+                      'stock.detail.purchaseUnitMismatch',
+                      'Selected unit does not match this stock item type.'
+                    )
+                  );
+                },
+              },
             ]}
           >
             <Select>
@@ -977,6 +1094,31 @@ export const StockItemDetailPage = (): React.JSX.Element => {
               parser={(value) => Number(value?.replace(/,/g, '') || 0)}
             />
           </Form.Item>
+
+          {unitPricePreviewLineBeforeTax || unitPricePreviewLineAfterTax ? (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={t('stock.detail.pricePreviewTitle', 'Price conversion preview')}
+              description={
+                <Space direction="vertical" size={2}>
+                  {unitPricePreviewLineBeforeTax ? (
+                    <Text>{`${t(
+                      'stock.detail.priceBeforeTax',
+                      'Price Before Tax'
+                    )}: ${unitPricePreviewLineBeforeTax}`}</Text>
+                  ) : null}
+                  {unitPricePreviewLineAfterTax ? (
+                    <Text>{`${t(
+                      'stock.detail.priceAfterTax',
+                      'Price After Tax'
+                    )}: ${unitPricePreviewLineAfterTax}`}</Text>
+                  ) : null}
+                </Space>
+              }
+            />
+          ) : null}
 
           <Form.Item
             label={t('stock.detail.unitPriceBeforeTax', 'Đơn giá trước thuế')}

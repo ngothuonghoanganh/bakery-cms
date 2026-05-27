@@ -3,8 +3,9 @@
  * Manages product data fetching and state with filters, sorting, and pagination
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { productService } from '@/services';
+import { createStableKey } from '@/utils/stable-key.utils';
 import type { Product, ProductFilters, PaginationParams } from '@/types/models/product.model';
 import type { AppError } from '@/types/common/error.types';
 
@@ -37,15 +38,23 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   const paginationRef = useRef(pagination);
   const requestIdRef = useRef(0);
   const hasLoadedOnceRef = useRef(false);
+  const autoFetchKeyRef = useRef<string | null>(null);
+
+  const filtersKey = useMemo(() => createStableKey(filters), [filters]);
+  const paginationKey = useMemo(() => createStableKey(pagination), [pagination]);
+  const requestKey = useMemo(
+    () => `${filtersKey}:${paginationKey}`,
+    [filtersKey, paginationKey]
+  );
 
   // Update refs when props change
   useEffect(() => {
     filtersRef.current = filters;
-  }, [filters]);
+  }, [filters, filtersKey]);
 
   useEffect(() => {
     paginationRef.current = pagination;
-  }, [pagination]);
+  }, [pagination, paginationKey]);
 
   const fetchProducts = useCallback(async (): Promise<void> => {
     const requestId = requestIdRef.current + 1;
@@ -80,15 +89,18 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
     setRefreshing(false);
   }, []);
 
-  // Create a stable key from filters and pagination for dependency tracking
-  const filtersKey = JSON.stringify(filters);
-  const paginationKey = JSON.stringify(pagination);
-
   useEffect(() => {
-    if (autoFetch) {
-      fetchProducts();
+    if (!autoFetch) {
+      return;
     }
-  }, [autoFetch, fetchProducts, filtersKey, paginationKey]);
+
+    if (autoFetchKeyRef.current === requestKey && hasLoadedOnceRef.current) {
+      return;
+    }
+
+    autoFetchKeyRef.current = requestKey;
+    void fetchProducts();
+  }, [autoFetch, fetchProducts, requestKey]);
 
   return {
     products,
