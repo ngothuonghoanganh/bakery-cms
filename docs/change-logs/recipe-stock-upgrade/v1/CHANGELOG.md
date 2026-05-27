@@ -198,6 +198,11 @@ Triển khai phase 1 nâng cấp quản lý công thức/kho cho `bakery-cms` th
 ## Test results
 - PASS:
   - API test suite: `16/16 suites`, `178 tests pass`, `2 skipped`.
+
+## Addendum (2026-05-27) - Stock receiving lots + per-receive pricing
+- Implemented “Nhập kho + giá” with per-receive price history stored in `stock_receiving_lots`.
+- Added new APIs + UI updates for stock list/detail to surface price immediately.
+- See details: `docs/change-logs/recipe-stock-upgrade/v1/STOCK_RECEIVING_PRICE_LOG.md`.
   - Web test suite: `5/5 files`, `27 tests pass`.
   - Type-check API/Web: pass.
   - Build API/Web/Storefront: pass.

@@ -8,6 +8,7 @@ import {
   StockUnitType,
   StockPurchaseUnit,
 } from '@bakery-cms/common';
+import type { StockReceivingLotResponseDto } from './stock-receiving-lots.dto';
 
 /**
  * Stock item response DTO
@@ -26,6 +27,8 @@ export interface StockItemResponseDto {
   createdAt: string;
   updatedAt: string;
   brands?: StockItemBrandResponseDto[];
+  priceSummary?: StockItemPriceSummaryDto;
+  latestReceivingLot?: StockReceivingLotResponseDto | null;
 }
 
 /**
@@ -45,6 +48,17 @@ export interface StockItemBrandResponseDto {
   isPreferred: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StockItemPriceSummaryDto {
+  preferredBrandId: string | null;
+  preferredBrandName: string | null;
+  latestPriceBrandId: string | null;
+  latestPriceBrandName: string | null;
+  latestUnitPriceBeforeTax: number | null;
+  latestUnitPriceAfterTax: number | null;
+  latestReceivedAt: string | null;
+  hasPrice: boolean;
 }
 
 /**
@@ -104,6 +118,12 @@ export interface StockItemListResponseDto {
 export interface ReceiveStockDto {
   quantity: number;
   reason?: string;
+}
+
+export interface ReceiveWithPricingResponseDto {
+  stockItem: StockItemResponseDto;
+  receivingLot: StockReceivingLotResponseDto;
+  updatedBrandPrice: StockItemBrandResponseDto;
 }
 
 /**

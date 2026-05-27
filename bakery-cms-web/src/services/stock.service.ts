@@ -14,6 +14,9 @@ import type {
   UpdateStockItemRequest,
   StockItemFiltersRequest,
   ReceiveStockRequest,
+  ReceiveWithPricingRequest,
+  ReceiveWithPricingAPIResponse,
+  StockReceivingLotsListAPIResponse,
   AdjustStockRequest,
   BrandAPIResponse,
   PaginatedBrandsAPIResponse,
@@ -49,6 +52,7 @@ import type {
   Brand,
   PaginatedBrands,
   StockItemBrand,
+  StockReceivingLotsList,
   ProductStockItem,
   ProductRecipe,
   ProductCost,
@@ -66,6 +70,7 @@ import {
   mapBrandFromAPI,
   mapPaginatedBrandsFromAPI,
   mapStockItemBrandFromAPI,
+  mapStockReceivingLotFromAPI,
   mapProductStockItemFromAPI,
   mapProductRecipeFromAPI,
   mapProductCostFromAPI,
@@ -99,6 +104,29 @@ export type StockService = {
     id: string,
     data: ReceiveStockRequest
   ) => Promise<Result<StockItem, AppError>>;
+  readonly receiveWithPricing: (
+    id: string,
+    data: ReceiveWithPricingRequest
+  ) => Promise<
+    Result<
+      {
+        stockItem: StockItem;
+        receivingLot: ReturnType<typeof mapStockReceivingLotFromAPI>;
+        updatedBrandPrice: StockItemBrand;
+      },
+      AppError
+    >
+  >;
+  readonly getStockReceivingLots: (
+    id: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      brandId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    }
+  ) => Promise<Result<StockReceivingLotsList, AppError>>;
   readonly adjustStock: (
     id: string,
     data: AdjustStockRequest
@@ -317,6 +345,70 @@ const receiveStock = async (
     );
     const stockItem = mapStockItemFromAPI(response.data);
     return ok(stockItem);
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
+ * Receive stock with lot-level pricing snapshot
+ */
+const receiveWithPricing = async (
+  id: string,
+  data: ReceiveWithPricingRequest
+): Promise<
+  Result<
+    {
+      stockItem: StockItem;
+      receivingLot: ReturnType<typeof mapStockReceivingLotFromAPI>;
+      updatedBrandPrice: StockItemBrand;
+    },
+    AppError
+  >
+> => {
+  try {
+    const response = await apiClient.post<{ data: ReceiveWithPricingAPIResponse }>(
+      `/stock/stock-items/${id}/receive-with-pricing`,
+      data
+    );
+
+    const payload = response.data.data;
+    return ok({
+      stockItem: mapStockItemFromAPI(payload.stockItem),
+      receivingLot: mapStockReceivingLotFromAPI(payload.receivingLot),
+      updatedBrandPrice: mapStockItemBrandFromAPI(payload.updatedBrandPrice),
+    });
+  } catch (error) {
+    return err(extractErrorFromAxiosError(error));
+  }
+};
+
+/**
+ * List receiving lots for a stock item
+ */
+const getStockReceivingLots = async (
+  id: string,
+  params?: {
+    page?: number;
+    limit?: number;
+    brandId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }
+): Promise<Result<StockReceivingLotsList, AppError>> => {
+  try {
+    const response = await apiClient.get<{ data: StockReceivingLotsListAPIResponse }>(
+      `/stock/stock-items/${id}/receiving-lots`,
+      { params }
+    );
+
+    const payload = response.data.data;
+    return ok({
+      lots: payload.lots.map(mapStockReceivingLotFromAPI),
+      total: payload.total,
+      page: payload.page,
+      limit: payload.limit,
+    });
   } catch (error) {
     return err(extractErrorFromAxiosError(error));
   }
@@ -845,6 +937,8 @@ export const stockService: StockService = {
   deleteStockItem,
   restoreStockItem,
   receiveStock,
+  receiveWithPricing,
+  getStockReceivingLots,
   adjustStock,
   bulkImportStockItems,
 
@@ -896,6 +990,8 @@ export {
   deleteStockItem,
   restoreStockItem,
   receiveStock,
+  receiveWithPricing,
+  getStockReceivingLots,
   adjustStock,
   bulkImportStockItems,
 

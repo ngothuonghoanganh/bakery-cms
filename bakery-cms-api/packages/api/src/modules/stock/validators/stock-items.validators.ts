@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { StockItemStatus, StockUnitType } from '@bakery-cms/common';
+import { StockItemStatus, StockPurchaseUnit, StockUnitType } from '@bakery-cms/common';
 
 /**
  * UUID validation schema (reusable)
@@ -140,6 +140,80 @@ export const receiveStockSchema = Joi.object({
 });
 
 /**
+ * Receive stock with pricing schema
+ * Validates POST /stock-items/:id/receive-with-pricing request body
+ */
+export const receiveWithPricingSchema = Joi.object({
+  brandId: uuidSchema.required().messages({
+    'string.guid': 'Brand ID must be a valid UUID',
+    'any.required': 'Brand ID is required',
+  }),
+
+  receivedQuantity: Joi.number()
+    .positive()
+    .precision(3)
+    .required()
+    .messages({
+      'number.base': 'Received quantity must be a number',
+      'number.positive': 'Received quantity must be positive',
+      'any.required': 'Received quantity is required',
+    }),
+
+  receivedUnit: Joi.string()
+    .valid(...Object.values(StockPurchaseUnit))
+    .required()
+    .messages({
+      'any.only': `Received unit must be one of: ${Object.values(StockPurchaseUnit).join(', ')}`,
+      'any.required': 'Received unit is required',
+    }),
+
+  priceBeforeTax: Joi.number().min(0).required().messages({
+    'number.base': 'Price before tax must be a number',
+    'number.min': 'Price before tax must be at least 0',
+    'any.required': 'Price before tax is required',
+  }),
+
+  priceAfterTax: Joi.number().min(0).required().messages({
+    'number.base': 'Price after tax must be a number',
+    'number.min': 'Price after tax must be at least 0',
+    'any.required': 'Price after tax is required',
+  }),
+
+  receivedAt: Joi.date().iso().optional().messages({
+    'date.base': 'Received at must be a valid date',
+    'date.format': 'Received at must be in ISO format',
+  }),
+
+  supplierName: Joi.string().trim().max(255).allow('', null).optional(),
+  invoiceCode: Joi.string().trim().max(100).allow('', null).optional(),
+  note: Joi.string().trim().max(2000).allow('', null).optional(),
+}).custom((value, helpers) => {
+  if (
+    value.priceBeforeTax !== undefined &&
+    value.priceAfterTax !== undefined &&
+    value.priceAfterTax < value.priceBeforeTax
+  ) {
+    return helpers.error('any.invalid', {
+      message: 'Price after tax must be greater than or equal to price before tax',
+    });
+  }
+
+  return value;
+});
+
+/**
+ * Receiving lots list query schema
+ * Validates GET /stock-items/:id/receiving-lots query parameters
+ */
+export const stockReceivingLotsQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).optional().default(1),
+  limit: Joi.number().integer().min(1).max(100).optional().default(10),
+  brandId: uuidSchema.optional(),
+  dateFrom: Joi.date().iso().optional(),
+  dateTo: Joi.date().iso().optional(),
+});
+
+/**
  * Adjust stock validation schema
  * Validates POST /stock-items/:id/adjust request body
  */
@@ -225,4 +299,10 @@ export const stockItemListQuerySchema = Joi.object({
     .messages({
       'boolean.base': 'Low stock only must be a boolean',
     }),
+
+  sortBy: Joi.string()
+    .valid('name', 'currentQuantity', 'status', 'createdAt', 'updatedAt')
+    .optional(),
+
+  sortOrder: Joi.string().valid('ASC', 'DESC').optional(),
 });

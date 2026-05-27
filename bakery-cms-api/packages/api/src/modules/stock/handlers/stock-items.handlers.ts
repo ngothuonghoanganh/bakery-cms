@@ -14,6 +14,7 @@ import {
   AdjustStockDto,
   BulkImportStockItemRowDto,
 } from '../dto/stock-items.dto';
+import type { ReceiveWithPricingDto, StockReceivingLotListQueryDto } from '../dto/stock-receiving-lots.dto';
 import { parse } from 'csv-parse/sync';
 import { getLogger } from '../../../utils/logger';
 
@@ -31,6 +32,8 @@ export interface StockItemHandlers {
   handleDeleteStockItem(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleRestoreStockItem(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleReceiveStock(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleReceiveWithPricing(req: Request, res: Response, next: NextFunction): Promise<void>;
+  handleGetReceivingLots(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleAdjustStock(req: Request, res: Response, next: NextFunction): Promise<void>;
   handleBulkImport(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
@@ -120,7 +123,10 @@ export const createStockItemHandlers = (
         limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
         status: req.query['status'] as any,
         search: req.query['search'] as string,
-        lowStockOnly: req.query['lowStockOnly'] === 'true',
+        lowStockOnly: (() => {
+          const raw = req.query['lowStockOnly'] as any;
+          return raw === true || raw === 'true';
+        })(),
         sortBy: req.query['sortBy'] as StockItemListQueryDto['sortBy'],
         sortOrder: req.query['sortOrder'] as StockItemListQueryDto['sortOrder'],
       };
@@ -282,6 +288,88 @@ export const createStockItemHandlers = (
   };
 
   /**
+   * Handle receive stock with pricing request
+   * POST /api/stock-items/:id/receive-with-pricing
+   */
+  const handleReceiveWithPricing = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const dto: ReceiveWithPricingDto = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!id) {
+        return next(new Error('Stock item ID is required'));
+      }
+      if (!userId) {
+        return next(new Error('User authentication required'));
+      }
+
+      const result = await service.receiveWithPricing(id, dto, userId);
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      logger.http('Stock received with pricing', {
+        stockItemId: id,
+        brandId: dto.brandId,
+        receivedQuantity: dto.receivedQuantity,
+        receivedUnit: dto.receivedUnit,
+        userId,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleReceiveWithPricing', { error });
+      next(error);
+    }
+  };
+
+  /**
+   * Handle get receiving lots request
+   * GET /api/stock-items/:id/receiving-lots
+   */
+  const handleGetReceivingLots = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return next(new Error('Stock item ID is required'));
+      }
+
+      const query: StockReceivingLotListQueryDto = {
+        page: req.query['page'] ? parseInt(req.query['page'] as string, 10) : undefined,
+        limit: req.query['limit'] ? parseInt(req.query['limit'] as string, 10) : undefined,
+        brandId: req.query['brandId'] ? (req.query['brandId'] as string) : undefined,
+        dateFrom: req.query['dateFrom'] ? (req.query['dateFrom'] as string) : undefined,
+        dateTo: req.query['dateTo'] ? (req.query['dateTo'] as string) : undefined,
+      };
+
+      const result = await service.getReceivingLots(id, query);
+      if (result.isErr()) {
+        return next(result.error);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.value,
+      });
+    } catch (error) {
+      logger.error('Unhandled error in handleGetReceivingLots', { error });
+      next(error);
+    }
+  };
+
+  /**
    * Handle adjust stock request
    * POST /api/stock-items/:id/adjust
    */
@@ -424,6 +512,8 @@ export const createStockItemHandlers = (
     handleDeleteStockItem,
     handleRestoreStockItem,
     handleReceiveStock,
+    handleReceiveWithPricing,
+    handleGetReceivingLots,
     handleAdjustStock,
     handleBulkImport,
   };

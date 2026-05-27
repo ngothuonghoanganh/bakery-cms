@@ -34,6 +34,47 @@ export type StockItem = {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly brands?: readonly StockItemBrand[];
+  readonly priceSummary?: StockItemPriceSummary;
+  readonly latestReceivingLot?: StockReceivingLot | null;
+};
+
+export type StockItemPriceSummary = {
+  readonly preferredBrandId: string | null;
+  readonly preferredBrandName: string | null;
+  readonly latestPriceBrandId: string | null;
+  readonly latestPriceBrandName: string | null;
+  readonly latestUnitPriceBeforeTax: number | null;
+  readonly latestUnitPriceAfterTax: number | null;
+  readonly latestReceivedAt: Date | null;
+  readonly hasPrice: boolean;
+};
+
+export type StockReceivingLot = {
+  readonly id: string;
+  readonly stockItemId: string;
+  readonly stockItemName: string;
+  readonly brandId: string;
+  readonly brandName: string;
+  readonly receivedQuantity: number;
+  readonly receivedUnit: StockPurchaseUnit;
+  readonly receivedQuantityBase: number;
+  readonly baseUnit: StockPurchaseUnit;
+  readonly priceBeforeTax: number;
+  readonly priceAfterTax: number;
+  readonly unitPriceBeforeTax: number;
+  readonly unitPriceAfterTax: number;
+  readonly remainingQuantityBase: number;
+  readonly receivedAt: Date;
+  readonly supplierName: string | null;
+  readonly invoiceCode: string | null;
+  readonly note: string | null;
+};
+
+export type StockReceivingLotsList = {
+  readonly lots: readonly StockReceivingLot[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
 };
 
 export type StockItemBrand = {

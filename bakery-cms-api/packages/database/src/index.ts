@@ -25,6 +25,7 @@ export {
   StockItemBrandModel,
   ProductStockItemModel,
   StockMovementModel,
+  StockReceivingLotModel,
   FileModel,
   ProductImageModel,
   ProductComboItemModel,

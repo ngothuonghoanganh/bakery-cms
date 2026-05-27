@@ -41,6 +41,8 @@ export enum RecipeVersionStatus {
 
 export enum CostingMethod {
   PREFERRED_BRAND_PRICE = 'preferred_brand_price',
+  RECEIVING_LOT_PRICE = 'receiving_lot_price',
+  LATEST_RECEIVING_PRICE = 'latest_receiving_price',
 }
 
 export enum MovementType {

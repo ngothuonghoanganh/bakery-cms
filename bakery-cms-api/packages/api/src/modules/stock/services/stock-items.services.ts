@@ -5,7 +5,21 @@
  */
 
 import { Result, ok, err } from 'neverthrow';
-import { AppError, MovementType, StockUnitType } from '@bakery-cms/common';
+import { Op } from 'sequelize';
+import type { Transaction } from 'sequelize';
+import {
+  AppError,
+  CostingMethod,
+  MovementType,
+  StockUnitType,
+} from '@bakery-cms/common';
+import {
+  BrandModel,
+  StockItemBrandModel,
+  StockItemModel,
+  StockMovementModel,
+  StockReceivingLotModel,
+} from '@bakery-cms/database';
 import { StockItemRepository } from '../repositories/stock-items.repositories';
 import { StockMovementRepository } from '../repositories/stock-movements.repositories';
 import {
@@ -15,17 +29,27 @@ import {
   StockItemResponseDto,
   StockItemListResponseDto,
   ReceiveStockDto,
+  ReceiveWithPricingResponseDto,
   AdjustStockDto,
   BulkImportStockItemRowDto,
   BulkImportResponseDto,
   BulkImportRowResultDto,
+  StockItemPriceSummaryDto,
 } from '../dto/stock-items.dto';
+import type {
+  ReceiveWithPricingDto,
+  StockReceivingLotListQueryDto,
+  StockReceivingLotListResponseDto,
+  StockReceivingLotResponseDto,
+} from '../dto/stock-receiving-lots.dto';
 import {
   toStockItemResponseDto,
   toStockItemResponseDtoList,
   toStockItemCreationAttributes,
   toStockItemUpdateAttributes,
 } from '../mappers/stock-items.mappers';
+import { toStockItemBrandResponseDto } from '../mappers/brands.mappers';
+import { toStockReceivingLotResponseDto } from '../mappers/stock-receiving-lots.mappers';
 import {
   createNotFoundError,
   createConflictError,
@@ -33,6 +57,8 @@ import {
   createInvalidInputError,
 } from '../../../utils/error-factory';
 import { getLogger } from '../../../utils/logger';
+import { unitConversionService } from './unit-conversion.services';
+import { isCompatiblePurchaseUnit } from '../utils/brand-pricing.utils';
 
 const logger = getLogger();
 
@@ -85,9 +111,21 @@ export interface StockItemService {
   deleteStockItem(id: string): Promise<Result<void, AppError>>;
   restoreStockItem(id: string): Promise<Result<StockItemResponseDto, AppError>>;
   receiveStock(id: string, dto: ReceiveStockDto, userId: string): Promise<Result<StockItemResponseDto, AppError>>;
+  receiveWithPricing(id: string, dto: ReceiveWithPricingDto, userId: string): Promise<Result<ReceiveWithPricingResponseDto, AppError>>;
+  getReceivingLots(id: string, query: StockReceivingLotListQueryDto): Promise<Result<StockReceivingLotListResponseDto, AppError>>;
   adjustStock(id: string, dto: AdjustStockDto, userId: string): Promise<Result<StockItemResponseDto, AppError>>;
   bulkImportStockItems(rows: BulkImportStockItemRowDto[]): Promise<Result<BulkImportResponseDto, AppError>>;
 }
+
+export type StockItemServiceDependencies = {
+  readonly stockItemRepository: StockItemRepository;
+  readonly stockMovementRepository: StockMovementRepository;
+  readonly stockItemModel: typeof StockItemModel;
+  readonly brandModel: typeof BrandModel;
+  readonly stockItemBrandModel: typeof StockItemBrandModel;
+  readonly stockReceivingLotModel: typeof StockReceivingLotModel;
+  readonly stockMovementModel: typeof StockMovementModel;
+};
 
 /**
  * Create stock items service
@@ -95,9 +133,180 @@ export interface StockItemService {
  * Uses dependency injection for repository
  */
 export const createStockItemService = (
-  repository: StockItemRepository,
-  stockMovementRepository: StockMovementRepository
+  deps: StockItemServiceDependencies
 ): StockItemService => {
+  const {
+    stockItemRepository: repository,
+    stockMovementRepository,
+    stockItemModel,
+    brandModel,
+    stockItemBrandModel,
+    stockReceivingLotModel,
+    stockMovementModel,
+  } = deps;
+
+  const toQuantity = (value: number): number => Math.round(value * 1000) / 1000;
+  const toMoney = (value: number): number => Math.round(value * 100) / 100;
+  const toUnitCost = (value: number): number => Math.round(value * 10000) / 10000;
+
+  const toISODateOrNow = (value: string | undefined): Date => {
+    if (!value) {
+      return new Date();
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return new Date();
+    }
+    return parsed;
+  };
+
+  const buildPriceSummary = (args: {
+    preferredBrand?: { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number } | null;
+    latestReceivingLot?: { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number; receivedAt: Date } | null;
+    latestBrandPrice?: { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number } | null;
+  }): StockItemPriceSummaryDto => {
+    const preferredBrand = args.preferredBrand ?? null;
+    const latestReceivingLot = args.latestReceivingLot ?? null;
+    const latestBrandPrice = args.latestBrandPrice ?? null;
+
+    const currentSource =
+      latestReceivingLot ?? preferredBrand ?? latestBrandPrice;
+
+    const hasPrice = Boolean(
+      currentSource &&
+        Number.isFinite(currentSource.unitPriceAfterTax) &&
+        currentSource.unitPriceAfterTax >= 0
+    );
+
+    return {
+      preferredBrandId: preferredBrand?.brandId ?? null,
+      preferredBrandName: preferredBrand?.brandName ?? null,
+      latestPriceBrandId: currentSource?.brandId ?? null,
+      latestPriceBrandName: currentSource?.brandName ?? null,
+      latestUnitPriceBeforeTax:
+        currentSource && Number.isFinite(currentSource.unitPriceBeforeTax)
+          ? Number(currentSource.unitPriceBeforeTax)
+          : null,
+      latestUnitPriceAfterTax:
+        currentSource && Number.isFinite(currentSource.unitPriceAfterTax)
+          ? Number(currentSource.unitPriceAfterTax)
+          : null,
+      latestReceivedAt: latestReceivingLot?.receivedAt
+        ? latestReceivingLot.receivedAt.toISOString()
+        : null,
+      hasPrice,
+    };
+  };
+
+  const loadLatestReceivingLotsByStockItemId = async (
+    stockItemIds: string[]
+  ): Promise<Map<string, StockReceivingLotResponseDto>> => {
+    if (stockItemIds.length === 0) {
+      return new Map();
+    }
+
+    const sequelize = stockReceivingLotModel.sequelize;
+    if (!sequelize) {
+      throw createDatabaseError('Database connection is not available');
+    }
+
+    const latestPairs = (await stockReceivingLotModel.findAll({
+      attributes: [
+        'stockItemId',
+        [sequelize.fn('MAX', sequelize.col('received_at')), 'maxReceivedAt'],
+      ],
+      where: {
+        stockItemId: {
+          [Op.in]: stockItemIds,
+        },
+      },
+      group: ['stock_item_id'],
+      raw: true,
+    })) as unknown as Array<{ stockItemId: string; maxReceivedAt: string }>;
+
+    if (latestPairs.length === 0) {
+      return new Map();
+    }
+
+    const lots = await stockReceivingLotModel.findAll({
+      where: {
+        [Op.or]: latestPairs.map((pair) => ({
+          stockItemId: pair.stockItemId,
+          receivedAt: new Date(pair.maxReceivedAt),
+        })),
+      },
+      include: [
+        { model: brandModel, as: 'brand', attributes: ['id', 'name'] },
+        { model: stockItemModel, as: 'stockItem', attributes: ['id', 'name'] },
+      ],
+      order: [['receivedAt', 'DESC']],
+    });
+
+    const map = new Map<string, StockReceivingLotResponseDto>();
+    for (const lot of lots as Array<
+      StockReceivingLotModel & { brand?: BrandModel; stockItem?: StockItemModel }
+    >) {
+      const stockItemName = lot.stockItem?.name ?? '';
+      const brandName = lot.brand?.name ?? '';
+      if (!map.has(lot.stockItemId)) {
+        map.set(
+          lot.stockItemId,
+          toStockReceivingLotResponseDto(lot, { stockItemName, brandName })
+        );
+      }
+    }
+    return map;
+  };
+
+  const loadBrandPricingLinksByStockItemId = async (
+    stockItemIds: string[]
+  ): Promise<{
+    preferred: Map<string, { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number }>;
+    latest: Map<string, { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number }>;
+  }> => {
+    const preferred = new Map<string, { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number }>();
+    const latest = new Map<string, { brandId: string; brandName: string; unitPriceBeforeTax: number; unitPriceAfterTax: number }>();
+
+    if (stockItemIds.length === 0) {
+      return { preferred, latest };
+    }
+
+    const links = (await stockItemBrandModel.findAll({
+      where: {
+        stockItemId: {
+          [Op.in]: stockItemIds,
+        },
+      },
+      include: [{ model: brandModel, as: 'brand', attributes: ['id', 'name'] }],
+      order: [['updatedAt', 'DESC']],
+    })) as Array<StockItemBrandModel & { brand?: BrandModel }>;
+
+    for (const link of links) {
+      const brandName = link.brand?.name ?? '';
+      const itemId = link.stockItemId;
+
+      if (!latest.has(itemId)) {
+        latest.set(itemId, {
+          brandId: link.brandId,
+          brandName,
+          unitPriceBeforeTax: Number(link.unitPriceBeforeTax),
+          unitPriceAfterTax: Number(link.unitPriceAfterTax),
+        });
+      }
+
+      if (link.isPreferred && !preferred.has(itemId)) {
+        preferred.set(itemId, {
+          brandId: link.brandId,
+          brandName,
+          unitPriceBeforeTax: Number(link.unitPriceBeforeTax),
+          unitPriceAfterTax: Number(link.unitPriceAfterTax),
+        });
+      }
+    }
+
+    return { preferred, latest };
+  };
+
   /**
    * Create new stock item
    */
@@ -141,7 +350,31 @@ export const createStockItemService = (
         return err(createNotFoundError('Stock item', id));
       }
 
-      return ok(toStockItemResponseDto(stockItem));
+      const dto = toStockItemResponseDto(stockItem);
+
+      const latestLotMap = await loadLatestReceivingLotsByStockItemId([id]);
+      const latestLot = latestLotMap.get(id) ?? null;
+
+      const brandLinks = await loadBrandPricingLinksByStockItemId([id]);
+      const preferred = brandLinks.preferred.get(id) ?? null;
+      const latestBrand = brandLinks.latest.get(id) ?? null;
+
+      dto.latestReceivingLot = latestLot;
+      dto.priceSummary = buildPriceSummary({
+        preferredBrand: preferred,
+        latestReceivingLot: latestLot
+          ? {
+              brandId: latestLot.brandId,
+              brandName: latestLot.brandName,
+              unitPriceBeforeTax: latestLot.unitPriceBeforeTax,
+              unitPriceAfterTax: latestLot.unitPriceAfterTax,
+              receivedAt: new Date(latestLot.receivedAt),
+            }
+          : null,
+        latestBrandPrice: latestBrand,
+      });
+
+      return ok(dto);
     } catch (error) {
       logger.error('Failed to fetch stock item', { error, stockItemId: id });
       return err(createDatabaseError('Failed to fetch stock item', error));
@@ -169,11 +402,36 @@ export const createStockItemService = (
       }
 
       const result = await repository.findAll(query);
+      const ids = result.rows.map((row) => row.id);
+
+      const latestLotMap = await loadLatestReceivingLotsByStockItemId(ids);
+      const brandLinks = await loadBrandPricingLinksByStockItemId(ids);
 
       const totalPages = Math.ceil(result.count / limit);
 
       const response: StockItemListResponseDto = {
-        data: toStockItemResponseDtoList(result.rows),
+        data: toStockItemResponseDtoList(result.rows).map((item) => {
+          const latestLot = latestLotMap.get(item.id) ?? null;
+          const preferred = brandLinks.preferred.get(item.id) ?? null;
+          const latestBrand = brandLinks.latest.get(item.id) ?? null;
+
+          return {
+            ...item,
+            priceSummary: buildPriceSummary({
+              preferredBrand: preferred,
+              latestReceivingLot: latestLot
+                ? {
+                    brandId: latestLot.brandId,
+                    brandName: latestLot.brandName,
+                    unitPriceBeforeTax: latestLot.unitPriceBeforeTax,
+                    unitPriceAfterTax: latestLot.unitPriceAfterTax,
+                    receivedAt: new Date(latestLot.receivedAt),
+                  }
+                : null,
+              latestBrandPrice: latestBrand,
+            }),
+          };
+        }),
         pagination: {
           page,
           limit,
@@ -365,6 +623,281 @@ export const createStockItemService = (
   };
 
   /**
+   * Receive stock with lot-level pricing snapshot
+   */
+  const receiveWithPricing = async (
+    id: string,
+    dto: ReceiveWithPricingDto,
+    userId: string
+  ): Promise<Result<ReceiveWithPricingResponseDto, AppError>> => {
+    try {
+      if (!dto.brandId) {
+        return err(
+          createInvalidInputError('brandId is required', [
+            { field: 'brandId', message: 'brandId is required' },
+          ])
+        );
+      }
+
+      if (!Number.isFinite(dto.receivedQuantity) || dto.receivedQuantity <= 0) {
+        return err(
+          createInvalidInputError('receivedQuantity must be greater than 0', [
+            { field: 'receivedQuantity', message: 'receivedQuantity must be greater than 0' },
+          ])
+        );
+      }
+
+      if (!Number.isFinite(dto.priceBeforeTax) || dto.priceBeforeTax < 0) {
+        return err(
+          createInvalidInputError('priceBeforeTax must be at least 0', [
+            { field: 'priceBeforeTax', message: 'priceBeforeTax must be at least 0' },
+          ])
+        );
+      }
+
+      if (!Number.isFinite(dto.priceAfterTax) || dto.priceAfterTax < 0) {
+        return err(
+          createInvalidInputError('priceAfterTax must be at least 0', [
+            { field: 'priceAfterTax', message: 'priceAfterTax must be at least 0' },
+          ])
+        );
+      }
+
+      if (dto.priceAfterTax < dto.priceBeforeTax) {
+        return err(
+          createInvalidInputError('priceAfterTax must be >= priceBeforeTax', [
+            { field: 'priceAfterTax', message: 'priceAfterTax must be >= priceBeforeTax' },
+          ])
+        );
+      }
+
+      const sequelize = stockReceivingLotModel.sequelize;
+      if (!sequelize) {
+        return err(
+          createDatabaseError('Database connection is not available for receiving with pricing')
+        );
+      }
+
+      const result = await sequelize.transaction(async (transaction: Transaction) => {
+        const stockItem = await stockItemModel.findByPk(id, { transaction });
+        if (!stockItem) {
+          throw createNotFoundError('Stock item', id);
+        }
+
+        const brand = await brandModel.findByPk(dto.brandId, { transaction });
+        if (!brand) {
+          throw createNotFoundError('Brand', dto.brandId);
+        }
+
+        const unitType = (stockItem.unitType as StockUnitType) ?? StockUnitType.PIECE;
+        if (!isCompatiblePurchaseUnit(unitType, dto.receivedUnit)) {
+          throw createInvalidInputError(
+            `Received unit "${dto.receivedUnit}" is not compatible with stock unit type "${unitType}"`,
+            [{ field: 'receivedUnit', message: 'receivedUnit is incompatible', value: dto.receivedUnit }]
+          );
+        }
+
+        const baseUnit = unitConversionService.resolveStockBaseUnit(unitType);
+        const baseQuantityResult = unitConversionService.toStockBaseQuantity(
+          unitType,
+          dto.receivedQuantity,
+          dto.receivedUnit
+        );
+        if (baseQuantityResult.isErr()) {
+          throw baseQuantityResult.error;
+        }
+
+        const receivedQuantityBase = toQuantity(baseQuantityResult.value);
+        if (!Number.isFinite(receivedQuantityBase) || receivedQuantityBase <= 0) {
+          throw createInvalidInputError('receivedQuantityBase must be greater than 0');
+        }
+
+        const unitPriceBeforeTax = toUnitCost(dto.priceBeforeTax / receivedQuantityBase);
+        const unitPriceAfterTax = toUnitCost(dto.priceAfterTax / receivedQuantityBase);
+
+        const previousQuantity = Number(stockItem.currentQuantity);
+        const newQuantity = toQuantity(previousQuantity + receivedQuantityBase);
+
+        const receivedAt = toISODateOrNow(dto.receivedAt);
+
+        const receivingLot = await stockReceivingLotModel.create(
+          {
+            stockItemId: id,
+            brandId: dto.brandId,
+            receivedQuantity: toQuantity(dto.receivedQuantity),
+            receivedUnit: dto.receivedUnit,
+            receivedQuantityBase,
+            baseUnit,
+            priceBeforeTax: toMoney(dto.priceBeforeTax),
+            priceAfterTax: toMoney(dto.priceAfterTax),
+            unitPriceBeforeTax,
+            unitPriceAfterTax,
+            remainingQuantityBase: receivedQuantityBase,
+            receivedAt,
+            supplierName: dto.supplierName?.trim() ? dto.supplierName.trim() : null,
+            invoiceCode: dto.invoiceCode?.trim() ? dto.invoiceCode.trim() : null,
+            note: dto.note?.trim() ? dto.note.trim() : null,
+            createdByUserId: userId,
+          },
+          { transaction }
+        );
+
+        await stockItem.update({ currentQuantity: newQuantity }, { transaction });
+
+        await stockMovementModel.create(
+          {
+            stockItemId: id,
+            brandId: dto.brandId,
+            type: MovementType.RECEIVED,
+            quantity: receivedQuantityBase,
+            previousQuantity,
+            newQuantity,
+            reason: dto.note?.trim() ? dto.note.trim() : null,
+            referenceType: 'stock_receiving_lot',
+            referenceId: receivingLot.id,
+            unitCostSnapshot: unitPriceAfterTax,
+            totalCostSnapshot: toMoney(dto.priceAfterTax),
+            costingMethod: CostingMethod.RECEIVING_LOT_PRICE,
+            userId,
+          },
+          { transaction }
+        );
+
+        const existingPreferredCount = await stockItemBrandModel.count({
+          where: { stockItemId: id, isPreferred: true },
+          transaction,
+        });
+
+        const existingLink = await stockItemBrandModel.findOne({
+          where: { stockItemId: id, brandId: dto.brandId },
+          transaction,
+        });
+
+        let updatedLink: StockItemBrandModel;
+        if (existingLink) {
+          await existingLink.update(
+            {
+              purchaseQuantity: toQuantity(dto.receivedQuantity),
+              purchaseUnit: dto.receivedUnit,
+              priceBeforeTax: toMoney(dto.priceBeforeTax),
+              priceAfterTax: toMoney(dto.priceAfterTax),
+              unitPriceBeforeTax: toMoney(unitPriceBeforeTax),
+              unitPriceAfterTax: toMoney(unitPriceAfterTax),
+            },
+            { transaction }
+          );
+          updatedLink = existingLink;
+        } else {
+          updatedLink = await stockItemBrandModel.create(
+            {
+              stockItemId: id,
+              brandId: dto.brandId,
+              purchaseQuantity: toQuantity(dto.receivedQuantity),
+              purchaseUnit: dto.receivedUnit,
+              priceBeforeTax: toMoney(dto.priceBeforeTax),
+              priceAfterTax: toMoney(dto.priceAfterTax),
+              unitPriceBeforeTax: toMoney(unitPriceBeforeTax),
+              unitPriceAfterTax: toMoney(unitPriceAfterTax),
+              isPreferred: existingPreferredCount === 0,
+            },
+            { transaction }
+          );
+        }
+
+        const stockItemDto = toStockItemResponseDto(stockItem);
+        stockItemDto.currentQuantity = newQuantity;
+
+        const lotDto = toStockReceivingLotResponseDto(receivingLot, {
+          stockItemName: stockItem.name,
+          brandName: brand.name,
+        });
+
+        const updatedBrandPriceDto = toStockItemBrandResponseDto(
+          updatedLink,
+          brand.name
+        );
+
+        return {
+          stockItem: stockItemDto,
+          receivingLot: lotDto,
+          updatedBrandPrice: updatedBrandPriceDto,
+        };
+      });
+
+      return ok(result);
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in (error as any) && 'statusCode' in (error as any)) {
+        return err(error as AppError);
+      }
+      logger.error('Failed to receive stock with pricing', { error, stockItemId: id, dto });
+      return err(createDatabaseError('Failed to receive stock with pricing', error));
+    }
+  };
+
+  const getReceivingLots = async (
+    id: string,
+    query: StockReceivingLotListQueryDto
+  ): Promise<Result<StockReceivingLotListResponseDto, AppError>> => {
+    try {
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 10;
+
+      if (page < 1) {
+        return err(createInvalidInputError('Page must be at least 1'));
+      }
+      if (limit < 1 || limit > 100) {
+        return err(createInvalidInputError('Limit must be between 1 and 100'));
+      }
+
+      const stockItem = await stockItemModel.findByPk(id);
+      if (!stockItem) {
+        return err(createNotFoundError('Stock item', id));
+      }
+
+      const where: Record<string, unknown> = { stockItemId: id };
+      if (query.brandId) {
+        where['brandId'] = query.brandId;
+      }
+      if (query.dateFrom || query.dateTo) {
+        const receivedAtFilter: any = {};
+        if (query.dateFrom) {
+          receivedAtFilter[Op.gte] = new Date(query.dateFrom);
+        }
+        if (query.dateTo) {
+          receivedAtFilter[Op.lte] = new Date(query.dateTo);
+        }
+        where['receivedAt'] = receivedAtFilter;
+      }
+
+      const offset = (page - 1) * limit;
+      const result = await stockReceivingLotModel.findAndCountAll({
+        where,
+        limit,
+        offset,
+        order: [['receivedAt', 'DESC'], ['createdAt', 'DESC']],
+        include: [{ model: brandModel, as: 'brand', attributes: ['id', 'name'] }],
+      });
+
+      const lots = (result.rows as Array<StockReceivingLotModel & { brand?: BrandModel }>).map((lot) =>
+        toStockReceivingLotResponseDto(lot, {
+          stockItemName: stockItem.name,
+          brandName: lot.brand?.name ?? '',
+        })
+      );
+
+      return ok({
+        lots,
+        total: result.count,
+        page,
+        limit,
+      });
+    } catch (error) {
+      logger.error('Failed to fetch receiving lots', { error, stockItemId: id, query });
+      return err(createDatabaseError('Failed to fetch receiving lots', error));
+    }
+  };
+
+  /**
    * Adjust stock (can be positive or negative)
    */
   const adjustStock = async (
@@ -540,6 +1073,8 @@ export const createStockItemService = (
     deleteStockItem,
     restoreStockItem,
     receiveStock,
+    receiveWithPricing,
+    getReceivingLots,
     adjustStock,
     bulkImportStockItems,
   };

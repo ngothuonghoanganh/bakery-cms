@@ -33,6 +33,8 @@ import {
   stockItemIdParamSchema,
   stockItemListQuerySchema,
   receiveStockSchema,
+  receiveWithPricingSchema,
+  stockReceivingLotsQuerySchema,
   adjustStockSchema,
 } from './validators/stock-items.validators';
 import {
@@ -81,7 +83,15 @@ export const createStockRouter = (): Router => {
 
   // Create stock items repository, service, and handlers (dependency injection)
   const stockItemRepository = createStockItemRepository(models.StockItem);
-  const stockItemService = createStockItemService(stockItemRepository, stockMovementRepository);
+  const stockItemService = createStockItemService({
+    stockItemRepository,
+    stockMovementRepository,
+    stockItemModel: models.StockItem,
+    brandModel: models.Brand,
+    stockItemBrandModel: models.StockItemBrand,
+    stockReceivingLotModel: models.StockReceivingLot,
+    stockMovementModel: models.StockMovement,
+  });
   const stockItemHandlers = createStockItemHandlers(stockItemService);
 
   // Create file service for cleanup operations
@@ -255,6 +265,34 @@ export const createStockRouter = (): Router => {
     validateParams(stockItemIdParamSchema),
     validateBody(receiveStockSchema),
     stockItemHandlers.handleReceiveStock as any
+  );
+
+  /**
+   * POST /api/stock/stock-items/:id/receive-with-pricing
+   * Receive stock with lot-level pricing snapshot
+   * Requires: Manager role or higher
+   */
+  router.post(
+    '/stock-items/:id/receive-with-pricing',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(stockItemIdParamSchema),
+    validateBody(receiveWithPricingSchema),
+    stockItemHandlers.handleReceiveWithPricing as any
+  );
+
+  /**
+   * GET /api/stock/stock-items/:id/receiving-lots
+   * List receiving lots for a stock item
+   * Requires: Manager role or higher
+   */
+  router.get(
+    '/stock-items/:id/receiving-lots',
+    authenticateJWT as any,
+    requireManager as any,
+    validateParams(stockItemIdParamSchema),
+    validateQuery(stockReceivingLotsQuerySchema),
+    stockItemHandlers.handleGetReceivingLots as any
   );
 
   /**

@@ -80,12 +80,12 @@
 
 ### Stock/material management
 - Refactored `StockItemDetailPage` tabs to operational layout:
-  - Overview
-  - Brands & Current Pricing
-  - Receiving & Price History (phase notice)
-  - Movement History
+  - Giá & nhập kho
+  - Tổng quan
+  - Lịch sử nhập giá
+  - Lịch sử biến động kho
 - Overview now explicitly shows base unit in detail section.
-- Added clear phase notice that per-receiving lot price history is not implemented yet (no fake history).
+- Per-receiving lot price history is implemented via `stock_receiving_lots` (no fake/backfill history).
 
 ### Brand pricing
 - Improved brand price modal preview with conversion lines:
@@ -119,11 +119,14 @@
 - Existing monorepo lint warnings remain outside this task scope.
 
 ## 11. Next phase proposal
-- Add `stock_receiving_lots` or `stock_item_brand_price_histories` for true per-receiving price history timeline.
 - Add advanced costing methods:
   - FIFO
   - Weighted average
 - Add production batch and finished goods inventory workflow.
+  - Receiving lots are now the base for FIFO/weighted average (see `STOCK_RECEIVING_PRICE_LOG.md`).
+
+## 12. Update (2026-05-27) - Receiving lots + pricing
+- Implemented “Nhập kho + giá” with real receiving lots history; details in `docs/change-logs/recipe-stock-upgrade/v1/STOCK_RECEIVING_PRICE_LOG.md`.
 
 ## Add Ingredient stock item select fix
 ### Root cause

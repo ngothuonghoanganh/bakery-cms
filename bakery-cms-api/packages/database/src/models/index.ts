@@ -16,6 +16,10 @@ import { StockItemModel, initStockItemModel } from './stock-item.model';
 import { StockItemBrandModel, initStockItemBrandModel } from './stock-item-brand.model';
 import { ProductStockItemModel, initProductStockItemModel } from './product-stock-item.model';
 import { StockMovementModel, initStockMovementModel } from './stock-movement.model';
+import {
+  StockReceivingLotModel,
+  initStockReceivingLotModel,
+} from './stock-receiving-lot.model';
 import { FileModel, initFileModel } from './file.model';
 import { ProductImageModel, initProductImageModel } from './product-image.model';
 import { ProductComboItemModel, initProductComboItemModel } from './product-combo-item.model';
@@ -47,6 +51,7 @@ export const initializeModels = (sequelize: Sequelize): {
   readonly StockItemBrand: typeof StockItemBrandModel;
   readonly ProductStockItem: typeof ProductStockItemModel;
   readonly StockMovement: typeof StockMovementModel;
+  readonly StockReceivingLot: typeof StockReceivingLotModel;
   readonly File: typeof FileModel;
   readonly ProductImage: typeof ProductImageModel;
   readonly ProductComboItem: typeof ProductComboItemModel;
@@ -68,6 +73,7 @@ export const initializeModels = (sequelize: Sequelize): {
   const StockItemBrand = initStockItemBrandModel(sequelize);
   const ProductStockItem = initProductStockItemModel(sequelize);
   const StockMovement = initStockMovementModel(sequelize);
+  const StockReceivingLot = initStockReceivingLotModel(sequelize);
   const File = initFileModel(sequelize);
   const ProductImage = initProductImageModel(sequelize);
   const ProductComboItem = initProductComboItemModel(sequelize);
@@ -193,6 +199,13 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  StockItem.hasMany(StockReceivingLot, {
+    foreignKey: 'stockItemId',
+    as: 'receivingLots',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
   // Brand associations
   Brand.hasMany(StockItemBrand, {
     foreignKey: 'brandId',
@@ -215,6 +228,20 @@ export const initializeModels = (sequelize: Sequelize): {
     onUpdate: 'CASCADE',
   });
 
+  Brand.hasMany(StockReceivingLot, {
+    foreignKey: 'brandId',
+    as: 'stockReceivingLots',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  User.hasMany(StockReceivingLot, {
+    foreignKey: 'createdByUserId',
+    as: 'stockReceivingLots',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
   // StockItemBrand associations
   StockItemBrand.belongsTo(StockItem, {
     foreignKey: 'stockItemId',
@@ -226,6 +253,27 @@ export const initializeModels = (sequelize: Sequelize): {
   StockItemBrand.belongsTo(Brand, {
     foreignKey: 'brandId',
     as: 'brand',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockReceivingLot.belongsTo(StockItem, {
+    foreignKey: 'stockItemId',
+    as: 'stockItem',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockReceivingLot.belongsTo(Brand, {
+    foreignKey: 'brandId',
+    as: 'brand',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+  });
+
+  StockReceivingLot.belongsTo(User, {
+    foreignKey: 'createdByUserId',
+    as: 'createdByUser',
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   });
@@ -491,6 +539,7 @@ export const initializeModels = (sequelize: Sequelize): {
     StockItemBrand,
     ProductStockItem,
     StockMovement,
+    StockReceivingLot,
     File,
     ProductImage,
     ProductComboItem,
@@ -515,6 +564,7 @@ export {
   StockItemBrandModel,
   ProductStockItemModel,
   StockMovementModel,
+  StockReceivingLotModel,
   FileModel,
   ProductImageModel,
   ProductComboItemModel,

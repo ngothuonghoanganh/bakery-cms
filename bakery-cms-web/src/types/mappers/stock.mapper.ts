@@ -11,6 +11,8 @@ import type {
   PaginatedBrandsAPIResponse,
   StockMovementAPIResponse,
   PaginatedStockMovementsAPIResponse,
+  StockItemPriceSummaryAPIResponse,
+  StockReceivingLotAPIResponse,
   ProductStockItemAPIResponse,
   ProductRecipeAPIResponse,
   ProductCostAPIResponse,
@@ -29,6 +31,8 @@ import type {
   PaginatedBrands,
   StockMovement,
   PaginatedStockMovements,
+  StockItemPriceSummary,
+  StockReceivingLot,
   ProductStockItem,
   ProductRecipe,
   ProductCost,
@@ -70,6 +74,42 @@ export const mapStockItemBrandFromAPI = (
   updatedAt: new Date(apiBrand.updatedAt),
 });
 
+export const mapStockItemPriceSummaryFromAPI = (
+  apiSummary: StockItemPriceSummaryAPIResponse
+): StockItemPriceSummary => ({
+  preferredBrandId: apiSummary.preferredBrandId,
+  preferredBrandName: apiSummary.preferredBrandName,
+  latestPriceBrandId: apiSummary.latestPriceBrandId,
+  latestPriceBrandName: apiSummary.latestPriceBrandName,
+  latestUnitPriceBeforeTax: apiSummary.latestUnitPriceBeforeTax,
+  latestUnitPriceAfterTax: apiSummary.latestUnitPriceAfterTax,
+  latestReceivedAt: apiSummary.latestReceivedAt ? new Date(apiSummary.latestReceivedAt) : null,
+  hasPrice: apiSummary.hasPrice,
+});
+
+export const mapStockReceivingLotFromAPI = (
+  apiLot: StockReceivingLotAPIResponse
+): StockReceivingLot => ({
+  id: apiLot.id,
+  stockItemId: apiLot.stockItemId,
+  stockItemName: apiLot.stockItemName,
+  brandId: apiLot.brandId,
+  brandName: apiLot.brandName,
+  receivedQuantity: apiLot.receivedQuantity,
+  receivedUnit: apiLot.receivedUnit ?? StockPurchaseUnit.PIECE,
+  receivedQuantityBase: apiLot.receivedQuantityBase,
+  baseUnit: apiLot.baseUnit ?? StockPurchaseUnit.PIECE,
+  priceBeforeTax: apiLot.priceBeforeTax,
+  priceAfterTax: apiLot.priceAfterTax,
+  unitPriceBeforeTax: apiLot.unitPriceBeforeTax,
+  unitPriceAfterTax: apiLot.unitPriceAfterTax,
+  remainingQuantityBase: apiLot.remainingQuantityBase,
+  receivedAt: new Date(apiLot.receivedAt),
+  supplierName: apiLot.supplierName,
+  invoiceCode: apiLot.invoiceCode,
+  note: apiLot.note,
+});
+
 /**
  * Map stock item API response to domain model
  */
@@ -86,6 +126,15 @@ export const mapStockItemFromAPI = (apiStockItem: StockItemAPIResponse): StockIt
   createdAt: new Date(apiStockItem.createdAt),
   updatedAt: new Date(apiStockItem.updatedAt),
   brands: apiStockItem.brands?.map(mapStockItemBrandFromAPI),
+  priceSummary: apiStockItem.priceSummary
+    ? mapStockItemPriceSummaryFromAPI(apiStockItem.priceSummary)
+    : undefined,
+  latestReceivingLot:
+    apiStockItem.latestReceivingLot === null
+      ? null
+      : apiStockItem.latestReceivingLot
+        ? mapStockReceivingLotFromAPI(apiStockItem.latestReceivingLot)
+        : undefined,
 });
 
 /**

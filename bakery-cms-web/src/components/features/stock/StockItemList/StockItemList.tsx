@@ -14,6 +14,7 @@ import { useCrudErrorNotification } from '../../../../hooks/useCrudErrorNotifica
 import { StockItemStatus } from '../../../../types/models/stock.model';
 import type { StockItem } from '../../../../types/models/stock.model';
 import type { StockItemListProps } from './StockItemList.types';
+import { formatCurrency, formatDateTime } from '@/utils/format.utils';
 
 const { Search } = Input;
 
@@ -145,25 +146,48 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'name'),
       },
       {
-        title: t('stock.list.unit'),
-        dataIndex: 'unitOfMeasure',
-        key: 'unitOfMeasure',
-      },
-      {
-        title: t('stock.list.currentQuantity'),
+        title: t('stock.list.currentQuantity', 'Tồn hiện tại'),
         dataIndex: 'currentQuantity',
         key: 'currentQuantity',
         sorter: true,
         sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'currentQuantity'),
-        render: (quantity: number, record: StockItem) =>
-          `${quantity} ${record.unitOfMeasure}`,
+        render: (_: unknown, record: StockItem) =>
+          `${record.currentQuantity} ${record.unitOfMeasure}`,
       },
       {
-        title: t('stock.list.reorderThreshold'),
-        dataIndex: 'reorderThreshold',
-        key: 'reorderThreshold',
-        render: (threshold: number | null, record: StockItem) =>
-          threshold !== null ? `${threshold} ${record.unitOfMeasure}` : t('common.na'),
+        title: t('stock.list.currentPrice', 'Giá hiện tại'),
+        key: 'currentPrice',
+        render: (_: unknown, record: StockItem) => {
+          const summary = record.priceSummary;
+          const unitPrice = summary?.latestUnitPriceAfterTax;
+          if (summary?.hasPrice && unitPrice !== null && unitPrice !== undefined) {
+            return `${formatCurrency(unitPrice)} / ${record.baseUnit}`;
+          }
+          return <Tag color="default">{t('stock.list.noPrice', 'Chưa có giá')}</Tag>;
+        },
+      },
+      {
+        title: t('stock.list.priceBrand', 'Nhãn hàng giá'),
+        key: 'priceBrand',
+        render: (_: unknown, record: StockItem) => {
+          const summary = record.priceSummary;
+          return (
+            summary?.latestPriceBrandName ||
+            summary?.preferredBrandName ||
+            t('common.na', 'N/A')
+          );
+        },
+      },
+      {
+        title: t('stock.list.latestReceiving', 'Lần nhập gần nhất'),
+        key: 'latestReceiving',
+        render: (_: unknown, record: StockItem) => {
+          const summary = record.priceSummary;
+          if (summary?.latestReceivedAt) {
+            return formatDateTime(summary.latestReceivedAt, 'YYYY-MM-DD HH:mm');
+          }
+          return t('stock.list.noReceivingPrice', 'Chưa nhập giá');
+        },
       },
       {
         title: t('common.status.label'),
@@ -195,6 +219,14 @@ export const StockItemList: React.FC<StockItemListProps> = ({
               size="small"
             >
               {t('common.actions.edit')}
+            </Button>
+            <Button
+              type="link"
+              icon={<PlusOutlined />}
+              onClick={() => onView(record.id)}
+              size="small"
+            >
+              {t('stock.list.receiveWithPricing', 'Nhập kho + giá')}
             </Button>
             <Popconfirm
               title={t('stock.list.deleteTitle')}
