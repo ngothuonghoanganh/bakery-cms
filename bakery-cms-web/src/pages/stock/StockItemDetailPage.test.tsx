@@ -1,19 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { StockItemDetailPage } from './StockItemDetailPage';
 import { StockItemStatus, StockPurchaseUnit, StockUnitType } from '@/types/models/stock.model';
 import * as stockService from '@/services/stock.service';
+import { vi as viLocale } from '@/i18n/locales/vi';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
+
+  const getValueByPath = (obj: any, path: string): unknown => {
+    return path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+  };
+
+  const interpolate = (template: string, options?: Record<string, unknown>): string => {
+    if (!options) return template;
+    return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => String(options[key] ?? ''));
+  };
+
   return {
     ...actual,
     initReactI18next: { type: '3rdParty', init: vi.fn() },
     useTranslation: () => ({
-      t: (_key: string, fallback?: unknown) =>
-        typeof fallback === 'string' ? fallback : _key,
+      t: (key: string, arg2?: unknown) => {
+        if (typeof arg2 === 'string') return arg2;
+        const value = getValueByPath(viLocale, key);
+        if (typeof value === 'string') {
+          return interpolate(value, (arg2 as any) || undefined);
+        }
+        return key;
+      },
     }),
   };
 });
@@ -160,8 +178,8 @@ describe('StockItemDetailPage', () => {
     renderPage();
 
     expect(await screen.findByText('Sugar')).toBeInTheDocument();
-    expect(screen.getByText(/Giá \/ base unit/i)).toBeInTheDocument();
-    expect(screen.getByText(/\/ gram/i)).toBeInTheDocument();
+    expect(screen.getByText(/Đơn giá \/ base unit/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/\/ gram/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Bien Hoa/i).length).toBeGreaterThan(0);
   });
 
@@ -172,36 +190,39 @@ describe('StockItemDetailPage', () => {
     fireEvent.click(openBtn);
 
     const dialog = await screen.findByRole('dialog');
-    const submitBtn = within(dialog).getByRole('button', { name: /Nhập kho \+ giá/i });
+    const submitBtn = within(dialog).getByRole('button', { name: /Xác nhận nhập kho/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Brand is required/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Vui lòng chọn nhãn hàng/i)).toBeInTheDocument();
     });
     expect(stockService.receiveWithPricing).not.toHaveBeenCalled();
   });
 
   it('receive-with-pricing modal validates priceAfterTax >= priceBeforeTax', async () => {
     renderPage();
+    const user = userEvent.setup();
 
     const [openBtn] = await screen.findAllByRole('button', { name: /Nhập kho \+ giá/i });
     fireEvent.click(openBtn);
     const dialog = await screen.findByRole('dialog');
 
     // Switch to create-new-brand mode so brandId validation doesn't block this test
-    fireEvent.click(within(dialog).getByRole('button', { name: /Create new brand/i }));
-    fireEvent.change(within(dialog).getByLabelText(/New brand name/i), { target: { value: 'New Brand' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Tạo nhãn hàng mới/i }));
+    await user.type(within(dialog).getByLabelText(/Tên nhãn hàng/i), 'New Brand');
 
     const before = within(dialog).getByLabelText(/Giá trước thuế/i);
     const after = within(dialog).getByLabelText(/Giá sau thuế/i);
-    fireEvent.change(before, { target: { value: '10' } });
-    fireEvent.change(after, { target: { value: '9' } });
+    await user.clear(before);
+    await user.type(before, '10');
+    await user.clear(after);
+    await user.type(after, '9');
 
-    const submitBtn = within(dialog).getByRole('button', { name: /Nhập kho \+ giá/i });
+    const submitBtn = within(dialog).getByRole('button', { name: /Xác nhận nhập kho/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Price after tax must be >= price before tax/i)).toBeInTheDocument();
+      expect(screen.getByText(/Giá sau thuế phải lớn hơn hoặc bằng giá trước thuế/i)).toBeInTheDocument();
     });
     expect(stockService.receiveWithPricing).not.toHaveBeenCalled();
   });
@@ -238,7 +259,7 @@ describe('StockItemDetailPage', () => {
     // price after tax = 100000 => 100 / gram
     fireEvent.change(within(dialog).getByLabelText(/Giá sau thuế/i), { target: { value: '100000' } });
 
-    expect(await within(dialog).findByText(/Đơn giá quy đổi/i)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/Đơn giá:/i)).toBeInTheDocument();
     expect(within(dialog).getByText(/\/ gram/i)).toBeInTheDocument();
   });
 
@@ -258,22 +279,27 @@ describe('StockItemDetailPage', () => {
   it('submitting receive-with-pricing calls API with correct payload', async () => {
     renderPage();
 
-    // Open modal with preset brand via brand table CTA
-    const brandCardTitle = await screen.findByText(/Nhãn hàng & giá hiện tại/i);
-    const brandCard = brandCardTitle.closest('.ant-card') as HTMLElement;
-    expect(brandCard).toBeTruthy();
-    fireEvent.click(within(brandCard).getByRole('button', { name: /Nhập kho \+ giá/i }));
+    // Open modal and select brand
+    const [openBtn] = await screen.findAllByRole('button', { name: /Nhập kho \+ giá/i });
+    fireEvent.click(openBtn);
 
     const dialog = await screen.findByRole('dialog');
 
-    // ensure brand is preset
-    expect(within(dialog).getAllByRole('combobox').length).toBeGreaterThan(0);
+    // select brand
+    const comboboxes = within(dialog).getAllByRole('combobox');
+    const brandSelect = comboboxes[0] as HTMLElement;
+    fireEvent.mouseDown(brandSelect);
+    fireEvent.click(
+      await screen.findByText(
+        (_, el) => !!el && el.classList.contains('ant-select-item-option-content') && el.textContent === 'Bien Hoa'
+      )
+    );
 
     fireEvent.change(within(dialog).getByLabelText(/Số lượng nhập/i), { target: { value: '1' } });
     fireEvent.change(within(dialog).getByLabelText(/Giá trước thuế/i), { target: { value: '90000' } });
     fireEvent.change(within(dialog).getByLabelText(/Giá sau thuế/i), { target: { value: '100000' } });
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /Nhập kho \+ giá/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Xác nhận nhập kho/i }));
 
     await waitFor(() => {
       expect(stockService.receiveWithPricing).toHaveBeenCalled();

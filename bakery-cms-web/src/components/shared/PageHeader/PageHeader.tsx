@@ -10,7 +10,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, extra }
       style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        gap: 12,
         marginBottom: 24,
       }}
     >
@@ -20,7 +22,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, extra }
         </Title>
         {subtitle && <Text type="secondary">{subtitle}</Text>}
       </Space>
-      {extra && <Space>{extra}</Space>}
+      {extra && <Space wrap style={{ justifyContent: 'flex-end' }}>{extra}</Space>}
     </div>
   );
 };

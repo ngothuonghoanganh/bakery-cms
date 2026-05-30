@@ -18,7 +18,7 @@ const getStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
-const getBusinessTypeKey = (type: string): 'madeToOrder' | 'readyToSell' | 'both' => {
+const getBusinessTypeKey = (type: string): string => {
   const keyMap: Record<string, 'madeToOrder' | 'readyToSell' | 'both'> = {
     [BusinessType.MADE_TO_ORDER]: 'madeToOrder',
     [BusinessType.READY_TO_SELL]: 'readyToSell',
@@ -27,7 +27,7 @@ const getBusinessTypeKey = (type: string): 'madeToOrder' | 'readyToSell' | 'both
   return keyMap[type] || type;
 };
 
-const getStatusKey = (status: string): 'available' | 'outOfStock' => {
+const getStatusKey = (status: string): string => {
   const keyMap: Record<string, 'available' | 'outOfStock'> = {
     [ProductStatus.AVAILABLE]: 'available',
     [ProductStatus.OUT_OF_STOCK]: 'outOfStock',

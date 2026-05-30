@@ -4,9 +4,34 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { Button, Table, Tag, Space, Popconfirm, Input, Select, Row, Col } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Col,
+  Dropdown,
+  Empty,
+  Grid,
+  Input,
+  List,
+  Modal,
+  Pagination,
+  Row,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  MoreOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 import type { TableProps } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared';
 import { useNotification } from '../../../../hooks/useNotification';
@@ -17,6 +42,9 @@ import type { StockItemListProps } from './StockItemList.types';
 import { formatCurrency, formatDateTime } from '@/utils/format.utils';
 
 const { Search } = Input;
+const { Text } = Typography;
+const { useBreakpoint } = Grid;
+type MenuItem = Exclude<MenuProps['items'], undefined>[number];
 
 const getSortOrder = (sortBy: string | undefined, sortOrder: string | undefined, field: string): 'ascend' | 'descend' | undefined => {
   if (sortBy !== field) return undefined;
@@ -47,10 +75,14 @@ export const StockItemList: React.FC<StockItemListProps> = ({
   onCreateClick,
   onDelete,
   onView,
+  onEdit,
+  onReceiveWithPricing,
 }) => {
   const { t } = useTranslation();
   const { success } = useNotification();
   const { showCrudError } = useCrudErrorNotification();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const getStatusLabel = useMemo(
     () => (status: StockItemStatus): string => {
@@ -76,21 +108,39 @@ export const StockItemList: React.FC<StockItemListProps> = ({
 
   const handleEdit = useCallback(
     (stockItem: StockItem) => {
+      if (onEdit) {
+        onEdit(stockItem);
+        return;
+      }
       onView(stockItem.id);
     },
-    [onView]
+    [onEdit, onView]
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
       try {
         await onDelete(id);
-        success(t('stock.notifications.deleted', 'Stock Item Deleted'), t('stock.notifications.deletedMessage', 'Stock item has been deleted successfully'));
+        success(t('stock.notifications.deleted'), t('stock.notifications.deletedMessage'));
       } catch (err) {
         showCrudError(err);
       }
     },
     [onDelete, showCrudError, success, t]
+  );
+
+  const confirmDelete = useCallback(
+    (record: StockItem) => {
+      Modal.confirm({
+        title: t('stock.list.deleteTitle'),
+        content: t('stock.list.deleteConfirm'),
+        okText: t('common.confirm.yes'),
+        cancelText: t('common.confirm.no'),
+        okButtonProps: { danger: true },
+        onOk: () => handleDelete(record.id),
+      });
+    },
+    [handleDelete, t]
   );
 
   const handleSearch = useCallback(
@@ -108,6 +158,109 @@ export const StockItemList: React.FC<StockItemListProps> = ({
       });
     },
     [filters, onFiltersChange]
+  );
+
+  const renderNameCell = useCallback(
+    (record: StockItem) => (
+      <Space direction="vertical" size={0}>
+        <Text strong>{record.name}</Text>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {t('stock.list.unitAndBaseUnit', {
+            unit: record.unitOfMeasure,
+            baseUnit: record.baseUnit,
+          })}
+        </Text>
+      </Space>
+    ),
+    [t]
+  );
+
+  const renderStockCell = useCallback(
+    (record: StockItem) => (
+      <Space direction="vertical" size={4}>
+        <Text>
+          {record.currentQuantity} {record.unitOfMeasure}
+        </Text>
+        <Tag color={getStatusColor(record.status)} style={{ width: 'fit-content' }}>
+          {getStatusLabel(record.status)}
+        </Tag>
+      </Space>
+    ),
+    [getStatusLabel]
+  );
+
+  const renderPriceCell = useCallback(
+    (record: StockItem) => {
+      const summary = record.priceSummary;
+      const hasPrice = Boolean(
+        summary?.hasPrice &&
+          summary?.latestUnitPriceAfterTax !== null &&
+          summary?.latestUnitPriceAfterTax !== undefined
+      );
+      const unitPriceAfterTax = summary?.latestUnitPriceAfterTax ?? null;
+      const brandName = summary?.latestPriceBrandName || summary?.preferredBrandName || null;
+      const latestReceivedAt = summary?.latestReceivedAt ?? null;
+
+      return (
+        <Space direction="vertical" size={2}>
+          {hasPrice && unitPriceAfterTax !== null ? (
+            <Text strong>
+              {formatCurrency(unitPriceAfterTax)} / {record.baseUnit}
+            </Text>
+          ) : (
+            <Tag color="default" style={{ width: 'fit-content' }}>
+              {t('stock.list.noPrice')}
+            </Tag>
+          )}
+
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {t('stock.list.priceInfo', {
+              brand: brandName || t('common.na'),
+              latestReceiving: latestReceivedAt
+                ? formatDateTime(latestReceivedAt, 'YYYY-MM-DD HH:mm')
+                : t('stock.list.latestReceivingEmpty'),
+            })}
+          </Text>
+        </Space>
+      );
+    },
+    [t]
+  );
+
+  const handleReceiveClick = useCallback(
+    (id: string) => {
+      if (onReceiveWithPricing) {
+        onReceiveWithPricing(id);
+        return;
+      }
+      onView(id);
+    },
+    [onReceiveWithPricing, onView]
+  );
+
+  const buildRowMenuItems = useCallback(
+    (record: StockItem): MenuProps['items'] => {
+      const items: Array<MenuItem | null> = [
+        onEdit
+          ? {
+              key: 'edit',
+              icon: <EditOutlined />,
+              label: t('common.actions.edit'),
+              onClick: () => handleEdit(record),
+            }
+          : null,
+        {
+          key: 'delete',
+          icon: <DeleteOutlined />,
+          danger: true,
+          label: t('common.actions.delete'),
+          onClick: () => confirmDelete(record),
+        },
+      ];
+
+      return items.filter((item): item is NonNullable<typeof item> => Boolean(item));
+    },
+    [confirmDelete, handleEdit, onEdit, t]
   );
 
   const handleTableChange = useCallback<NonNullable<TableProps<StockItem>['onChange']>>(
@@ -136,58 +289,26 @@ export const StockItemList: React.FC<StockItemListProps> = ({
     [filters, onFiltersChange, onTableChange]
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ColumnsType<StockItem>>(
     () => [
       {
         title: t('stock.list.name'),
-        dataIndex: 'name',
         key: 'name',
         sorter: true,
         sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'name'),
+        render: (_: unknown, record: StockItem) => renderNameCell(record),
       },
       {
-        title: t('stock.list.currentQuantity', 'Tồn hiện tại'),
-        dataIndex: 'currentQuantity',
-        key: 'currentQuantity',
+        title: t('stock.list.currentQuantity'),
+        key: 'stock',
         sorter: true,
         sortOrder: getSortOrder(filters.sortBy, filters.sortOrder, 'currentQuantity'),
-        render: (_: unknown, record: StockItem) =>
-          `${record.currentQuantity} ${record.unitOfMeasure}`,
+        render: (_: unknown, record: StockItem) => renderStockCell(record),
       },
       {
-        title: t('stock.list.currentPrice', 'Giá hiện tại'),
-        key: 'currentPrice',
-        render: (_: unknown, record: StockItem) => {
-          const summary = record.priceSummary;
-          const unitPrice = summary?.latestUnitPriceAfterTax;
-          if (summary?.hasPrice && unitPrice !== null && unitPrice !== undefined) {
-            return `${formatCurrency(unitPrice)} / ${record.baseUnit}`;
-          }
-          return <Tag color="default">{t('stock.list.noPrice', 'Chưa có giá')}</Tag>;
-        },
-      },
-      {
-        title: t('stock.list.priceBrand', 'Nhãn hàng giá'),
-        key: 'priceBrand',
-        render: (_: unknown, record: StockItem) => {
-          const summary = record.priceSummary;
-          return (
-            summary?.latestPriceBrandName ||
-            summary?.preferredBrandName ||
-            t('common.na', 'N/A')
-          );
-        },
-      },
-      {
-        title: t('stock.list.latestReceiving', 'Lần nhập gần nhất'),
-        key: 'latestReceiving',
-        render: (_: unknown, record: StockItem) => {
-          const summary = record.priceSummary;
-          if (summary?.latestReceivedAt) {
-            return formatDateTime(summary.latestReceivedAt, 'YYYY-MM-DD HH:mm');
-          }
-          return t('stock.list.noReceivingPrice', 'Chưa nhập giá');
-        },
+        title: t('stock.list.currentPrice'),
+        key: 'price',
+        render: (_: unknown, record: StockItem) => renderPriceCell(record),
       },
       {
         title: t('common.status.label'),
@@ -198,52 +319,114 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         render: (status: StockItemStatus) => (
           <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
         ),
+        responsive: ['lg'],
       },
       {
         title: t('common.table.actions'),
         key: 'actions',
-        render: (_: unknown, record: StockItem) => (
-          <Space size="small">
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => onView(record.id)}
-              size="small"
-            >
-              {t('common.actions.view')}
-            </Button>
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-              size="small"
-            >
-              {t('common.actions.edit')}
-            </Button>
-            <Button
-              type="link"
-              icon={<PlusOutlined />}
-              onClick={() => onView(record.id)}
-              size="small"
-            >
-              {t('stock.list.receiveWithPricing', 'Nhập kho + giá')}
-            </Button>
-            <Popconfirm
-              title={t('stock.list.deleteTitle')}
-              description={t('stock.list.deleteConfirm')}
-              onConfirm={() => handleDelete(record.id)}
-              okText={t('common.confirm.yes')}
-              cancelText={t('common.confirm.no')}
-            >
-              <Button type="link" danger icon={<DeleteOutlined />} size="small">
-                {t('common.actions.delete')}
+        width: 220,
+        render: (_: unknown, record: StockItem) => {
+          return (
+            <Space size="small" wrap={false}>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => handleReceiveClick(record.id)}
+              >
+                {t('stock.list.receiveWithPricing')}
               </Button>
-            </Popconfirm>
-          </Space>
-        ),
+              <Button
+                type="link"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => onView(record.id)}
+              >
+                {t('common.actions.view')}
+              </Button>
+              <Dropdown
+                menu={{ items: buildRowMenuItems(record) }}
+                placement="bottomRight"
+                trigger={['click']}
+              >
+                <Button type="text" size="small" icon={<MoreOutlined />} />
+              </Dropdown>
+            </Space>
+          );
+        },
       },
     ],
-    [t, filters.sortBy, filters.sortOrder, getStatusLabel, onView, handleEdit, handleDelete]
+    [
+      confirmDelete,
+      filters.sortBy,
+      filters.sortOrder,
+      getStatusLabel,
+      handleEdit,
+      handleReceiveClick,
+      onEdit,
+      onView,
+      buildRowMenuItems,
+      renderNameCell,
+      renderPriceCell,
+      renderStockCell,
+      t,
+    ]
+  );
+
+  const renderMobileItem = useCallback(
+    (record: StockItem) => (
+      <Card
+        size="small"
+        style={{ width: '100%' }}
+        title={renderNameCell(record)}
+        extra={
+          <Dropdown
+            placement="bottomRight"
+            trigger={['click']}
+            menu={{
+              items: buildRowMenuItems(record),
+            }}
+          >
+            <Button type="text" icon={<MoreOutlined />} />
+          </Dropdown>
+        }
+      >
+        <Row gutter={[12, 8]}>
+          <Col xs={24} sm={12}>
+            <Text type="secondary">{t('stock.list.currentQuantity')}</Text>
+            <div>{renderStockCell(record)}</div>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Text type="secondary">{t('stock.list.currentPrice')}</Text>
+            <div>{renderPriceCell(record)}</div>
+          </Col>
+          <Col xs={24}>
+            <Row gutter={8}>
+              <Col xs={24} sm={12}>
+                <Button block type="primary" onClick={() => handleReceiveClick(record.id)}>
+                  {t('stock.list.receiveWithPricing')}
+                </Button>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Button block onClick={() => onView(record.id)}>
+                  {t('common.actions.view')}
+                </Button>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Card>
+    ),
+    [
+      confirmDelete,
+      handleEdit,
+      handleReceiveClick,
+      onEdit,
+      onView,
+      renderNameCell,
+      renderPriceCell,
+      renderStockCell,
+      t,
+    ]
   );
 
   return (
@@ -252,7 +435,7 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         title={t('stock.items.title')}
         subtitle={t('stock.items.subtitle')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={onCreateClick}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={onCreateClick} block={isMobile}>
             {t('stock.items.add')}
           </Button>
         }
@@ -279,21 +462,50 @@ export const StockItemList: React.FC<StockItemListProps> = ({
         </Col>
       </Row>
 
-      <Table
-        columns={columns}
-        dataSource={stockItems}
-        loading={loading}
-        rowKey="id"
-        pagination={{
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-          total: pagination.total,
-          showSizeChanger: true,
-          showTotal: (total) => t('common.pagination.total', { total }),
-          pageSizeOptions: ['10', '20', '50', '100'],
-        }}
-        onChange={handleTableChange}
-      />
+      {isMobile ? (
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {stockItems.length === 0 && !loading ? (
+            <Card>
+              <Empty description={t('stock.list.empty')} />
+            </Card>
+          ) : (
+            <List
+              dataSource={stockItems}
+              loading={loading}
+              renderItem={(item) => <List.Item style={{ padding: 0 }}>{renderMobileItem(item)}</List.Item>}
+            />
+          )}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              showSizeChanger
+              pageSizeOptions={['10', '20', '50', '100']}
+              showTotal={(total) => t('common.pagination.total', { total })}
+              onChange={(page, pageSize) => onTableChange({ current: page, pageSize }, {}, {})}
+              onShowSizeChange={(page, pageSize) => onTableChange({ current: page, pageSize }, {}, {})}
+            />
+          </div>
+        </Space>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={stockItems}
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => t('common.pagination.total', { total }),
+            pageSizeOptions: ['10', '20', '50', '100'],
+          }}
+          onChange={handleTableChange}
+          scroll={{ x: 900 }}
+        />
+      )}
     </div>
   );
 };

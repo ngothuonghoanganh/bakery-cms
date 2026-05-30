@@ -118,7 +118,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success(t('stock.notifications.created', 'Stock Item Created'), t('stock.notifications.createdMessage', 'Stock item has been created successfully'));
+          success(t('stock.notifications.created'), t('stock.notifications.createdMessage'));
           await refetch();
           close();
           setSelectedStockItem(null);
@@ -146,7 +146,7 @@ export const StockItemsPage = (): React.JSX.Element => {
         });
 
         if (result.success) {
-          success(t('stock.notifications.updated', 'Stock Item Updated'), t('stock.notifications.updatedMessage', 'Stock item has been updated successfully'));
+          success(t('stock.notifications.updated'), t('stock.notifications.updatedMessage'));
           await refetch();
           close();
           setSelectedStockItem(null);
@@ -182,6 +182,21 @@ export const StockItemsPage = (): React.JSX.Element => {
     [navigate]
   );
 
+  const handleEdit = useCallback(
+    (item: StockItem) => {
+      setSelectedStockItem(item);
+      open();
+    },
+    [open]
+  );
+
+  const handleReceiveWithPricing = useCallback(
+    (id: string) => {
+      navigate(`/stock/items/${id}?action=receive-with-pricing`);
+    },
+    [navigate]
+  );
+
   const handleFormSubmit = useCallback(
     async (values: StockItemFormValues) => {
       if (selectedStockItem) {
@@ -209,6 +224,8 @@ export const StockItemsPage = (): React.JSX.Element => {
         onCreateClick={open}
         onDelete={handleDelete}
         onView={handleView}
+        onEdit={handleEdit}
+        onReceiveWithPricing={handleReceiveWithPricing}
       />
       <StockItemForm
         visible={visible}

@@ -18,6 +18,38 @@ import {
 } from '@/types/models/product.model';
 import { mapFileFromAPI } from './file.mapper';
 
+const normalizeBusinessType = (value: string): BusinessType => {
+  const map: Record<string, BusinessType> = {
+    [BusinessType.MADE_TO_ORDER]: BusinessType.MADE_TO_ORDER,
+    [BusinessType.READY_TO_SELL]: BusinessType.READY_TO_SELL,
+    [BusinessType.BOTH]: BusinessType.BOTH,
+    MADE_TO_ORDER: BusinessType.MADE_TO_ORDER,
+    READY_TO_SELL: BusinessType.READY_TO_SELL,
+    BOTH: BusinessType.BOTH,
+  };
+  return map[value] ?? (value as BusinessType);
+};
+
+const normalizeProductStatus = (value: string): ProductStatus => {
+  const map: Record<string, ProductStatus> = {
+    [ProductStatus.AVAILABLE]: ProductStatus.AVAILABLE,
+    [ProductStatus.OUT_OF_STOCK]: ProductStatus.OUT_OF_STOCK,
+    AVAILABLE: ProductStatus.AVAILABLE,
+    OUT_OF_STOCK: ProductStatus.OUT_OF_STOCK,
+  };
+  return map[value] ?? (value as ProductStatus);
+};
+
+const normalizeProductType = (value: string): ProductType => {
+  const map: Record<string, ProductType> = {
+    [ProductType.SINGLE]: ProductType.SINGLE,
+    [ProductType.COMBO]: ProductType.COMBO,
+    SINGLE: ProductType.SINGLE,
+    COMBO: ProductType.COMBO,
+  };
+  return map[value] ?? (value as ProductType);
+};
+
 /**
  * Map API response to ProductImage domain model
  */
@@ -65,9 +97,9 @@ export const mapProductFromAPI = (apiProduct: ProductAPIResponse): Product => ({
   price: apiProduct.price,
   saleUnitType: apiProduct.saleUnitType ?? SaleUnitType.PIECE,
   category: apiProduct.category,
-  businessType: apiProduct.businessType as BusinessType,
-  status: apiProduct.status as ProductStatus,
-  productType: (apiProduct.productType as ProductType) || ProductType.SINGLE,
+  businessType: normalizeBusinessType(apiProduct.businessType),
+  status: normalizeProductStatus(apiProduct.status),
+  productType: apiProduct.productType ? normalizeProductType(apiProduct.productType) : ProductType.SINGLE,
   isPublished: apiProduct.isPublished ?? true,
   comboItems: apiProduct.comboItems?.map(mapProductComboItemFromAPI) || [],
   imageUrl: apiProduct.imageUrl,

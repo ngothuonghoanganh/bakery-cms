@@ -30,4 +30,6 @@ export interface StockItemListProps {
   onCreateClick: () => void;
   onDelete: (id: string) => Promise<void>;
   onView: (id: string) => void;
+  onEdit?: (stockItem: StockItem) => void;
+  onReceiveWithPricing?: (id: string) => void;
 }

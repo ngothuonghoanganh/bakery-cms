@@ -1717,7 +1717,7 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({
               },
             ]}
           >
-            <InputNumber min={0.001} precision={3} style={{ width: '100%' }} />
+            <InputNumber min={0.001} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name="yieldUnit"
@@ -1803,8 +1803,6 @@ export const ProductRecipe: React.FC<ProductRecipeProps> = ({
           >
             <InputNumber
               min={0.001}
-              step={0.001}
-              precision={3}
               style={{ width: '100%' }}
             />
           </Form.Item>
